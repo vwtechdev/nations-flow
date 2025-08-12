@@ -1,0 +1,135 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Search Container -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="categorySearch" class="form-control search-input" placeholder="Pesquisar">
+                        <button type="button" class="search-button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="categoriesTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Data de Criação</th>
+                                    <th>Última Atualização</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                    <tr>
+                                        <td>{{ category.name }}</td>
+                                        <td>{{ category.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ category.updated_at|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <a href="{% url 'category_edit' category.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-category-id="{{ category.pk }}"
+                                                    data-category-name="{{ category.name }}"
+                                                    data-category-created="{{ category.created_at|date:'d/m/Y H:i' }}"
+                                                    data-category-updated="{{ category.updated_at|date:'d/m/Y H:i' }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhuma categoria encontrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja excluir a categoria?</strong>
+                </p>
+                <div class="card border-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> <span id="categoryName"></span>
+                        </h6>
+                        <p class="card-text mb-1"><strong>Nome:</strong> <span id="categoryNameText"></span></p>
+                        <p class="card-text mb-1"><strong>Criada em:</strong> <span id="categoryCreated"></span></p>
+                        <p class="card-text"><strong>Última atualização:</strong> <span id="categoryUpdated"></span></p>
+                    </div>
+                </div>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar transações existentes.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/search.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Captura os dados da categoria quando o modal é aberto
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const categoryId = button.getAttribute('data-category-id');
+        const categoryName = button.getAttribute('data-category-name');
+        const categoryCreated = button.getAttribute('data-category-created');
+        const categoryUpdated = button.getAttribute('data-category-updated');
+        
+        // Preenche os dados no modal
+        document.getElementById('categoryName').textContent = categoryName;
+        document.getElementById('categoryNameText').textContent = categoryName;
+        document.getElementById('categoryCreated').textContent = categoryCreated;
+        document.getElementById('categoryUpdated').textContent = categoryUpdated;
+        
+        // Atualiza a action do formulário
+        document.getElementById('deleteForm').action = `/categories/${categoryId}/delete/`;
+    });
+});
+</script>
+{% endblock %} 

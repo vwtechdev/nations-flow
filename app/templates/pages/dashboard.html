@@ -1,0 +1,504 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block content %}
+<!-- Filtros do Gráfico -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-funnel"></i> Filtros do Dashboard
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="get" id="chartFilterForm">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from">
+                                <label for="date_from">
+                                    <i class="bi bi-calendar-date"></i> Data Inicial
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to">
+                                <label for="date_to">
+                                    <i class="bi bi-calendar-date"></i> Data Final
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="category" id="categoryFilter" class="form-control">
+                                    <option value="">Todas as categorias</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="categoryFilter">
+                                    <i class="bi bi-tag"></i> Categoria
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="type" id="typeFilter" class="form-control">
+                                    <option value="">Todos os tipos</option>
+                                    <option value="income" {% if selected_type == 'income' %}selected{% endif %}>Entrada</option>
+                                    <option value="expense" {% if selected_type == 'expense' %}selected{% endif %}>Saída</option>
+                                </select>
+                                <label for="typeFilter">
+                                    <i class="bi bi-arrow-left-right"></i> Tipo
+                                </label>
+                            </div>
+                        </div>
+                        
+                        {% if user.is_admin %}
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="field" id="fieldFilter" class="form-control">
+                                    <option value="">Todos os campos</option>
+                                    {% for field in fields %}
+                                        <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ field.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="fieldFilter">
+                                    <i class="bi bi-geo-alt"></i> Campo
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="church" id="churchFilter" class="form-control">
+                                    <option value="">Todas as igrejas</option>
+                                    {% for church in churches %}
+                                        <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ church.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="churchFilter">
+                                    <i class="bi bi-building"></i> Igreja
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 d-flex align-items-end">
+                            <div class="d-flex gap-2 justify-content-end w-100">
+                                <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                                <a href="{% url 'index' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Cards de Estatísticas -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
+                            Total de Transações
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_transactions }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-list-ul fa-2x" style="color: #673ab7;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #28a745;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #28a745;">
+                            Total de Entradas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #28a745;">R$ {{ total_income|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-up-circle fa-2x" style="color: #28a745;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #ff6b6b;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #ff6b6b;">
+                            Total de Saídas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #ff6b6b;">R$ {{ total_expense|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-down-circle fa-2x" style="color: #ff6b6b;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
+                            Saldo
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #673ab7;">
+                            R$ {{ balance|floatformat:2 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-calculator fa-2x" style="color: #673ab7;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Gráfico por Igreja -->
+{% if churches_data %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    {% if user.is_admin %}
+                        Entradas e Saídas por Campo
+                    {% else %}
+                        Entradas e Saídas por Igreja
+                    {% endif %}
+                </h6>
+                {% if selected_category or selected_field or selected_church %}
+                    <small class="text-muted">
+                        {% if selected_category %}
+                            Categoria: {{ selected_category_name }}
+                        {% endif %}
+                        {% if selected_field %}
+                            {% if selected_category %} | {% endif %}
+                            Campo: {{ selected_field_name }}
+                        {% endif %}
+                        {% if selected_church %}
+                            {% if selected_category or selected_field %} | {% endif %}
+                            Igreja: {{ selected_church_name }}
+                        {% endif %}
+                    </small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="churchChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color legend-income"></div>
+                        <span>Entradas</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-expense"></div>
+                        <span>Saídas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Gráfico por Categoria -->
+{% if categories_data %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Entradas e Saídas por Categoria</h6>
+                {% if selected_category %}
+                    <small class="text-muted">
+                        Categoria: {{ selected_category_name }}
+                    </small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color legend-income"></div>
+                        <span>Entradas</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-expense"></div>
+                        <span>Saídas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Transações Recentes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Transações Recentes</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Categoria</th>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                    {% if user.is_admin %}
+                                        <th>Usuário</th>
+                                    {% endif %}
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
+                                                {{ transaction.get_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ transaction.category.name }}</td>
+                                        <td>{{ transaction.desc|truncatechars:50|default:"-" }}</td>
+                                        <td class="text-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
+                                            R$ {{ transaction.value|floatformat:2 }}
+                                        </td>
+                                        {% if user.is_admin %}
+                                            <td>{{ transaction.user.get_full_name }}</td>
+                                        {% endif %}
+                                        <td>
+                                            <a href="{% url 'transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhuma transação encontrada.</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'transaction_list' %}" class="btn btn-primary btn-sm" style="width: 120px;">
+                    Ver Todas as Transações
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dados para o gráfico -->
+<script>
+    var categoriesData = {{ categories_data|safe|default:"[]" }};
+    var churchesData = {{ churches_data|safe|default:"[]" }};
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico por Igreja
+    if (typeof churchesData !== 'undefined' && churchesData && churchesData.length > 0) {
+        var churchCtx = document.getElementById('churchChart');
+        if (churchCtx) {
+            var churchLabels = churchesData.map(function(item) {
+                return item.name;
+            });
+            
+            var churchIncomeData = churchesData.map(function(item) {
+                return item.income;
+            });
+            
+            var churchExpenseData = churchesData.map(function(item) {
+                return item.expense;
+            });
+            
+            new Chart(churchCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: churchLabels,
+                    datasets: [{
+                        label: 'Entradas',
+                        data: churchIncomeData,
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        borderWidth: 1
+                    }, {
+                        label: 'Saídas',
+                        data: churchExpenseData,
+                        backgroundColor: '#ff6b6b',
+                        borderColor: '#ff6b6b',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Gráfico por Categoria
+    if (typeof categoriesData !== 'undefined' && categoriesData && categoriesData.length > 0) {
+        var categoryCtx = document.getElementById('categoryChart');
+        if (categoryCtx) {
+            var labels = categoriesData.map(function(item) {
+                return item.category;
+            });
+            
+            var incomeData = categoriesData.map(function(item) {
+                return item.income;
+            });
+            
+            var expenseData = categoriesData.map(function(item) {
+                return item.expense;
+            });
+            
+            new Chart(categoryCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Entradas',
+                        data: incomeData,
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        borderWidth: 1
+                    }, {
+                        label: 'Saídas',
+                        data: expenseData,
+                        backgroundColor: '#ff6b6b',
+                        borderColor: '#ff6b6b',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %} 

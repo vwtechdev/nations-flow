@@ -1,0 +1,430 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-funnel"></i> Filtros das Transações
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="get" id="chartFilterForm">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from">
+                                <label for="date_from">
+                                    <i class="bi bi-calendar-date"></i> Data Inicial
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to">
+                                <label for="date_to">
+                                    <i class="bi bi-calendar-date"></i> Data Final
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="category" id="categoryFilter" class="form-control">
+                                    <option value="">Todas as categorias</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="categoryFilter">
+                                    <i class="bi bi-tag"></i> Categoria
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="type" id="typeFilter" class="form-control">
+                                    <option value="">Todos os tipos</option>
+                                    <option value="income" {% if selected_type == 'income' %}selected{% endif %}>Entrada</option>
+                                    <option value="expense" {% if selected_type == 'expense' %}selected{% endif %}>Saída</option>
+                                </select>
+                                <label for="typeFilter">
+                                    <i class="bi bi-arrow-left-right"></i> Tipo
+                                </label>
+                            </div>
+                        </div>
+                        
+                        {% if user.is_admin %}
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="field" id="fieldFilter" class="form-control">
+                                    <option value="">Todos os campos</option>
+                                    {% for field in fields %}
+                                        <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ field.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="fieldFilter">
+                                    <i class="bi bi-geo-alt"></i> Campo
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="church" id="churchFilter" class="form-control">
+                                    <option value="">Todas as igrejas</option>
+                                    {% for church in churches %}
+                                        <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ church.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="churchFilter">
+                                    <i class="bi bi-building"></i> Igreja
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 d-flex align-items-end">
+                            <div class="d-flex gap-2 justify-content-end w-100">
+                                <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm" style="width: 120px;">
+                                    <i class="bi bi-file-pdf-fill"></i> PDF
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                                <a href="{% url 'transaction_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de Totais -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
+                            Total de Transações
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_transactions }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-list-ul fa-2x" style="color: #673ab7;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card shadow h-100 py-2" style="border-left: 4px solid #28a745;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #28a745;">
+                            Total de Entradas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #28a745;">R$ {{ total_income|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-up-circle fa-2x" style="color: #28a745;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card shadow h-100 py-2" style="border-left: 4px solid #ff6b6b;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #ff6b6b;">
+                            Total de Saídas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #ff6b6b;">R$ {{ total_expense|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-down-circle fa-2x" style="color: #ff6b6b;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
+                            Saldo
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #673ab7;">
+                            R$ {{ balance|floatformat:2 }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-calculator fa-2x" style="color: #673ab7;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Transações -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            
+            <div class="card-body">
+                <!-- Tabela de Transações -->
+                {% if page_obj %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Categoria</th>
+                                    <th>Igreja</th>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                    {% if user.is_admin %}
+                                        <th>Usuário</th>
+                                    {% endif %}
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in page_obj %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
+                                                {{ transaction.get_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ transaction.category.name }}</td>
+                                        <td>{{ transaction.church.name }}</td>
+                                        <td>{{ transaction.desc|truncatechars:50|default:"-" }}</td>
+                                        <td class="text-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
+                                            R$ {{ transaction.value|floatformat:2 }}
+                                        </td>
+                                        {% if user.is_admin %}
+                                            <td>{{ transaction.user.get_full_name }}</td>
+                                        {% endif %}
+                                        <td>
+                                            <a href="{% url 'transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-transaction-id="{{ transaction.pk }}"
+                                                    data-transaction-date="{{ transaction.date|date:'d/m/Y' }}"
+                                                    data-transaction-type="{{ transaction.get_type_display }}"
+                                                    data-transaction-category="{{ transaction.category.name }}"
+                                                    data-transaction-church="{{ transaction.church.name }}"
+                                                    data-transaction-desc="{{ transaction.desc|default:'-'|escapejs }}"
+                                                    data-transaction-value="{{ transaction.value|floatformat:2 }}"
+                                                    data-transaction-user="{{ transaction.user.get_full_name|escapejs }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>   
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginação -->
+                    {% if page_obj.has_other_pages %}
+                        <nav aria-label="Navegação de páginas">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                        Primeira
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                        Anterior
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                            Próxima
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                            Última
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted">Nenhuma transação encontrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja excluir a transação?</strong>
+                </p>
+                <div class="card border-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Transação #<span id="transactionId"></span>
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Data:</strong> <span id="transactionDate"></span></p>
+                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="transactionType"></span></p>
+                                <p class="card-text mb-1"><strong>Categoria:</strong> <span id="transactionCategory"></span></p>
+                                <p class="card-text mb-1"><strong>Igreja:</strong> <span id="transactionChurch"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Valor:</strong> <span id="transactionValue"></span></p>
+                                <p class="card-text mb-1"><strong>Descrição:</strong> <span id="transactionDesc"></span></p>
+                                {% if user.is_admin %}
+                                <p class="card-text"><strong>Usuário:</strong> <span id="transactionUser"></span></p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldSelect = document.getElementById('field');
+    const churchSelect = document.getElementById('church');
+    
+    if (fieldSelect && churchSelect) {
+        fieldSelect.addEventListener('change', function() {
+            const selectedField = this.value;
+            
+            // Limpar opções de igreja
+            churchSelect.innerHTML = '<option value="">Todas as igrejas</option>';
+            
+            if (selectedField) {
+                // Fazer requisição AJAX para buscar igrejas do campo selecionado
+                fetch(`/get_churches/?field=${selectedField}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.churches.forEach(church => {
+                            const option = document.createElement('option');
+                            option.value = church.id;
+                            option.textContent = church.name;
+                            churchSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar igrejas:', error);
+                    });
+            }
+        });
+    }
+    
+    // Captura os dados da transação quando o modal é aberto
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const transactionId = button.getAttribute('data-transaction-id');
+        const transactionDate = button.getAttribute('data-transaction-date');
+        const transactionType = button.getAttribute('data-transaction-type');
+        const transactionCategory = button.getAttribute('data-transaction-category');
+        const transactionChurch = button.getAttribute('data-transaction-church');
+        const transactionDesc = button.getAttribute('data-transaction-desc');
+        const transactionValue = button.getAttribute('data-transaction-value');
+        const transactionUser = button.getAttribute('data-transaction-user');
+        
+        // Preenche os dados no modal
+        document.getElementById('transactionId').textContent = transactionId;
+        document.getElementById('transactionDate').textContent = transactionDate;
+        document.getElementById('transactionType').textContent = transactionType;
+        document.getElementById('transactionCategory').textContent = transactionCategory;
+        document.getElementById('transactionChurch').textContent = transactionChurch;
+        document.getElementById('transactionDesc').textContent = transactionDesc || '-';
+        document.getElementById('transactionValue').textContent = transactionValue ? `R$ ${transactionValue}` : 'R$ 0,00';
+        if (transactionUser) {
+            document.getElementById('transactionUser').textContent = transactionUser;
+        }
+        
+        // Atualiza a action do formulário
+        document.getElementById('deleteForm').action = `/transactions/${transactionId}/delete/`;
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,244 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+
+    <link rel="icon" sizes="192x192" href="{% static 'img/icon.svg' %}">
+    <link rel="shortcut icon" href="{% static 'img/icon.svg' %}">
+   
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+    
+    {% block extra_head %}{% endblock %}
+
+  </head>
+  <body>
+    <!-- Mobile Action Bar -->
+    <div class="mobile-action-bar" id="mobileActionBar">
+        <div class="action-bar-content">
+            <button class="action-bar-menu-btn" id="actionBarMenuBtn" title="Menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <h1 class="action-bar-title">{{ title }}</h1>
+            <div class="action-bar-actions">
+                {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="action-bar-user-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Usuário">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text">{{ user.get_full_name }}</span></li>
+                        <li><span class="dropdown-item-text text-muted">{{ user.email }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item">
+                                    <i class="bi bi-box-arrow-right"></i> Sair
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation Drawer Overlay -->
+    <div class="navigation-drawer-overlay" id="navigationDrawerOverlay"></div>
+    
+    <!-- Navigation Drawer (Mobile) -->
+    <div class="navigation-drawer" id="navigationDrawer">
+        <div class="navigation-drawer-header">
+            <div class="navigation-drawer-brand">
+                <i class="bi bi-graph-up"></i>
+                <h5 class="navigation-drawer-title">{{ title }}</h5>
+            </div>
+            <button class="navigation-drawer-close" id="navigationDrawerClose" title="Fechar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        
+        <div class="navigation-drawer-content">
+            <ul class="navigation-drawer-nav">
+                {% if user.is_admin %}
+                <li class="navigation-drawer-item">
+                    <a class="navigation-drawer-link" href="{% url 'index' %}" title="Dashboard">
+                        <i class="bi bi-graph-up"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="navigation-drawer-item">
+                    <a class="navigation-drawer-link" href="{% url 'transaction_list' %}" title="Transações">
+                        <i class="bi bi-wallet2"></i> <span>Transações</span>
+                    </a>
+                </li>
+                {% if user.is_admin %}
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'category_list' %}" title="Categorias">
+                            <i class="bi bi-tags"></i> <span>Categorias</span>
+                        </a>
+                    </li>
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'field_list' %}" title="Campos">
+                            <i class="bi bi-signpost-2-fill"></i> <span>Campos</span>
+                        </a>
+                    </li>
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'church_list' %}" title="Igrejas">
+                            <i class="bi bi-house-heart"></i> <span>Igrejas</span>
+                        </a>
+                    </li>
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'user_list' %}" title="Usuários">
+                            <i class="bi bi-people"></i> <span>Usuários</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Sidebar (Desktop) -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h5 class="sidebar-brand">{{ title }}</h5>
+            <button class="btn btn-link sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        
+        <div class="sidebar-content">
+            <ul class="sidebar-nav">
+                {% if user.is_admin %}
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{% url 'index' %}" title="Dashboard">
+                        <i class="bi bi-graph-up"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="sidebar-item">
+                    <a class="sidebar-link" href="{% url 'transaction_list' %}" title="Transações">
+                        <i class="bi bi-wallet2"></i> <span>Transações</span>
+                    </a>
+                </li>
+                {% if user.is_admin %}
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'category_list' %}" title="Categorias">
+                            <i class="bi bi-tags"></i> <span>Categorias</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'field_list' %}" title="Campos">
+                            <i class="bi bi-signpost-2-fill"></i> <span>Campos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'church_list' %}" title="Igrejas">
+                            <i class="bi bi-house-heart"></i> <span>Igrejas</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'user_list' %}" title="Usuários">
+                            <i class="bi bi-people"></i> <span>Usuários</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+            
+            {% if user.is_authenticated %}
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <i class="bi bi-person-circle"></i>
+                    <div class="user-info">
+                        <span class="user-name">{{ user.get_full_name }}</span>
+                        <span class="user-email">{{ user.email }}</span>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link sidebar-logout" title="Sair">
+                        <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="container-fluid">
+            {% if messages %}
+                <div class="row">
+                    <div class="col-12">
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    {% if user.is_treasurer %}
+        <!-- Para tesoureiros: botão direto para nova transação -->
+        <a href="{% url 'transaction_create' %}" class="floating-action-btn" title="Nova Transação">
+            <i class="bi bi-plus"></i>
+        </a>
+    {% else %}
+        <!-- Para administradores: menu com todas as opções -->
+        <button class="floating-action-btn" title="Ações Rápidas">
+            <i class="bi bi-plus"></i>
+        </button>
+        
+        <div class="floating-action-menu">
+            <a href="{% url 'transaction_create' %}" class="floating-action-menu-item" title="Nova Transação">
+                <i class="bi bi-wallet2"></i>
+                <span>Nova Transação</span>
+            </a>
+            <a href="{% url 'category_create' %}" class="floating-action-menu-item" title="Nova Categoria">
+                <i class="bi bi-tags"></i>
+                <span>Nova Categoria</span>
+            </a>
+            <a href="{% url 'field_create' %}" class="floating-action-menu-item" title="Novo Campo">
+                <i class="bi bi-signpost-2-fill"></i>
+                <span>Novo Campo</span>
+            </a>
+            <a href="{% url 'church_create' %}" class="floating-action-menu-item" title="Nova Igreja">
+                <i class="bi bi-house-heart"></i>
+                <span>Nova Igreja</span>
+            </a>
+            <a href="{% url 'user_create' %}" class="floating-action-menu-item" title="Novo Usuário">
+                <i class="bi bi-person-plus"></i>
+                <span>Novo Usuário</span>
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{% static 'js/index.js' %}"></script>
+
+    {% block js %}
+    {% endblock %}
+  </body>
+</html>

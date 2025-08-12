@@ -1,0 +1,270 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Search Container -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="userSearch" class="form-control search-input" placeholder="Pesquisar">
+                        <button type="button" class="search-button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Função</th>
+                                    <th>Campo</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.get_full_name }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">
+                                                {{ user.get_role_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ user.field.name|default:"-" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if user.is_active %}success{% else %}danger{% endif %}">
+                                                {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'user_edit' user.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% if user.is_active %}
+                                            <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-user-id="{{ user.pk }}"
+                                                    data-user-name="{{ user.get_full_name }}"
+                                                    data-user-email="{{ user.email }}"
+                                                    data-user-role="{{ user.get_role_display }}"
+                                                    data-user-field="{{ user.field.name|default:'Não vinculado' }}"
+                                                    data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
+                                                <i class="bi bi-person-x"></i>
+                                            </button>
+                                            {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-success" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#activateModal" 
+                                                    data-user-id="{{ user.pk }}"
+                                                    data-user-name="{{ user.get_full_name }}"
+                                                    data-user-email="{{ user.email }}"
+                                                    data-user-role="{{ user.get_role_display }}"
+                                                    data-user-field="{{ user.field.name|default:'Não vinculado' }}"
+                                                    data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
+                                                <i class="bi bi-person-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum usuário encontrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modal de Confirmação de Desativação -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-warning" id="deleteModalLabel">
+                    <i class="bi bi-person-x"></i> Confirmar Desativação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja desativar o usuário?</strong>
+                </p>
+                <div class="card border-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-person-x"></i> <span id="userName"></span>
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="userFullName"></span></p>
+                                <p class="card-text mb-1"><strong>Email:</strong> <span id="userEmail"></span></p>
+                                <p class="card-text mb-1"><strong>Status:</strong> <span id="userStatus"></span></p>
+                                <p class="card-text mb-1"><strong>Função:</strong> <span id="userRole"></span></p>
+                                <p class="card-text mb-1" id="userFieldRow" style="display: none;"><strong>Campo:</strong> <span id="userField"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Informação:</strong> O usuário será desativado e não poderá mais acessar o sistema, mas os dados serão preservados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-person-x"></i> Confirmar Desativação
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Reativação -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-success" id="activateModalLabel">
+                    <i class="bi bi-person-check"></i> Confirmar Reativação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja reativar o usuário?</strong>
+                </p>
+                <div class="card border-success mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-success">
+                            <i class="bi bi-person-check"></i> <span id="activateUserName"></span>
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="activateUserFullName"></span></p>
+                                <p class="card-text mb-1"><strong>Email:</strong> <span id="activateUserEmail"></span></p>
+                                <p class="card-text mb-1"><strong>Função:</strong> <span id="activateUserRole"></span></p>
+                                <p class="card-text mb-1" id="activateUserFieldRow" style="display: none;"><strong>Campo:</strong> <span id="activateUserField"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Status:</strong> <span id="activateUserStatus"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-success mb-0" role="alert">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Informação:</strong> O usuário será reativado e poderá acessar o sistema novamente.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="activateForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-person-check"></i> Confirmar Reativação
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/search.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Captura os dados do usuário quando o modal de desativação é aberto
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+        const userName = button.getAttribute('data-user-name');
+        const userEmail = button.getAttribute('data-user-email');
+        const userRole = button.getAttribute('data-user-role');
+        const userField = button.getAttribute('data-user-field');
+        const userStatus = button.getAttribute('data-user-status');
+        
+        // Preenche os dados no modal
+        document.getElementById('userName').textContent = userName;
+        document.getElementById('userFullName').textContent = userName;
+        document.getElementById('userEmail').textContent = userEmail;
+        document.getElementById('userRole').textContent = userRole;
+        document.getElementById('userField').textContent = userField;
+        document.getElementById('userStatus').textContent = userStatus;
+        
+        // Mostra o campo se o usuário for Tesoureiro
+        const userFieldRow = document.getElementById('userFieldRow');
+        if (userRole === 'Tesoureiro') {
+            userFieldRow.style.display = 'block';
+        } else {
+            userFieldRow.style.display = 'none';
+        }
+        
+        // Atualiza a action do formulário
+        document.getElementById('deleteForm').action = `/users/${userId}/delete/`;
+    });
+    
+    // Captura os dados do usuário quando o modal de reativação é aberto
+    const activateModal = document.getElementById('activateModal');
+    activateModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+        const userName = button.getAttribute('data-user-name');
+        const userEmail = button.getAttribute('data-user-email');
+        const userRole = button.getAttribute('data-user-role');
+        const userField = button.getAttribute('data-user-field');
+        const userStatus = button.getAttribute('data-user-status');
+        
+        // Preenche os dados no modal
+        document.getElementById('activateUserName').textContent = userName;
+        document.getElementById('activateUserFullName').textContent = userName;
+        document.getElementById('activateUserEmail').textContent = userEmail;
+        document.getElementById('activateUserRole').textContent = userRole;
+        document.getElementById('activateUserField').textContent = userField;
+        document.getElementById('activateUserStatus').textContent = userStatus;
+        
+        // Mostra o campo se o usuário for Tesoureiro
+        const activateUserFieldRow = document.getElementById('activateUserFieldRow');
+        if (userRole === 'Tesoureiro') {
+            activateUserFieldRow.style.display = 'block';
+        } else {
+            activateUserFieldRow.style.display = 'none';
+        }
+        
+        // Atualiza a action do formulário
+        document.getElementById('activateForm').action = `/users/${userId}/activate/`;
+    });
+    
+
+});
+
+
+</script>
+{% endblock %} 

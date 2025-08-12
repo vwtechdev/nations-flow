@@ -1,0 +1,110 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                {{ form.name }}
+                                <label for="{{ form.name.id_for_label }}">
+                                    <i class="bi bi-sticky"></i> {{ form.name.label }}
+                                </label>
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                {{ form.city }}
+                                <label for="{{ form.city.id_for_label }}">
+                                    <i class="bi bi-geo-alt"></i> {{ form.city.label }}
+                                </label>
+                                {% if form.city.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.city.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                {{ form.phone }}
+                                <label for="{{ form.phone.id_for_label }}">
+                                    <i class="bi bi-telephone"></i> {{ form.phone.label }}
+                                </label>
+                                {% if form.phone.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.phone.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                {{ form.field }}
+                                <label for="{{ form.field.id_for_label }}">
+                                    <i class="bi bi-signpost-2-fill"></i> {{ form.field.label }}
+                                </label>
+                                {% if form.field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.field.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                {{ form.address }}
+                                <label for="{{ form.address.id_for_label }}">
+                                    <i class="bi bi-geo-alt-fill"></i> {{ form.address.label }}
+                                </label>
+                                {% if form.address.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.address.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
+                            <i class="bi bi-check-circle"></i> Salvar
+                        </button>
+                        <a href="{% url 'church_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

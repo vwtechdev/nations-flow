@@ -1,0 +1,135 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Search Container -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="fieldSearch" class="form-control search-input" placeholder="Pesquisar">
+                        <button type="button" class="search-button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {% if fields %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="fieldsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Data de Criação</th>
+                                    <th>Última Atualização</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field in fields %}
+                                    <tr>
+                                        <td>{{ field.name }}</td>
+                                        <td>{{ field.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ field.updated_at|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <a href="{% url 'field_edit' field.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-field-id="{{ field.pk }}"
+                                                    data-field-name="{{ field.name }}"
+                                                    data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
+                                                    data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum campo encontrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja excluir o campo?</strong>
+                </p>
+                <div class="card border-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> <span id="fieldName"></span>
+                        </h6>
+                        <p class="card-text mb-1"><strong>Nome:</strong> <span id="fieldNameText"></span></p>
+                        <p class="card-text mb-1"><strong>Criado em:</strong> <span id="fieldCreated"></span></p>
+                        <p class="card-text"><strong>Última atualização:</strong> <span id="fieldUpdated"></span></p>
+                    </div>
+                </div>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar igrejas e usuários vinculados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/search.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Captura os dados do campo quando o modal é aberto
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const fieldId = button.getAttribute('data-field-id');
+        const fieldName = button.getAttribute('data-field-name');
+        const fieldCreated = button.getAttribute('data-field-created');
+        const fieldUpdated = button.getAttribute('data-field-updated');
+        
+        // Preenche os dados no modal
+        document.getElementById('fieldName').textContent = fieldName;
+        document.getElementById('fieldNameText').textContent = fieldName;
+        document.getElementById('fieldCreated').textContent = fieldCreated;
+        document.getElementById('fieldUpdated').textContent = fieldUpdated;
+        
+        // Atualiza a action do formulário
+        document.getElementById('deleteForm').action = `/fields/${fieldId}/delete/`;
+    });
+});
+</script>
+{% endblock %} 

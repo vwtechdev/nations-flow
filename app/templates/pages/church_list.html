@@ -1,0 +1,158 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Search Container -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="churchSearch" class="form-control search-input" placeholder="Pesquisar">
+                        <button type="button" class="search-button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {% if churches %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="churchesTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Cidade</th>
+                                    <th>Estado</th>
+                                    <th>Campo</th>
+                                    <th>Endereço</th>
+                                    <th>Telefone</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for church in churches %}
+                                    <tr>
+                                        <td>{{ church.name }}</td>
+                                        <td>{{ church.city.name }}</td>
+                                        <td>{{ church.city.state.uf }}</td>
+                                        <td>{{ church.field.name }}</td>
+                                        <td>{{ church.address|default:"-" }}</td>
+                                        <td>{{ church.phone|default:"-" }}</td>
+                                        <td>
+                                            <a href="{% url 'church_edit' church.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-church-id="{{ church.pk }}"
+                                                    data-church-name="{{ church.name }}"
+                                                    data-church-city="{{ church.city.name }}"
+                                                    data-church-state="{{ church.city.state.uf }}"
+                                                    data-church-field="{{ church.field.name }}"
+                                                    data-church-address="{{ church.address|default:'Não informado' }}"
+                                                    data-church-phone="{{ church.phone|default:'Não informado' }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhuma igreja encontrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja excluir a igreja?</strong>
+                </p>
+                <div class="card border-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> <span id="churchName"></span>
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="churchNameText"></span></p>
+                                <p class="card-text mb-1"><strong>Cidade:</strong> <span id="churchCity"></span> - <span id="churchState"></span></p>
+                                <p class="card-text mb-1"><strong>Campo:</strong> <span id="churchField"></span></p>
+                                <p class="card-text mb-1"><strong>Endereço:</strong> <span id="churchAddress"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Telefone:</strong> <span id="churchPhone"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar usuários vinculados.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/search.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Captura os dados da igreja quando o modal é aberto
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const churchId = button.getAttribute('data-church-id');
+        const churchName = button.getAttribute('data-church-name');
+        const churchCity = button.getAttribute('data-church-city');
+        const churchState = button.getAttribute('data-church-state');
+        const churchField = button.getAttribute('data-church-field');
+        const churchAddress = button.getAttribute('data-church-address');
+        const churchPhone = button.getAttribute('data-church-phone');
+        
+        // Preenche os dados no modal
+        document.getElementById('churchName').textContent = churchName;
+        document.getElementById('churchNameText').textContent = churchName;
+        document.getElementById('churchCity').textContent = churchCity;
+        document.getElementById('churchState').textContent = churchState;
+        document.getElementById('churchField').textContent = churchField;
+        document.getElementById('churchAddress').textContent = churchAddress;
+        document.getElementById('churchPhone').textContent = churchPhone;
+        
+        // Atualiza a action do formulário
+        document.getElementById('deleteForm').action = `/churches/${churchId}/delete/`;
+    });
+});
+</script>
+{% endblock %} 

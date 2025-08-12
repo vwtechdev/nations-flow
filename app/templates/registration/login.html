@@ -1,0 +1,176 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+    body {
+        overflow: hidden !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: linear-gradient(121deg, rgba(103, 58, 183, 1) 0%, rgba(158, 101, 181, 1) 35%) !important;
+        background-attachment: fixed !important;
+    }
+    
+    .container-fluid {
+        height: 100vh !important;
+        overflow: hidden !important;
+        background: linear-gradient(121deg, rgba(103, 58, 183, 1) 0%, rgba(158, 101, 181, 1) 35%) !important;
+        background-attachment: fixed !important;
+    }
+    
+    .row {
+        height: 100vh !important;
+        margin: 0 !important;
+        background: linear-gradient(121deg, rgba(103, 58, 183, 1) 0%, rgba(158, 101, 181, 1) 35%) !important;
+        background-attachment: fixed !important;
+    }
+    
+    /* Hide sidebar and adjust main content for login page */
+    .sidebar {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Hide floating action button on login page */
+    .floating-action-btn,
+    .floating-action-menu {
+        display: none !important;
+    }
+    
+    /* Password toggle button styles */
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #6c757d;
+        padding: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.2s ease;
+    }
+    
+    .password-toggle:hover {
+        background-color: rgba(103, 58, 183, 0.1);
+        color: var(--primary-color);
+    }
+    
+    .password-toggle:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(103, 58, 183, 0.25);
+    }
+    
+    /* Position the password field container */
+    .form-floating {
+        position: relative;
+    }
+    
+    /* Ensure the password input has proper padding for the button */
+    .form-floating input[type="password"],
+    .form-floating input[type="text"] {
+        padding-right: 40px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center h-100">
+    <div class="col-md-5 col-lg-4 col-xl-3">
+        <div class="login-card">
+            <div class="login-header text-center mb-4">
+                <div class="login-logo mb-3">
+                    <img src="{% static 'img/icon.svg' %}" alt="Logo" class="img-fluid">
+                </div>
+                <h4 class="login-title">Bem-vindo</h4>
+                <p class="login-subtitle">Faça login para acessar o sistema</p>
+            </div>
+            
+            <form method="post" action="{% url 'login' %}" class="login-form">
+                {% csrf_token %}
+                
+                <div class="form-floating mb-3">
+                    <input type="email" class="form-control" name="{{form.username.name}}" maxlength="{{form.username.field.max_length}}" id="{{form.username.id_for_label}}" placeholder="Email">
+                    <label for="{{form.username.id_for_label}}">
+                        <i class="bi bi-envelope"></i> {{form.username.label}}
+                    </label>
+                </div>
+                
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" name="{{form.password.name}}" id="id_password" placeholder="Senha">
+                    <label for="id_password">
+                        <i class="bi bi-lock"></i> {{form.password.label}}
+                    </label>
+                    <button type="button" class="btn btn-link password-toggle" onclick="togglePassword()">
+                        <i class="bi bi-eye" id="password-icon"></i>
+                    </button>
+                </div>
+                
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> Email ou senha inválidos
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endif %}
+                
+                <div class="d-grid mb-3">
+                    <button class="btn btn-primary btn-lg login-btn" type="submit">
+                        <i class="bi bi-box-arrow-in-right"></i> Entrar
+                    </button>
+                </div>
+                
+                <input type="hidden" name="next" value="{{ next }}"/>
+            </form>
+            
+            <div class="login-footer text-center">
+                <p class="text-muted mb-0">
+                    <i class="bi bi-shield-check"></i> Sistema seguro
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// Função para alternar a visibilidade da senha
+function togglePassword() {
+    const passwordInput = document.getElementById('id_password');
+    const passwordIcon = document.getElementById('password-icon');
+    
+    if (passwordInput && passwordIcon) {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            passwordIcon.className = 'bi bi-eye-slash';
+            passwordIcon.style.color = 'var(--primary-color)';
+            passwordIcon.title = 'Ocultar senha';
+        } else {
+            passwordInput.type = 'password';
+            passwordIcon.className = 'bi bi-eye';
+            passwordIcon.style.color = '#6c757d';
+            passwordIcon.title = 'Mostrar senha';
+        }
+    }
+}
+
+// Adicionar evento de clique ao botão de toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.querySelector('.password-toggle');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            togglePassword();
+        });
+    }
+});
+</script>
+<script src="{% static 'js/login.js' %}"></script>
+{% endblock %}
