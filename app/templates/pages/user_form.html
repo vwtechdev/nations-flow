@@ -22,6 +22,92 @@
         color: #dc3545;
         font-weight: bold;
     }
+    
+    /* Estilos para a tabela de checkboxes */
+    .checkbox-table-container {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .checkbox-table-container .table {
+        margin-bottom: 0;
+    }
+    
+    .checkbox-table-container .table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .checkbox-table-container .table td {
+        vertical-align: middle;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .checkbox-table-container .table tbody tr:hover {
+        background-color: rgba(103, 58, 183, 0.05);
+    }
+    
+    .checkbox-table-container .form-check-input {
+        width: 1.1em;
+        height: 1.1em;
+        margin: 0;
+        cursor: pointer;
+    }
+    
+    .checkbox-table-container .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .checkbox-table-container .form-check-input:focus {
+        box-shadow: 0 0 0 0.2rem rgba(103, 58, 183, 0.25);
+    }
+    
+    /* Estilos para o campo de pesquisa */
+    #fieldSearch {
+        border-right: none;
+    }
+    
+    #fieldSearch:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(103, 58, 183, 0.25);
+    }
+    
+    #clearSearch {
+        border-left: none;
+        border-color: #ced4da;
+    }
+    
+    #clearSearch:hover {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+    
+    /* Estilos para linhas filtradas */
+    .checkbox-table-container .table tbody tr.filtered {
+        display: none;
+    }
+    
+    .checkbox-table-container .table tbody tr.filtered.show {
+        display: table-row;
+    }
+    
+    /* Contador de resultados */
+    .search-results-info {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+        font-style: italic;
+    }
 </style>
 
 <div class="row justify-content-center">
@@ -91,18 +177,62 @@
                             </div>
                         </div>
                         
-                        {% if not request.user.is_admin %}
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                {{ form.field }}
-                                <label for="{{ form.field.id_for_label }}">
-                                    <i class="bi bi-geo-alt"></i> {{ form.field.label }}
-                                </label>
-                                {% if form.field.errors %}
+                        {% if user_obj %}
+                        <!-- Seção de campos - apenas para edição -->
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <h6 class="mb-3">
+                                    <i class="bi bi-geo-alt text-primary"></i> 
+                                    Campos Associados
+                                </h6>
+                                
+                                <!-- Campo de pesquisa -->
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" 
+                                           id="fieldSearch" 
+                                           class="form-control" 
+                                           placeholder="Pesquisar campos..."
+                                           autocomplete="off">
+                                    <button type="button" 
+                                            class="btn btn-outline-secondary" 
+                                            id="clearSearch" 
+                                            title="Limpar pesquisa">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Contador de resultados -->
+                                <div class="search-results-info" id="searchResultsInfo">
+                                    Mostrando todos os campos
+                                </div>
+                                
+                                <!-- Tabela de campos -->
+                                {{ form.fields }}
+                                
+                                {% if form.fields.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.field.errors.0 }}
+                                        {{ form.fields.errors.0 }}
                                     </div>
                                 {% endif %}
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle"></i> Selecione um ou mais campos para associar ao usuário
+                                </small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Informação para novos usuários -->
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    <div>
+                                        <strong>Informação:</strong> Os campos serão associados ao usuário após a criação. 
+                                        Você poderá editar o usuário posteriormente para definir os campos de acesso.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {% endif %}
@@ -157,17 +287,71 @@
         </div>
     </div>
 </div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+
 {% endif %}
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Removido o JavaScript de geração automática de username
     // Agora o username é gerado automaticamente no backend
+    
+    // Funcionalidade de pesquisa na tabela de campos
+    const fieldSearch = document.getElementById('fieldSearch');
+    const clearSearch = document.getElementById('clearSearch');
+    const searchResultsInfo = document.getElementById('searchResultsInfo');
+    const tableRows = document.querySelectorAll('.checkbox-table-container tbody tr');
+    
+    // Função para filtrar os campos
+    function filterFields(searchTerm) {
+        const searchLower = searchTerm.toLowerCase().trim();
+        let visibleCount = 0;
+        let totalCount = tableRows.length;
+        
+        tableRows.forEach(row => {
+            const fieldName = row.querySelector('td:last-child').textContent.toLowerCase();
+            const isVisible = fieldName.includes(searchLower);
+            
+            if (isVisible) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Atualizar contador de resultados
+        if (searchTerm.trim() === '') {
+            searchResultsInfo.textContent = `Mostrando todos os ${totalCount} campos`;
+        } else {
+            searchResultsInfo.textContent = `Mostrando ${visibleCount} de ${totalCount} campos`;
+        }
+    }
+    
+    // Evento de digitação no campo de pesquisa
+    fieldSearch.addEventListener('input', function() {
+        filterFields(this.value);
+    });
+    
+    // Botão para limpar pesquisa
+    clearSearch.addEventListener('click', function() {
+        fieldSearch.value = '';
+        filterFields('');
+        fieldSearch.focus();
+    });
+    
+    // Pesquisa ao pressionar Enter
+    fieldSearch.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.blur();
+        }
+    });
+    
+    // Foco automático no campo de pesquisa
+    fieldSearch.focus();
 });
 
 {% if user_obj %}
@@ -249,6 +433,17 @@ function showErrorModal(message) {
         document.body.removeChild(errorModal);
     });
 }
+{% endif %}
+
+// JavaScript para novos usuários (sem campos)
+{% if not user_obj %}
+document.addEventListener('DOMContentLoaded', function() {
+    // Foco automático no primeiro campo
+    const firstField = document.querySelector('input[type="text"]');
+    if (firstField) {
+        firstField.focus();
+    }
+});
 {% endif %}
 
 </script>

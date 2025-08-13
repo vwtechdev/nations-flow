@@ -5,14 +5,21 @@ urlpatterns = [
     # Views principais
     path('', views.index, name='index'),
     path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
     path('change-password/', views.change_password, name='change_password'),
     
     # Transações
     path('transactions/', views.transaction_list, name='transaction_list'),
+    path('transactions/api/', views.transaction_list_api, name='transaction_list_api'),
     path('transactions/create/', views.transaction_create, name='transaction_create'),
+    path('transactions/<int:pk>/view/', views.transaction_view, name='transaction_view'),
     path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
+    
+    # API para buscar igrejas por campo
+    path('api/churches-by-field/<int:field_id>/', views.churches_by_field_api, name='churches_by_field_api'),
     path('transactions/export-pdf/', views.transaction_export_pdf, name='transaction_export_pdf'),
+    path('dashboard/export-pdf/', views.dashboard_export_pdf, name='dashboard_export_pdf'),
     
     # Categorias
     path('categories/', views.category_list, name='category_list'),
@@ -41,6 +48,5 @@ urlpatterns = [
     path('fields/<int:pk>/delete/', views.field_delete, name='field_delete'),
     
     # API AJAX
-    path('api/cities/', views.get_cities, name='get_cities'),
     path('api/churches/', views.get_churches, name='get_churches'),
 ]

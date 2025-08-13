@@ -31,29 +31,13 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
-                                {{ form.city }}
-                                <label for="{{ form.city.id_for_label }}">
-                                    <i class="bi bi-geo-alt"></i> {{ form.city.label }}
+                                {{ form.shepherd }}
+                                <label for="{{ form.shepherd.id_for_label }}">
+                                    <i class="bi bi-person-badge"></i> {{ form.shepherd.label }}
                                 </label>
-                                {% if form.city.errors %}
+                                {% if form.shepherd.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {% for error in form.city.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                {{ form.phone }}
-                                <label for="{{ form.phone.id_for_label }}">
-                                    <i class="bi bi-telephone"></i> {{ form.phone.label }}
-                                </label>
-                                {% if form.phone.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.phone.errors %}
+                                        {% for error in form.shepherd.errors %}
                                             {{ error }}
                                         {% endfor %}
                                     </div>
@@ -107,4 +91,8 @@
         </div>
     </div>
 </div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+
 {% endblock %} 

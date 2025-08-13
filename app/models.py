@@ -3,30 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
-class State(models.Model):
-    name = models.CharField(max_length=100, verbose_name="Nome")
-    uf = models.CharField(max_length=2, verbose_name="UF")
-    
-    class Meta:
-        verbose_name = "Estado"
-        verbose_name_plural = "Estados"
-        ordering = ['name']
-    
-    def __str__(self):
-        return f"{self.name} ({self.uf})"
-
-class City(models.Model):
-    name = models.CharField(max_length=100, verbose_name="Nome")
-    state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="Estado")
-    
-    class Meta:
-        verbose_name = "Cidade"
-        verbose_name_plural = "Cidades"
-        ordering = ['name']
-    
-    def __str__(self):
-        return f"{self.name} - {self.state.uf}"
-
 class Field(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nome")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
@@ -35,16 +11,15 @@ class Field(models.Model):
     class Meta:
         verbose_name = "Campo"
         verbose_name_plural = "Campos"
-        ordering = ['name']
+        ordering = ['-updated_at', 'name']
     
     def __str__(self):
         return self.name
 
 class Church(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nome")
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="Cidade")
     address = models.CharField(max_length=300, blank=True, null=True, verbose_name="Endereço")
-    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefone")
+    shepherd = models.CharField(max_length=200, verbose_name="Pastor Responsável")
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name="Campo")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
@@ -52,7 +27,7 @@ class Church(models.Model):
     class Meta:
         verbose_name = "Igreja"
         verbose_name_plural = "Igrejas"
-        ordering = ['name']
+        ordering = ['-updated_at', 'name']
     
     def __str__(self):
         return self.name
@@ -64,7 +39,7 @@ class User(AbstractUser):
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='treasurer', verbose_name="Função")
-    field = models.ForeignKey(Field, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Campo")
+    fields = models.ManyToManyField(Field, blank=True, verbose_name="Campos")
     password_changed = models.BooleanField(default=False, verbose_name="Senha Alterada")
     
     # Usar email como campo de autenticação principal
@@ -77,6 +52,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "Usuário"
         verbose_name_plural = "Usuários"
+        ordering = ['-date_joined', 'first_name', 'last_name']
     
     def __str__(self):
         return f"{self.get_full_name()} ({self.get_role_display()})"
@@ -86,6 +62,14 @@ class User(AbstractUser):
     
     def is_treasurer(self):
         return self.role == 'treasurer'
+    
+    def get_fields(self):
+        """Retorna os campos do usuário"""
+        return self.fields.all()
+    
+    def has_field(self, field):
+        """Verifica se o usuário tem acesso a um campo específico"""
+        return self.fields.filter(id=field.id).exists()
     
     # Removida a função has_default_password
 
@@ -97,7 +81,7 @@ class Category(models.Model):
     class Meta:
         verbose_name = "Categoria"
         verbose_name_plural = "Categorias"
-        ordering = ['name']
+        ordering = ['-updated_at', 'name']
     
     def __str__(self):
         return self.name
@@ -118,15 +102,15 @@ class Transaction(models.Model):
         verbose_name="Valor (R$)"
     )
     date = models.DateField(verbose_name="Data")
-    last_update = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
     church = models.ForeignKey(Church, on_delete=models.CASCADE, verbose_name="Igreja")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
     
     class Meta:
         verbose_name = "Transação"
         verbose_name_plural = "Transações"
-        ordering = ['-date', '-created_at']
+        ordering = ['-updated_at', '-date', '-created_at']
     
     def __str__(self):
         return f"{self.get_type_display()} - {self.category.name} - R$ {self.value}"

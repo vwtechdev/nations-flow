@@ -33,6 +33,9 @@ DEBUG = True  # Para desenvolvimento - mude para False em produção
 # Para desenvolvimento local
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
+# PythonAnywhere - descomente esta linha em produção
+# ALLOWED_HOSTS = ['nationsflow.pythonanywhere.com']
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -137,7 +140,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Para PythonAnywhere, descomente a linha abaixo:
-# STATIC_ROOT = '/home/seu_usuario/nations-flow/staticfiles'
+# STATIC_ROOT = '/home/nationsflow/nations-flow/staticfiles'
 
 # Arquivos estáticos adicionais
 STATICFILES_DIRS = [

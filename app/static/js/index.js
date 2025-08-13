@@ -23,28 +23,56 @@ $(function() {
         $(this).removeClass('shadow-sm');
     });
     
+    // Função para identificar se um formulário é de filtro
+    function isFilterForm(form) {
+        const formId = form.id || '';
+        const formMethod = form.method || '';
+        const formAction = form.action || '';
+        const formClass = form.className || '';
+        
+        // Verificar se é um formulário de filtro baseado em vários critérios
+        return formId.includes('Filter') || 
+               formId.includes('filter') || 
+               formId.includes('Search') || 
+               formId.includes('search') ||
+               formMethod.toLowerCase() === 'get' ||
+               formAction.includes('filter') ||
+               formAction.includes('search') ||
+               formClass.includes('filter') ||
+               formClass.includes('search');
+    }
+    
     // Add loading state to submit buttons
-    $('form').on('submit', function() {
-        const submitBtn = $(this).find('button[type="submit"]');
-        if (submitBtn.length > 0) {
-            const originalText = submitBtn.html();
-            
-            submitBtn.prop('disabled', true);
-            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Salvando...');
-            
-            // Re-enable button after 10 seconds if form submission fails
-            setTimeout(function() {
-                submitBtn.prop('disabled', false);
-                submitBtn.html(originalText);
-            }, 10000);
+    $('form').each(function() {
+        if (!isFilterForm(this)) {
+            $(this).on('submit', function() {
+                const submitBtn = $(this).find('button[type="submit"]');
+                if (submitBtn.length > 0) {
+                    const originalText = submitBtn.html();
+                    
+                    submitBtn.prop('disabled', true);
+                    submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Salvando...');
+                    
+                    // Re-enable button after 10 seconds if form submission fails
+                    setTimeout(function() {
+                        submitBtn.prop('disabled', false);
+                        submitBtn.html(originalText);
+                    }, 10000);
+                }
+            });
         }
     });
     
     // Add enter key support for form submission
-    $('input, select').on('keypress', function(e) {
-        if (e.which === 13) { // Enter key
-            e.preventDefault();
-            $(this).closest('form').submit();
+    $('input, select').each(function() {
+        const form = $(this).closest('form')[0];
+        if (!form || !isFilterForm(form)) {
+            $(this).on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $(this).closest('form').submit();
+                }
+            });
         }
     });
     
@@ -401,22 +429,140 @@ $(function() {
                 return;
             }
             
-            // Se é um botão (administrador), controlar o menu
+            // Se é um botão (administrador), controlar o bottom sheet
             e.preventDefault();
-            floatingMenu.toggleClass('show');
             
-            // Change icon based on menu state
-            const icon = $(this).find('i');
-            if (floatingMenu.hasClass('show')) {
-                icon.removeClass('bi-plus').addClass('bi-x');
-                console.log('Menu opened');
+            // Verificar se é o botão de administrador
+            if ($(this).attr('id') === 'adminFab') {
+                // A funcionalidade do bottom sheet será tratada separadamente
+                console.log('Admin FAB clicked - bottom sheet will be handled separately');
+                return;
             } else {
-                icon.removeClass('bi-x').addClass('bi-plus');
-                console.log('Menu closed');
+                // Fallback para o menu flutuante antigo (se ainda existir)
+                floatingMenu.toggleClass('show');
+                
+                // Change icon based on menu state
+                const icon = $(this).find('i');
+                if (floatingMenu.hasClass('show')) {
+                    icon.removeClass('bi-plus').addClass('bi-x');
+                    console.log('Menu opened');
+                } else {
+                    icon.removeClass('bi-x').addClass('bi-plus');
+                    console.log('Menu closed');
+                }
             }
         });
         
-        // Close menu when clicking outside
+        // Bottom Sheet functionality
+        const bottomSheet = $('#adminBottomSheet');
+        const bottomSheetOverlay = $('#bottomSheetOverlay');
+        const bottomSheetClose = $('#bottomSheetClose');
+        const adminFab = $('#adminFab');
+        
+        if (bottomSheet.length > 0) {
+            console.log('Setting up bottom sheet events');
+            
+            // Função para abrir o bottom sheet
+            function openBottomSheet() {
+                console.log('Opening bottom sheet...');
+                bottomSheet.addClass('show');
+                const icon = adminFab.find('i');
+                icon.removeClass('bi-plus').addClass('bi-x');
+                console.log('Bottom sheet opened');
+            }
+            
+            // Função para fechar o bottom sheet
+            function closeBottomSheet() {
+                console.log('Closing bottom sheet...');
+                
+                // Primeiro, animar o fechamento
+                const content = bottomSheet.find('.bottom-sheet-content');
+                content.css('transform', 'translateY(100%)');
+                
+                // Aguardar a animação terminar antes de esconder
+                setTimeout(() => {
+                    bottomSheet.removeClass('show');
+                    const icon = adminFab.find('i');
+                    icon.removeClass('bi-x').addClass('bi-plus');
+                    console.log('Bottom sheet closed');
+                }, 300);
+            }
+            
+            // Evento de clique no FAB do administrador
+            adminFab.off('click').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openBottomSheet();
+            });
+            
+            // Close bottom sheet when clicking overlay
+            bottomSheetOverlay.on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeBottomSheet();
+            });
+            
+            // Close bottom sheet when clicking close button
+            bottomSheetClose.on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeBottomSheet();
+            });
+            
+            // Close bottom sheet on escape key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && bottomSheet.hasClass('show')) {
+                    e.preventDefault();
+                    closeBottomSheet();
+                }
+            });
+            
+            // Swipe down to close (touch devices)
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            
+            bottomSheet.on('touchstart', function(e) {
+                startY = e.touches[0].clientY;
+                isDragging = true;
+            });
+            
+            bottomSheet.on('touchmove', function(e) {
+                if (!isDragging) return;
+                
+                currentY = e.touches[0].clientY;
+                const deltaY = currentY - startY;
+                
+                if (deltaY > 0) { // Swiping down
+                    const translateY = Math.min(deltaY, 100);
+                    bottomSheet.find('.bottom-sheet-content').css('transform', `translateY(${translateY}px)`);
+                }
+            });
+            
+            bottomSheet.on('touchend', function(e) {
+                if (!isDragging) return;
+                
+                const deltaY = currentY - startY;
+                if (deltaY > 100) { // Swipe down threshold
+                    closeBottomSheet();
+                } else {
+                    // Reset position
+                    bottomSheet.find('.bottom-sheet-content').css('transform', 'translateY(0)');
+                }
+                
+                isDragging = false;
+            });
+            
+            // Close bottom sheet when clicking outside
+            $(document).on('click', function(e) {
+                if (bottomSheet.hasClass('show') && 
+                    !$(e.target).closest('.floating-action-btn, .bottom-sheet-content').length) {
+                    closeBottomSheet();
+                }
+            });
+        }
+        
+        // Close menu when clicking outside (fallback para menu antigo)
         $(document).on('click', function(e) {
             if (!$(e.target).closest('.floating-action-btn, .floating-action-menu').length) {
                 floatingMenu.removeClass('show');
@@ -424,7 +570,7 @@ $(function() {
             }
         });
         
-        // Close menu on escape key
+        // Close menu on escape key (fallback para menu antigo)
         $(document).on('keydown', function(e) {
             if (e.key === 'Escape') {
                 floatingMenu.removeClass('show');

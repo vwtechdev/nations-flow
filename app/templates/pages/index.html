@@ -202,32 +202,76 @@
             <i class="bi bi-plus"></i>
         </a>
     {% else %}
-        <!-- Para administradores: menu com todas as opções -->
-        <button class="floating-action-btn" title="Ações Rápidas">
+        <!-- Para administradores: bottom sheet estilo Android -->
+        <button class="floating-action-btn" id="adminFab" title="Ações Rápidas">
             <i class="bi bi-plus"></i>
         </button>
         
-        <div class="floating-action-menu">
-            <a href="{% url 'transaction_create' %}" class="floating-action-menu-item" title="Nova Transação">
-                <i class="bi bi-wallet2"></i>
-                <span>Nova Transação</span>
-            </a>
-            <a href="{% url 'category_create' %}" class="floating-action-menu-item" title="Nova Categoria">
-                <i class="bi bi-tags"></i>
-                <span>Nova Categoria</span>
-            </a>
-            <a href="{% url 'field_create' %}" class="floating-action-menu-item" title="Novo Campo">
-                <i class="bi bi-signpost-2-fill"></i>
-                <span>Novo Campo</span>
-            </a>
-            <a href="{% url 'church_create' %}" class="floating-action-menu-item" title="Nova Igreja">
-                <i class="bi bi-house-heart"></i>
-                <span>Nova Igreja</span>
-            </a>
-            <a href="{% url 'user_create' %}" class="floating-action-menu-item" title="Novo Usuário">
-                <i class="bi bi-person-plus"></i>
-                <span>Novo Usuário</span>
-            </a>
+        <!-- Bottom Sheet -->
+        <div class="bottom-sheet" id="adminBottomSheet">
+            <div class="bottom-sheet-overlay" id="bottomSheetOverlay"></div>
+            <div class="bottom-sheet-content">
+                <div class="bottom-sheet-header">
+                    <div class="bottom-sheet-handle"></div>
+                    <h5 class="bottom-sheet-title">Ações Rápidas</h5>
+                    <button class="bottom-sheet-close" id="bottomSheetClose">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="bottom-sheet-body">
+                    <div class="bottom-sheet-actions">
+                        <a href="{% url 'transaction_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nova Transação</span>
+                                <span class="action-subtitle">Criar entrada ou saída</span>
+                            </div>
+                        </a>
+                        
+                        <a href="{% url 'category_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-tags"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nova Categoria</span>
+                                <span class="action-subtitle">Organizar transações</span>
+                            </div>
+                        </a>
+                        
+                        <a href="{% url 'field_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-signpost-2-fill"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Novo Campo</span>
+                                <span class="action-subtitle">Adicionar região</span>
+                            </div>
+                        </a>
+                        
+                        <a href="{% url 'church_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-house-heart"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nova Igreja</span>
+                                <span class="action-subtitle">Cadastrar congregação</span>
+                            </div>
+                        </a>
+                        
+                        <a href="{% url 'user_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Novo Usuário</span>
+                                <span class="action-subtitle">Adicionar tesoureiro</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     {% endif %}
 
@@ -237,6 +281,9 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Custom JS -->
     <script src="{% static 'js/index.js' %}"></script>
+
+    {% block extra_js %}
+    {% endblock %}
 
     {% block js %}
     {% endblock %}

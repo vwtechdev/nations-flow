@@ -98,6 +98,9 @@
                         
                         <div class="col-12 d-flex align-items-end">
                             <div class="d-flex gap-2 justify-content-end w-100">
+                                <a href="{% url 'dashboard_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton" class="btn btn-success btn-sm" style="width: 120px;">
+                                    <i class="bi bi-file-pdf-fill"></i> PDF
+                                </a>
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
@@ -190,7 +193,48 @@
     </div>
 </div>
 
-
+<!-- Gráfico de Entrada e Saída por Igreja -->
+{% if churches_individual_data %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Entradas e Saídas por Igreja</h6>
+                {% if selected_category or selected_field or selected_church %}
+                    <small class="text-muted">
+                        {% if selected_category %}
+                            Categoria: {{ selected_category_name }}
+                        {% endif %}
+                        {% if selected_field %}
+                            {% if selected_category %} | {% endif %}
+                            Campo: {{ selected_field_name }}
+                        {% endif %}
+                        {% if selected_church %}
+                            {% if selected_category or selected_field %} | {% endif %}
+                            Igreja: {{ selected_church_name }}
+                        {% endif %}
+                    </small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="churchesIndividualChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color legend-income"></div>
+                        <span>Entradas</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color legend-expense"></div>
+                        <span>Saídas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Gráfico por Igreja -->
 {% if churches_data %}
@@ -290,6 +334,8 @@
                                     <th>Data</th>
                                     <th>Tipo</th>
                                     <th>Categoria</th>
+                                    <th>Campo</th>
+                                    <th>Igreja</th>
                                     <th>Descrição</th>
                                     <th>Valor</th>
                                     {% if user.is_admin %}
@@ -308,6 +354,12 @@
                                             </span>
                                         </td>
                                         <td>{{ transaction.category.name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-geo-alt"></i> {{ transaction.church.field.name }}
+                                            </span>
+                                        </td>
+                                        <td>{{ transaction.church.name }}</td>
                                         <td>{{ transaction.desc|truncatechars:50|default:"-" }}</td>
                                         <td class="text-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
                                             R$ {{ transaction.value|floatformat:2 }}
@@ -316,13 +368,32 @@
                                             <td>{{ transaction.user.get_full_name }}</td>
                                         {% endif %}
                                         <td>
-                                            <a href="{% url 'transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a href="{% url 'transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
+                                            {% if user.is_admin %}
+                                                <!-- Administradores podem editar e excluir -->
+                                                <a href="{% url 'transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteModal" 
+                                                        data-transaction-id="{{ transaction.pk }}"
+                                                        data-transaction-date="{{ transaction.date|date:'d/m/Y' }}"
+                                                        data-transaction-type="{{ transaction.get_type_display }}"
+                                                        data-transaction-category="{{ transaction.category.name }}"
+                                                        data-transaction-church="{{ transaction.church.name }}"
+                                                        data-transaction-desc="{{ transaction.desc|default:'-'|escapejs }}"
+                                                        data-transaction-value="{{ transaction.value|floatformat:2 }}"
+                                                        data-transaction-user="{{ transaction.user.get_full_name|escapejs }}"
+                                                        title="Excluir">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            {% else %}
+                                                <!-- Tesoureiros podem visualizar -->
+                                                <a href="{% url 'transaction_view' transaction.pk %}" class="btn btn-sm btn-outline-info" title="Visualizar">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            {% endif %}
+                                        </td>   
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -341,10 +412,67 @@
     </div>
 </div>
 
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja excluir a transação?</strong>
+                </p>
+                <div class="card border-warning mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Transação #<span id="transactionId"></span>
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Data:</strong> <span id="transactionDate"></span></p>
+                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="transactionType"></span></p>
+                                <p class="card-text mb-1"><strong>Categoria:</strong> <span id="transactionCategory"></span></p>
+                                <p class="card-text mb-1"><strong>Igreja:</strong> <span id="transactionChurch"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="card-text mb-1"><strong>Valor:</strong> <span id="transactionValue"></span></p>
+                                <p class="card-text mb-1"><strong>Descrição:</strong> <span id="transactionDesc"></span></p>
+                                {% if user.is_admin %}
+                                <p class="card-text"><strong>Usuário:</strong> <span id="transactionUser"></span></p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Dados para o gráfico -->
 <script>
     var categoriesData = {{ categories_data|safe|default:"[]" }};
     var churchesData = {{ churches_data|safe|default:"[]" }};
+    var churchesIndividualData = {{ churches_individual_data|safe|default:"[]" }};
 </script>
 
 <!-- Chart.js -->
@@ -352,6 +480,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Captura os dados da transação quando o modal de exclusão é aberto
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const transactionId = button.getAttribute('data-transaction-id');
+        const transactionDate = button.getAttribute('data-transaction-date');
+        const transactionType = button.getAttribute('data-transaction-type');
+        const transactionCategory = button.getAttribute('data-transaction-category');
+        const transactionChurch = button.getAttribute('data-transaction-church');
+        const transactionDesc = button.getAttribute('data-transaction-desc');
+        const transactionValue = button.getAttribute('data-transaction-value');
+        const transactionUser = button.getAttribute('data-transaction-user');
+        
+        // Preenche os dados no modal
+        document.getElementById('transactionId').textContent = transactionId;
+        document.getElementById('transactionDate').textContent = transactionDate;
+        document.getElementById('transactionType').textContent = transactionType;
+        document.getElementById('transactionCategory').textContent = transactionCategory;
+        document.getElementById('transactionChurch').textContent = transactionChurch;
+        document.getElementById('transactionDesc').textContent = transactionDesc || '-';
+        document.getElementById('transactionValue').textContent = transactionValue ? `R$ ${transactionValue}` : 'R$ 0,00';
+        if (transactionUser) {
+            document.getElementById('transactionUser').textContent = transactionUser;
+        }
+        
+        // Atualiza a action do formulário
+        document.getElementById('deleteForm').action = `/transactions/${transactionId}/delete/`;
+    });
+
     // Gráfico por Igreja
     if (typeof churchesData !== 'undefined' && churchesData && churchesData.length > 0) {
         var churchCtx = document.getElementById('churchChart');
@@ -496,6 +653,115 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 }
+            });
+        }
+    }
+
+    // Gráfico de Entrada e Saída por Igreja Individual
+    if (typeof churchesIndividualData !== 'undefined' && churchesIndividualData && churchesIndividualData.length > 0) {
+        var churchesIndividualCtx = document.getElementById('churchesIndividualChart');
+        if (churchesIndividualCtx) {
+            var churchesIndividualLabels = churchesIndividualData.map(function(item) {
+                return item.name;
+            });
+            
+            var churchesIndividualIncomeData = churchesIndividualData.map(function(item) {
+                return item.income;
+            });
+            
+            var churchesIndividualExpenseData = churchesIndividualData.map(function(item) {
+                return item.expense;
+            });
+            
+            new Chart(churchesIndividualCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: churchesIndividualLabels,
+                    datasets: [{
+                        label: 'Entradas',
+                        data: churchesIndividualIncomeData,
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        borderWidth: 1
+                    }, {
+                        label: 'Saídas',
+                        data: churchesIndividualExpenseData,
+                        backgroundColor: '#ff6b6b',
+                        borderColor: '#ff6b6b',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Script específico para a dashboard - garantir que o formulário de filtro funcione corretamente
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('chartFilterForm');
+    if (filterForm) {
+        // Remover qualquer listener de submit existente para evitar conflitos
+        filterForm.removeEventListener('submit', filterForm._submitHandler);
+        
+        // Criar um novo handler e armazenar referência
+        filterForm._submitHandler = function(e) {
+            // Permitir que o formulário seja submetido normalmente (não prevenir o comportamento padrão)
+            // Isso fará com que a página seja recarregada com os filtros aplicados
+            console.log('Dashboard filter form submitted');
+        };
+        
+        filterForm.addEventListener('submit', filterForm._submitHandler);
+        
+        // Também adicionar listener para o botão de filtro especificamente
+        const filterButton = filterForm.querySelector('button[type="submit"]');
+        if (filterButton) {
+            filterButton.addEventListener('click', function(e) {
+                // Não prevenir o comportamento padrão - deixar o formulário ser submetido
+                console.log('Dashboard filter button clicked');
             });
         }
     }

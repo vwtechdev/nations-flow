@@ -1,18 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import State, City, Church, User, Field, Category, Transaction
-
-@admin.register(State)
-class StateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'uf']
-    search_fields = ['name', 'uf']
-    list_filter = ['uf']
-
-@admin.register(City)
-class CityAdmin(admin.ModelAdmin):
-    list_display = ['name', 'state']
-    search_fields = ['name', 'state__name']
-    list_filter = ['state']
+from .models import Church, User, Field, Category, Transaction
 
 @admin.register(Field)
 class FieldAdmin(admin.ModelAdmin):
@@ -24,31 +12,36 @@ class FieldAdmin(admin.ModelAdmin):
 
 @admin.register(Church)
 class ChurchAdmin(admin.ModelAdmin):
-    list_display = ['name', 'city', 'field', 'phone', 'created_at']
-    search_fields = ['name', 'city__name', 'address']
-    list_filter = ['city__state', 'field', 'created_at']
+    list_display = ['name', 'shepherd', 'field', 'created_at']
+    search_fields = ['name', 'shepherd', 'address']
+    list_filter = ['field', 'created_at']
     date_hierarchy = 'created_at'
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['email', 'first_name', 'last_name', 'role', 'field', 'is_active']
-    list_filter = ['role', 'field', 'is_active']
+    list_display = ['email', 'first_name', 'last_name', 'role', 'get_fields_display', 'is_active']
+    list_filter = ['role', 'fields', 'is_active']
     search_fields = ['first_name', 'last_name', 'email']
     ordering = ['email']
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Informações Pessoais', {'fields': ('first_name', 'last_name')}),
-        ('Permissões', {'fields': ('role', 'field', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Permissões', {'fields': ('role', 'fields', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Datas importantes', {'fields': ('last_login', 'date_joined')}),
     )
     
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'role', 'field'),
+            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'role', 'fields'),
         }),
     )
+    
+    def get_fields_display(self, obj):
+        """Exibe os campos do usuário na lista"""
+        return ", ".join([field.name for field in obj.fields.all()])
+    get_fields_display.short_description = 'Campos'
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -63,7 +56,7 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ['type', 'category', 'date', 'user', 'church', 'created_at']
     search_fields = ['desc', 'category__name', 'user__email', 'church__name']
     date_hierarchy = 'date'
-    readonly_fields = ['created_at', 'last_update']
+    readonly_fields = ['created_at', 'updated_at']
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)

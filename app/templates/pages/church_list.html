@@ -25,11 +25,9 @@
                             <thead>
                                 <tr>
                                     <th>Nome</th>
-                                    <th>Cidade</th>
-                                    <th>Estado</th>
+                                    <th>Pastor Responsável</th>
                                     <th>Campo</th>
                                     <th>Endereço</th>
-                                    <th>Telefone</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -37,11 +35,9 @@
                                 {% for church in churches %}
                                     <tr>
                                         <td>{{ church.name }}</td>
-                                        <td>{{ church.city.name }}</td>
-                                        <td>{{ church.city.state.uf }}</td>
+                                        <td>{{ church.shepherd }}</td>
                                         <td>{{ church.field.name }}</td>
                                         <td>{{ church.address|default:"-" }}</td>
-                                        <td>{{ church.phone|default:"-" }}</td>
                                         <td>
                                             <a href="{% url 'church_edit' church.pk %}" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-pencil"></i>
@@ -51,11 +47,9 @@
                                                     data-bs-target="#deleteModal" 
                                                     data-church-id="{{ church.pk }}"
                                                     data-church-name="{{ church.name }}"
-                                                    data-church-city="{{ church.city.name }}"
-                                                    data-church-state="{{ church.city.state.uf }}"
+                                                    data-church-shepherd="{{ church.shepherd }}"
                                                     data-church-field="{{ church.field.name }}"
-                                                    data-church-address="{{ church.address|default:'Não informado' }}"
-                                                    data-church-phone="{{ church.phone|default:'Não informado' }}">
+                                                    data-church-address="{{ church.address|default:'Não informado' }}">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </td>
@@ -71,6 +65,9 @@
         </div>
     </div>
 </div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
 
 <!-- Modal de Confirmação de Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -94,12 +91,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <p class="card-text mb-1"><strong>Nome:</strong> <span id="churchNameText"></span></p>
-                                <p class="card-text mb-1"><strong>Cidade:</strong> <span id="churchCity"></span> - <span id="churchState"></span></p>
+                                <p class="card-text mb-1"><strong>Pastor Responsável:</strong> <span id="churchShepherd"></span></p>
                                 <p class="card-text mb-1"><strong>Campo:</strong> <span id="churchField"></span></p>
                                 <p class="card-text mb-1"><strong>Endereço:</strong> <span id="churchAddress"></span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="card-text mb-1"><strong>Telefone:</strong> <span id="churchPhone"></span></p>
                             </div>
                         </div>
                     </div>
@@ -135,20 +129,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = event.relatedTarget;
         const churchId = button.getAttribute('data-church-id');
         const churchName = button.getAttribute('data-church-name');
-        const churchCity = button.getAttribute('data-church-city');
-        const churchState = button.getAttribute('data-church-state');
+        const churchShepherd = button.getAttribute('data-church-shepherd');
         const churchField = button.getAttribute('data-church-field');
         const churchAddress = button.getAttribute('data-church-address');
-        const churchPhone = button.getAttribute('data-church-phone');
         
         // Preenche os dados no modal
         document.getElementById('churchName').textContent = churchName;
         document.getElementById('churchNameText').textContent = churchName;
-        document.getElementById('churchCity').textContent = churchCity;
-        document.getElementById('churchState').textContent = churchState;
+        document.getElementById('churchShepherd').textContent = churchShepherd;
         document.getElementById('churchField').textContent = churchField;
         document.getElementById('churchAddress').textContent = churchAddress;
-        document.getElementById('churchPhone').textContent = churchPhone;
         
         // Atualiza a action do formulário
         document.getElementById('deleteForm').action = `/churches/${churchId}/delete/`;

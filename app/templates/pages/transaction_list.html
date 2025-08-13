@@ -61,7 +61,7 @@
                             </div>
                         </div>
                         
-                        {% if user.is_admin %}
+                        {% if user.is_admin or user.fields.count > 1 %}
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="field" id="fieldFilter" class="form-control">
@@ -97,7 +97,7 @@
                         
                         <div class="col-12 d-flex align-items-end">
                             <div class="d-flex gap-2 justify-content-end w-100">
-                                <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm" style="width: 120px;">
+                                <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton" class="btn btn-success btn-sm" style="width: 120px;">
                                     <i class="bi bi-file-pdf-fill"></i> PDF
                                 </a>
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
@@ -202,110 +202,29 @@
             
             <div class="card-body">
                 <!-- Tabela de Transações -->
-                {% if page_obj %}
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Categoria</th>
-                                    <th>Igreja</th>
-                                    <th>Descrição</th>
-                                    <th>Valor</th>
-                                    {% if user.is_admin %}
-                                        <th>Usuário</th>
-                                    {% endif %}
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for transaction in page_obj %}
-                                    <tr>
-                                        <td>{{ transaction.date|date:"d/m/Y" }}</td>
-                                        <td>
-                                            <span class="badge bg-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
-                                                {{ transaction.get_type_display }}
-                                            </span>
-                                        </td>
-                                        <td>{{ transaction.category.name }}</td>
-                                        <td>{{ transaction.church.name }}</td>
-                                        <td>{{ transaction.desc|truncatechars:50|default:"-" }}</td>
-                                        <td class="text-{% if transaction.type == 'income' %}success{% else %}danger{% endif %}">
-                                            R$ {{ transaction.value|floatformat:2 }}
-                                        </td>
-                                        {% if user.is_admin %}
-                                            <td>{{ transaction.user.get_full_name }}</td>
-                                        {% endif %}
-                                        <td>
-                                            <a href="{% url 'transaction_edit' transaction.pk %}" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-transaction-id="{{ transaction.pk }}"
-                                                    data-transaction-date="{{ transaction.date|date:'d/m/Y' }}"
-                                                    data-transaction-type="{{ transaction.get_type_display }}"
-                                                    data-transaction-category="{{ transaction.category.name }}"
-                                                    data-transaction-church="{{ transaction.church.name }}"
-                                                    data-transaction-desc="{{ transaction.desc|default:'-'|escapejs }}"
-                                                    data-transaction-value="{{ transaction.value|floatformat:2 }}"
-                                                    data-transaction-user="{{ transaction.user.get_full_name|escapejs }}">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </td>   
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div id="transactionsTable">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Carregando transações...</p>
                     </div>
-                    
-                    <!-- Paginação -->
-                    {% if page_obj.has_other_pages %}
-                        <nav aria-label="Navegação de páginas">
-                            <ul class="pagination justify-content-center">
-                                {% if page_obj.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=1{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                        Primeira
-                                    </a>
-                                </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                        Anterior
-                                    </a>
-                                </li>
-                                {% endif %}
-                                
-                                <li class="page-item active">
-                                    <span class="page-link">
-                                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-                                    </span>
-                                </li>
-                                
-                                {% if page_obj.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                            Próxima
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if category_id %}&category={{ category_id }}{% endif %}{% if transaction_type %}&type={{ transaction_type }}{% endif %}{% if selected_field %}&field={{ selected_field }}{% endif %}{% if selected_church %}&church={{ selected_church }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                            Última
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                    {% endif %}
-                {% else %}
-                    <p class="text-muted">Nenhuma transação encontrada.</p>
-                {% endif %}
+                </div>
+                
+                <!-- Paginação AJAX -->
+                <div id="paginationContainer" class="mt-3" style="display: none;">
+                    <nav aria-label="Navegação de páginas">
+                        <ul class="pagination justify-content-center" id="paginationList">
+                        </ul>
+                    </nav>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
 
 <!-- Modal de Confirmação de Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -367,64 +286,8 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const fieldSelect = document.getElementById('field');
-    const churchSelect = document.getElementById('church');
-    
-    if (fieldSelect && churchSelect) {
-        fieldSelect.addEventListener('change', function() {
-            const selectedField = this.value;
-            
-            // Limpar opções de igreja
-            churchSelect.innerHTML = '<option value="">Todas as igrejas</option>';
-            
-            if (selectedField) {
-                // Fazer requisição AJAX para buscar igrejas do campo selecionado
-                fetch(`/get_churches/?field=${selectedField}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.churches.forEach(church => {
-                            const option = document.createElement('option');
-                            option.value = church.id;
-                            option.textContent = church.name;
-                            churchSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Erro ao carregar igrejas:', error);
-                    });
-            }
-        });
-    }
-    
-    // Captura os dados da transação quando o modal é aberto
-    const deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const transactionId = button.getAttribute('data-transaction-id');
-        const transactionDate = button.getAttribute('data-transaction-date');
-        const transactionType = button.getAttribute('data-transaction-type');
-        const transactionCategory = button.getAttribute('data-transaction-category');
-        const transactionChurch = button.getAttribute('data-transaction-church');
-        const transactionDesc = button.getAttribute('data-transaction-desc');
-        const transactionValue = button.getAttribute('data-transaction-value');
-        const transactionUser = button.getAttribute('data-transaction-user');
-        
-        // Preenche os dados no modal
-        document.getElementById('transactionId').textContent = transactionId;
-        document.getElementById('transactionDate').textContent = transactionDate;
-        document.getElementById('transactionType').textContent = transactionType;
-        document.getElementById('transactionCategory').textContent = transactionCategory;
-        document.getElementById('transactionChurch').textContent = transactionChurch;
-        document.getElementById('transactionDesc').textContent = transactionDesc || '-';
-        document.getElementById('transactionValue').textContent = transactionValue ? `R$ ${transactionValue}` : 'R$ 0,00';
-        if (transactionUser) {
-            document.getElementById('transactionUser').textContent = transactionUser;
-        }
-        
-        // Atualiza a action do formulário
-        document.getElementById('deleteForm').action = `/transactions/${transactionId}/delete/`;
-    });
-});
+// Adicionar atributo data-is-admin ao body para o JavaScript
+document.body.setAttribute('data-is-admin', '{{ user.is_admin|yesno:"true,false" }}');
 </script>
+<script src="{% static 'js/transaction_list.js' %}"></script>
 {% endblock %} 

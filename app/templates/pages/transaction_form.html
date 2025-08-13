@@ -9,7 +9,50 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
-                <form method="post">
+                {% if readonly %}
+                <!-- Modo somente leitura -->
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>Modo de Visualização:</strong> Esta transação está sendo exibida em modo somente leitura.
+                </div>
+                <style>
+                    /* Estilos para modo somente leitura */
+                    .readonly-form input,
+                    .readonly-form select,
+                    .readonly-form textarea {
+                        background-color: #f8f9fa !important;
+                        color: #6c757d !important;
+                        cursor: not-allowed !important;
+                        opacity: 0.7 !important;
+                    }
+                    
+                    .readonly-form input:focus,
+                    .readonly-form select:focus,
+                    .readonly-form textarea:focus {
+                        background-color: #f8f9fa !important;
+                        color: #6c757d !important;
+                        box-shadow: none !important;
+                        border-color: #dee2e6 !important;
+                    }
+                    
+                    /* Estilos para campos desabilitados */
+                    .form-control-disabled {
+                        background-color: #e9ecef !important;
+                        color: #6c757d !important;
+                        cursor: not-allowed !important;
+                        opacity: 0.7 !important;
+                    }
+                    
+                    .form-control-disabled:focus {
+                        background-color: #e9ecef !important;
+                        color: #6c757d !important;
+                        box-shadow: none !important;
+                        border-color: #dee2e6 !important;
+                    }
+                </style>
+                {% endif %}
+                
+                <form method="post"{% if readonly %} class="readonly-form"{% endif %}>
                     {% csrf_token %}
                     
                     <div class="row">
@@ -79,6 +122,22 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
+                                {{ form.field }}
+                                <label for="{{ form.field.id_for_label }}">
+                                    <i class="bi bi-geo-alt"></i> {{ form.field.label }}
+                                </label>
+                                {% if form.field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.field.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
                                 {{ form.church }}
                                 <label for="{{ form.church.id_for_label }}">
                                     <i class="bi bi-house-heart"></i> {{ form.church.label }}
@@ -111,16 +170,105 @@
                     </div>
                     
                     <div class="d-flex gap-2 justify-content-end">
+                        {% if readonly %}
+                        <!-- Botões para modo somente leitura -->
+                        <a href="{% url 'transaction_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        {% else %}
+                        <!-- Botões para modo de edição -->
                         <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                             <i class="bi bi-check-circle"></i> Salvar
                         </button>
                         <a href="{% url 'transaction_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
                             <i class="bi bi-x-circle"></i> Cancelar
                         </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldSelect = document.getElementById('{{ form.field.id_for_label }}');
+    const churchSelect = document.getElementById('{{ form.church.id_for_label }}');
+    
+    if (fieldSelect && churchSelect) {
+        // Função para atualizar as igrejas baseado no campo selecionado
+        function updateChurches() {
+            const selectedFieldId = fieldSelect.value;
+            
+            if (selectedFieldId) {
+                // Habilitar o campo de igreja
+                churchSelect.disabled = false;
+                churchSelect.classList.remove('form-control-disabled');
+                churchSelect.innerHTML = '<option value="">Carregando igrejas...</option>';
+                
+                // Fazer requisição AJAX para buscar igrejas do campo selecionado
+                fetch(`/api/churches-by-field/${selectedFieldId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        churchSelect.innerHTML = '<option value="">Selecione uma igreja</option>';
+                        
+                        if (data.churches && data.churches.length > 0) {
+                            data.churches.forEach(church => {
+                                const option = document.createElement('option');
+                                option.value = church.id;
+                                option.textContent = church.name;
+                                churchSelect.appendChild(option);
+                            });
+                        } else {
+                            churchSelect.innerHTML = '<option value="">Nenhuma igreja encontrada para este campo</option>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar igrejas:', error);
+                        churchSelect.innerHTML = '<option value="">Erro ao carregar igrejas</option>';
+                    });
+            } else {
+                // Desabilitar o campo de igreja se nenhum campo estiver selecionado
+                churchSelect.disabled = true;
+                churchSelect.classList.add('form-control-disabled');
+                churchSelect.innerHTML = '<option value="">Selecione um campo primeiro</option>';
+            }
+        }
+        
+        // Adicionar evento de mudança no campo de seleção de campo
+        fieldSelect.addEventListener('change', updateChurches);
+        
+        // Executar uma vez para configurar o estado inicial
+        updateChurches();
+        
+        // Adicionar validação visual antes do envio do formulário
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const selectedField = fieldSelect.value;
+            const selectedChurch = churchSelect.value;
+            
+            if (!selectedField) {
+                e.preventDefault();
+                alert('Por favor, selecione um campo primeiro.');
+                fieldSelect.focus();
+                return false;
+            }
+            
+            if (!selectedChurch) {
+                e.preventDefault();
+                alert('Por favor, selecione uma igreja.');
+                churchSelect.focus();
+                return false;
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 

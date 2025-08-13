@@ -2,6 +2,46 @@
 {% load static %}
 
 {% block content %}
+<style>
+    /* Estilos para a lista de usuários */
+    .user-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .user-fields .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    /* Destaque para administradores */
+    .badge.bg-info {
+        background-color: #0dcaf0 !important;
+        color: white !important;
+    }
+    
+    /* Melhorar aparência da tabela */
+    .table th {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    /* Estilos para os modais */
+    .modal-body .card {
+        border-radius: 8px;
+    }
+    
+    .modal-body .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+</style>
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
@@ -27,7 +67,7 @@
                                     <th>Nome</th>
                                     <th>Email</th>
                                     <th>Função</th>
-                                    <th>Campo</th>
+                                    <th>Campos</th>
                                     <th>Status</th>
                                     <th>Ações</th>
                                 </tr>
@@ -38,11 +78,21 @@
                                         <td>{{ user.get_full_name }}</td>
                                         <td>{{ user.email }}</td>
                                         <td>
-                                            <span class="badge bg-primary">
+                                            <span class="badge {% if user.role == 'admin' %}bg-info{% else %}bg-primary{% endif %}">
                                                 {{ user.get_role_display }}
                                             </span>
                                         </td>
-                                        <td>{{ user.field.name|default:"-" }}</td>
+                                        <td>
+                                            {% if user.fields.exists %}
+                                                <div class="user-fields">
+                                                    {% for field in user.fields.all %}
+                                                        <span class="badge bg-secondary me-1 mb-1">{{ field.name }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             <span class="badge bg-{% if user.is_active %}success{% else %}danger{% endif %}">
                                                 {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
@@ -60,7 +110,7 @@
                                                     data-user-name="{{ user.get_full_name }}"
                                                     data-user-email="{{ user.email }}"
                                                     data-user-role="{{ user.get_role_display }}"
-                                                    data-user-field="{{ user.field.name|default:'Não vinculado' }}"
+                                                    data-user-fields="{% for field in user.fields.all %}{{ field.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
                                                     data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
                                                 <i class="bi bi-person-x"></i>
                                             </button>
@@ -72,7 +122,7 @@
                                                     data-user-name="{{ user.get_full_name }}"
                                                     data-user-email="{{ user.email }}"
                                                     data-user-role="{{ user.get_role_display }}"
-                                                    data-user-field="{{ user.field.name|default:'Não vinculado' }}"
+                                                    data-user-fields="{% for field in user.fields.all %}{{ field.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
                                                     data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
                                                 <i class="bi bi-person-check"></i>
                                             </button>
@@ -90,6 +140,9 @@
         </div>
     </div>
 </div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
 
 
 
@@ -118,7 +171,7 @@
                                 <p class="card-text mb-1"><strong>Email:</strong> <span id="userEmail"></span></p>
                                 <p class="card-text mb-1"><strong>Status:</strong> <span id="userStatus"></span></p>
                                 <p class="card-text mb-1"><strong>Função:</strong> <span id="userRole"></span></p>
-                                <p class="card-text mb-1" id="userFieldRow" style="display: none;"><strong>Campo:</strong> <span id="userField"></span></p>
+                                <p class="card-text mb-1" id="userFieldsRow"><strong>Campos:</strong> <span id="userFields"></span></p>
                             </div>
                         </div>
                     </div>
@@ -208,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const userName = button.getAttribute('data-user-name');
         const userEmail = button.getAttribute('data-user-email');
         const userRole = button.getAttribute('data-user-role');
-        const userField = button.getAttribute('data-user-field');
+        const userFields = button.getAttribute('data-user-fields');
         const userStatus = button.getAttribute('data-user-status');
         
         // Preenche os dados no modal
@@ -216,16 +269,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('userFullName').textContent = userName;
         document.getElementById('userEmail').textContent = userEmail;
         document.getElementById('userRole').textContent = userRole;
-        document.getElementById('userField').textContent = userField;
+        document.getElementById('userFields').textContent = userFields || 'Nenhum campo vinculado';
         document.getElementById('userStatus').textContent = userStatus;
-        
-        // Mostra o campo se o usuário for Tesoureiro
-        const userFieldRow = document.getElementById('userFieldRow');
-        if (userRole === 'Tesoureiro') {
-            userFieldRow.style.display = 'block';
-        } else {
-            userFieldRow.style.display = 'none';
-        }
         
         // Atualiza a action do formulário
         document.getElementById('deleteForm').action = `/users/${userId}/delete/`;
@@ -239,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const userName = button.getAttribute('data-user-name');
         const userEmail = button.getAttribute('data-user-email');
         const userRole = button.getAttribute('data-user-role');
-        const userField = button.getAttribute('data-user-field');
+        const userFields = button.getAttribute('data-user-fields');
         const userStatus = button.getAttribute('data-user-status');
         
         // Preenche os dados no modal
@@ -247,16 +292,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('activateUserFullName').textContent = userName;
         document.getElementById('activateUserEmail').textContent = userEmail;
         document.getElementById('activateUserRole').textContent = userRole;
-        document.getElementById('activateUserField').textContent = userField;
+        document.getElementById('activateUserField').textContent = userFields || 'Nenhum campo vinculado';
         document.getElementById('activateUserStatus').textContent = userStatus;
-        
-        // Mostra o campo se o usuário for Tesoureiro
-        const activateUserFieldRow = document.getElementById('activateUserFieldRow');
-        if (userRole === 'Tesoureiro') {
-            activateUserFieldRow.style.display = 'block';
-        } else {
-            activateUserFieldRow.style.display = 'none';
-        }
         
         // Atualiza a action do formulário
         document.getElementById('activateForm').action = `/users/${userId}/activate/`;
