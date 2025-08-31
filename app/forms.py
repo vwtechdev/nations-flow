@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.html import format_html
 import re
-from .models import Church, User, Field, Category, Transaction
+from .models import Church, User, Field, Shepherd, Category, Transaction, Notification
 
 class CheckboxTableWidget(forms.Widget):
     """Widget personalizado para exibir campos como uma tabela com checkboxes"""
@@ -99,8 +99,6 @@ class ChurchForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.TextInput(attrs={'class': 'form-control'}),
-            'shepherd': forms.TextInput(attrs={'class': 'form-control'}),
-            'field': forms.Select(attrs={'class': 'form-control'}),
         }
 
 class UserForm(forms.ModelForm):
@@ -292,9 +290,10 @@ class ChangePasswordForm(forms.Form):
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ['name']
+        fields = ['name', 'mandatory_proof']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'mandatory_proof': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 class TransactionForm(forms.ModelForm):
@@ -307,9 +306,21 @@ class TransactionForm(forms.ModelForm):
         label="Campo"
     )
     
+    # Campo para criar lembrete (não é salvo no modelo Transaction)
+    create_reminder = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'id': 'create_reminder'
+        }),
+        label="Criar Lembrete",
+        help_text="Marque esta opção para criar uma notificação de lembrete para esta transação"
+    )
+    
     class Meta:
         model = Transaction
-        fields = ['type', 'desc', 'category', 'value', 'date', 'church']
+        fields = ['type', 'desc', 'category', 'value', 'date', 'church', 'proof']
         widgets = {
             'type': forms.Select(attrs={'class': 'form-control'}),
             'desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -317,6 +328,13 @@ class TransactionForm(forms.ModelForm):
             'value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'church': forms.Select(attrs={'class': 'form-control'}),
+            'proof': forms.FileInput(attrs={
+                'class': 'form-control', 
+                'accept': '.pdf,.jpg,.jpeg,.png',
+                'aria-describedby': 'proofHelp',
+                'data-toggle': 'tooltip',
+                'title': 'Selecione um arquivo para substituir o comprovante atual'
+            }),
         }
     
     def __init__(self, *args, **kwargs):
@@ -354,8 +372,9 @@ class TransactionForm(forms.ModelForm):
             else:
                 self.fields['church'].queryset = Church.objects.none()
         # Se não há dados, verificar initial (para edição)
-        elif 'field' in self.initial and self.initial['field']:
-            selected_field = self.initial['field']
+        elif self.instance and self.instance.pk and self.instance.church:
+            # Para edição, configurar o campo church com as igrejas do campo da transação
+            selected_field = self.instance.church.field
             self.fields['church'].queryset = Church.objects.filter(field=selected_field)
         else:
             # Inicialmente, church está desabilitado até que um campo seja selecionado
@@ -370,6 +389,27 @@ class TransactionForm(forms.ModelForm):
                 # Formatar a data para o formato YYYY-MM-DD esperado pelo input type="date"
                 formatted_date = self.instance.date.strftime('%Y-%m-%d')
                 self.initial['date'] = formatted_date
+        
+        # Configurar o campo proof para mostrar o arquivo atual
+        if 'proof' in self.fields and self.instance and self.instance.pk:
+            # Adicionar informações sobre o arquivo atual
+            if self.instance.proof:
+                # O campo proof já tem o arquivo atual, mas vamos garantir que seja exibido
+                self.fields['proof'].help_text = f"Arquivo atual: {self.instance.proof.name} (Tamanho: {self.instance.proof.size} bytes)"
+                # Garantir que o campo não seja obrigatório se já há um arquivo
+                self.fields['proof'].required = False
+                # Adicionar atributos para melhorar a experiência do usuário
+                self.fields['proof'].widget.attrs.update({
+                    'data-current-file': self.instance.proof.name,
+                    'data-current-url': self.instance.proof.url if self.instance.proof else '',
+                    'placeholder': f'Arquivo atual: {self.instance.proof.name}',
+                })
+                # Adicionar texto explicativo no widget
+                self.fields['proof'].widget.attrs['title'] = f'Arquivo atual: {self.instance.proof.name}. Selecione um novo arquivo para substituir.'
+                
+                # Garantir que o campo seja exibido corretamente
+                self.fields['proof'].widget.attrs['style'] = 'border: 2px solid #28a745;'
+                self.fields['proof'].widget.attrs['class'] = 'form-control border-success'
     
     def clean_value(self):
         value = self.cleaned_data.get('value')
@@ -377,10 +417,33 @@ class TransactionForm(forms.ModelForm):
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return value
     
+    def clean_proof(self):
+        proof = self.cleaned_data.get('proof')
+        if proof:
+            # Limitar tamanho do arquivo para 1MB
+            max_size = 1 * 1024 * 1024  # 1MB em bytes
+            if proof.size > max_size:
+                raise forms.ValidationError(
+                    f"O arquivo é muito grande. Tamanho máximo permitido: 1MB. "
+                    f"Seu arquivo tem {proof.size / (1024*1024):.1f}MB."
+                )
+            
+            # Validar tipos de arquivo permitidos
+            allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png']
+            file_extension = proof.name.lower().split('.')[-1] if '.' in proof.name else ''
+            if f'.{file_extension}' not in allowed_extensions:
+                raise forms.ValidationError(
+                    f"Tipo de arquivo não permitido. Formatos aceitos: {', '.join(allowed_extensions)}"
+                )
+        
+        return proof
+    
     def clean(self):
         cleaned_data = super().clean()
         field = cleaned_data.get('field')
         church = cleaned_data.get('church')
+        category = cleaned_data.get('category')
+        proof = cleaned_data.get('proof')
         
         # Validar que um campo foi selecionado
         if not field:
@@ -393,6 +456,36 @@ class TransactionForm(forms.ModelForm):
         # Validar que a igreja pertence ao campo selecionado
         if church and field and church.field != field:
             raise forms.ValidationError("A igreja selecionada não pertence ao campo selecionado.")
+        
+        # Validar comprovante apenas se for uma nova transação ou se um novo arquivo foi enviado
+        if not self.instance or not self.instance.pk:
+            # Nova transação - validar se comprovante é obrigatório
+            if category and category.mandatory_proof and not proof:
+                raise forms.ValidationError({
+                    'proof': 'Esta categoria requer anexo de comprovante obrigatório.'
+                })
+        else:
+            # Edição de transação existente
+            if category and category.mandatory_proof:
+                # Se a categoria requer comprovante, verificar se há um arquivo atual ou novo
+                current_proof = self.instance.proof
+                
+                # Verificar se o comprovante foi "limpo" (campo vazio mas havia arquivo antes)
+                # Isso pode acontecer quando o usuário usa o botão "Limpar" no frontend
+                if not current_proof and not proof:
+                    raise forms.ValidationError({
+                        'proof': 'Esta categoria requer anexo de comprovante obrigatório.'
+                    })
+                
+                # Verificar se há um arquivo atual mas o campo proof está vazio (indicando limpeza)
+                # Para isso, precisamos verificar se o campo proof foi enviado mas está vazio
+                if current_proof and not proof and hasattr(self, 'data') and self.data:
+                    # Se há dados POST e o campo proof está vazio, pode indicar que foi limpo
+                    proof_field_value = self.data.get('proof')
+                    if proof_field_value == '' or proof_field_value is None:
+                        raise forms.ValidationError({
+                            'proof': 'Esta categoria requer anexo de comprovante obrigatório. Não é possível remover o comprovante.'
+                        })
         
         return cleaned_data
 
@@ -427,3 +520,49 @@ class EmailAuthenticationForm(AuthenticationForm):
                 raise ValidationError('Email não encontrado no sistema.')
         return email
 
+class ShepherdForm(forms.ModelForm):
+    """Formulário para criação/edição de pastores"""
+    
+    class Meta:
+        model = Shepherd
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class NotificationForm(forms.ModelForm):
+    """Formulário para criação/edição de notificações"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Garantir que o campo date seja formatado corretamente para datetime-local
+        if self.instance and self.instance.pk:
+            # Se é uma edição, formatar a data para o formato HTML5
+            if self.instance.date:
+                # Converter para o formato YYYY-MM-DDTHH:MM
+                formatted_date = self.instance.date.strftime('%Y-%m-%dT%H:%M')
+                self.initial['date'] = formatted_date
+    
+    class Meta:
+        model = Notification
+        fields = ['title', 'body', 'date', 'is_read']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Digite o título da notificação'
+            }),
+            'body': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Digite a mensagem da notificação'
+            }),
+            'date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'is_read': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+    

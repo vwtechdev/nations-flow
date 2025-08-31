@@ -3,15 +3,16 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 from django.http import JsonResponse, HttpResponse
+from django.conf import settings
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date
-from .models import Church, User, Field, Category, Transaction
+from .models import Church, User, Field, Shepherd, Category, Transaction, AccessLog, Notification
 from .forms import (
-    ChurchForm, UserForm, FieldForm, 
-    CategoryForm, TransactionForm, ChangePasswordForm, EmailAuthenticationForm
+    ChurchForm, UserForm, FieldForm, ShepherdForm,
+    CategoryForm, TransactionForm, ChangePasswordForm, EmailAuthenticationForm, NotificationForm
 )
 from .decorators import admin_required, treasurer_required, admin_or_treasurer_required, password_changed_required
 from calendar import monthrange
@@ -41,6 +42,14 @@ def login_view(request):
             user = authenticate(request, username=email, password=password)
             if user is not None:
                 login(request, user)
+                
+                # Registrar o login no AccessLog
+                AccessLog.objects.create(
+                    user=user,
+                    action='login',
+                    ip_address=request.META.get('REMOTE_ADDR')
+                )
+                
                 messages.success(request, f'Bem-vindo, {user.get_full_name()}!')
                 # Verifica se o usuário precisa trocar a senha
                 if not user.password_changed:
@@ -63,6 +72,14 @@ def login_view(request):
 
 def logout_view(request):
     """View para fazer logout do usuário"""
+    # Registrar o logout no AccessLog antes de fazer logout
+    if request.user.is_authenticated:
+        AccessLog.objects.create(
+            user=request.user,
+            action='logout',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+    
     # Fazer logout do usuário
     logout(request)
     
@@ -122,6 +139,7 @@ def index(request):
     selected_type = request.GET.get('type', '')
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
+    selected_shepherd = request.GET.get('shepherd', '')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -144,23 +162,27 @@ def index(request):
         'selected_type': selected_type,
         'selected_field': selected_field,
         'selected_church': selected_church,
+        'selected_shepherd': selected_shepherd,
         'categories': Category.objects.all(),
         'current_year': datetime.now().year
     }
     
-    # Adicionar campos e igrejas ao contexto baseado no tipo de usuário
+    # Adicionar campos, igrejas e pastores ao contexto baseado no tipo de usuário
     if request.user.is_admin():
         context['fields'] = Field.objects.all()
         context['churches'] = Church.objects.all()
+        context['shepherds'] = Shepherd.objects.all()
     else:
         # Tesoureiro vê seus campos e suas igrejas
         if request.user.fields.exists():
             context['fields'] = request.user.fields.all()
             user_churches = Church.objects.filter(field__in=request.user.fields.all())
             context['churches'] = user_churches
+            context['shepherds'] = Shepherd.objects.filter(church__field__in=request.user.fields.all()).distinct()
         else:
             context['fields'] = Field.objects.none()
             context['churches'] = Church.objects.none()
+            context['shepherds'] = Shepherd.objects.none()
     
     # Base de transações (todos para admin, apenas do usuário para tesoureiro)
     if request.user.is_admin():
@@ -194,6 +216,10 @@ def index(request):
     # Filtro por igreja
     if selected_church:
         filtered_transactions = filtered_transactions.filter(church_id=selected_church)
+    
+    # Filtro por pastor (apenas para administradores)
+    if selected_shepherd and request.user.is_admin():
+        filtered_transactions = filtered_transactions.filter(church__shepherd_id=selected_shepherd)
     
     # Calcular totais
     total_transactions = filtered_transactions.count()
@@ -287,6 +313,14 @@ def index(request):
     # Transações recentes (últimas 10)
     recent_transactions = filtered_transactions.order_by('-date')[:10]
     
+    # Logs de acesso recentes (apenas para administradores)
+    if request.user.is_admin():
+        access_logs = AccessLog.objects.select_related('user').order_by('-timestamp')[:20]
+    else:
+        access_logs = AccessLog.objects.none()
+    
+
+    
     # Adicionar dados ao contexto
     context.update({
         'total_transactions': total_transactions,
@@ -297,6 +331,7 @@ def index(request):
         'churches_data': churches_data,
         'churches_individual_data': churches_individual_data, # Adicionado
         'recent_transactions': recent_transactions,
+        'access_logs': access_logs,
         'selected_category_name': Category.objects.get(id=selected_category).name if selected_category else None,
         'selected_field_name': Field.objects.get(id=selected_field).name if selected_field else None,
         'selected_church_name': Church.objects.get(id=selected_church).name if selected_church else None,
@@ -332,6 +367,7 @@ def transaction_list(request):
     date_to = request.GET.get('date_to', '')
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
+    selected_shepherd = request.GET.get('shepherd', '')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -377,6 +413,10 @@ def transaction_list(request):
     if selected_church:
         transactions = transactions.filter(church_id=selected_church)
     
+    # Filtro por pastor (apenas para administradores)
+    if selected_shepherd and request.user.is_admin():
+        transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+    
     # Calcular totais
     total_transactions = transactions.count()
     total_income = transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
@@ -387,17 +427,23 @@ def transaction_list(request):
     if request.user.is_admin():
         fields = Field.objects.all()
         churches = Church.objects.all()
+        shepherds = Shepherd.objects.all()
         if selected_field:
             churches = churches.filter(field_id=selected_field)
+        if selected_shepherd:
+            churches = churches.filter(shepherd_id=selected_shepherd)
     else:
         # Verificar se o usuário tem campos associados
         if request.user.fields.exists():
             fields = request.user.fields.all()
             churches = Church.objects.filter(field__in=request.user.fields.all())
+            shepherds = Shepherd.objects.filter(church__field__in=request.user.fields.all()).distinct()
             
             # Se o usuário tem múltiplos campos, permitir filtro por campo
             if request.user.fields.count() > 1 and selected_field:
                 churches = churches.filter(field_id=selected_field)
+            if selected_shepherd:
+                churches = churches.filter(shepherd_id=selected_shepherd)
         else:
             # Se o usuário não tem campos, mostrar mensagem de erro
             messages.error(request, 'Você não tem campos associados. Entre em contato com o administrador.')
@@ -412,6 +458,7 @@ def transaction_list(request):
         'categories': Category.objects.all(),
         'fields': fields,
         'churches': churches,
+        'shepherds': shepherds,
         'category_id': category_id,
         'selected_category': category_id,
         'transaction_type': transaction_type,
@@ -420,6 +467,7 @@ def transaction_list(request):
         'date_to': date_to,
         'selected_field': selected_field,
         'selected_church': selected_church,
+        'selected_shepherd': selected_shepherd,
         'selected_field_name': selected_field_name,
         'selected_church_name': selected_church_name,
         'total_transactions': total_transactions,
@@ -456,6 +504,7 @@ def transaction_list_api(request):
     date_to = request.GET.get('date_to', '')
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
+    selected_shepherd = request.GET.get('shepherd', '')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -489,6 +538,9 @@ def transaction_list_api(request):
     if selected_church:
         transactions = transactions.filter(church_id=selected_church)
     
+    if selected_shepherd and request.user.is_admin():
+        transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+    
     # Calcular totais
     total_transactions = transactions.count()
     total_income = transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
@@ -517,6 +569,7 @@ def transaction_list_api(request):
             'church_name': transaction.church.name,
             'desc': transaction.desc or '-',
             'value': float(transaction.value),
+            'proof': transaction.proof.url if transaction.proof else None,
             'user_name': transaction.user.get_full_name() if request.user.is_admin() else None,
             'can_edit': request.user.is_admin(),
             'can_view': True,
@@ -550,12 +603,32 @@ def transaction_list_api(request):
 def transaction_create(request):
     """Criar nova transação"""
     if request.method == 'POST':
-        form = TransactionForm(request.POST, user=request.user)
+        form = TransactionForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.user = request.user
             transaction.save()
-            messages.success(request, 'Transação criada com sucesso!')
+            
+            # Verificar se deve criar um lembrete
+            if form.cleaned_data.get('create_reminder'):
+                try:
+                    # Criar notificação de lembrete
+                    from datetime import datetime
+                    reminder_date = datetime.combine(transaction.date, datetime.min.time())
+                    
+                    Notification.objects.create(
+                        title=f"Lembrete: {transaction.category.name}",
+                        body=f"Lembrete sobre a transação de R$ {transaction.value} para {transaction.church.name}.",
+                        date=reminder_date,
+                        created_by=request.user
+                    )
+                    messages.success(request, 'Transação criada com sucesso e lembrete criado!')
+                except Exception as e:
+                    messages.success(request, 'Transação criada com sucesso, mas houve um erro ao criar o lembrete.')
+                    print(f"Erro ao criar lembrete: {e}")
+            else:
+                messages.success(request, 'Transação criada com sucesso!')
+            
             return redirect('transaction_list')
     else:
         form = TransactionForm(user=request.user)
@@ -563,6 +636,9 @@ def transaction_create(request):
     context = {
         'title': 'Nova Transação',
         'form': form,
+        'categories': Category.objects.all().order_by('name'),
+        'fields': Field.objects.all().order_by('name'),
+        'churches': Church.objects.all().order_by('name'),
     }
     
     return render(request, 'pages/transaction_form.html', context)
@@ -591,29 +667,56 @@ def transaction_view(request, pk):
         'form': form,
         'transaction': transaction,
         'readonly': True,
+        'categories': Category.objects.all().order_by('name'),
+        'fields': Field.objects.all().order_by('name'),
+        'churches': Church.objects.all().order_by('name'),
     }
     
     return render(request, 'pages/transaction_form.html', context)
 
-@password_changed_required
 @admin_required
 def transaction_edit(request, pk):
     """Editar transação - Apenas administradores"""
     transaction = get_object_or_404(Transaction, pk=pk)
     
     if request.method == 'POST':
-        form = TransactionForm(request.POST, instance=transaction, user=request.user)
+        form = TransactionForm(request.POST, request.FILES, instance=transaction, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Transação atualizada com sucesso!')
+            
+            # Verificar se deve criar um lembrete
+            if form.cleaned_data.get('create_reminder'):
+                try:
+                    # Criar notificação de lembrete
+                    from datetime import datetime
+                    reminder_date = datetime.combine(transaction.date, datetime.min.time())
+                    
+                    Notification.objects.create(
+                        title=f"Lembrete: {transaction.category.name}",
+                        body=f"Lembrete sobre a transação de R$ {transaction.value} para {transaction.church.name}.",
+                        date=reminder_date,
+                        created_by=request.user
+                    )
+                    messages.success(request, 'Transação atualizada com sucesso e lembrete criado!')
+                except Exception as e:
+                    messages.success(request, 'Transação atualizada com sucesso, mas houve um erro ao criar o lembrete.')
+                    print(f"Erro ao criar lembrete: {e}")
+            else:
+                messages.success(request, 'Transação atualizada com sucesso!')
+            
             return redirect('transaction_list')
     else:
         form = TransactionForm(instance=transaction, user=request.user)
+    
+
     
     context = {
         'title': 'Editar Transação',
         'form': form,
         'transaction': transaction,
+        'categories': Category.objects.all().order_by('name'),
+        'fields': Field.objects.all().order_by('name'),
+        'churches': Church.objects.all().order_by('name'),
     }
     
     return render(request, 'pages/transaction_form.html', context)
@@ -643,9 +746,15 @@ def category_list(request):
     """Lista de categorias"""
     categories = Category.objects.all()
     
+    # Busca por nome
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        categories = categories.filter(name__icontains=search_query)
+    
     context = {
         'title': 'Categorias',
         'categories': categories,
+        'search_query': search_query,
     }
     
     return render(request, 'pages/category_list.html', context)
@@ -718,9 +827,36 @@ def church_list(request):
     """Lista de igrejas"""
     churches = Church.objects.all()
     
+    # Busca por nome ou pastor
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        churches = churches.filter(
+            Q(name__icontains=search_query) | 
+            Q(shepherd__name__icontains=search_query)
+        )
+    
+    # Filtro por campo
+    field_filter = request.GET.get('field')
+    selected_field_obj = None
+    
+    if field_filter:
+        churches = churches.filter(field_id=field_filter)
+        # Buscar o objeto do campo selecionado para mostrar o nome
+        try:
+            selected_field_obj = Field.objects.get(id=field_filter)
+        except Field.DoesNotExist:
+            pass
+    
+    # Buscar todos os campos para o filtro
+    fields = Field.objects.all().order_by('name')
+    
     context = {
         'title': 'Igrejas',
         'churches': churches,
+        'fields': fields,
+        'selected_field': field_filter,
+        'selected_field_obj': selected_field_obj,
+        'search_query': search_query,
     }
     
     return render(request, 'pages/church_list.html', context)
@@ -741,6 +877,8 @@ def church_create(request):
     context = {
         'title': 'Nova Igreja',
         'form': form,
+        'shepherds': Shepherd.objects.all().order_by('name'),
+        'fields': Field.objects.all().order_by('name'),
     }
     
     return render(request, 'pages/church_form.html', context)
@@ -764,6 +902,8 @@ def church_edit(request, pk):
         'title': 'Editar Igreja',
         'form': form,
         'church': church,
+        'shepherds': Shepherd.objects.all().order_by('name'),
+        'fields': Field.objects.all().order_by('name'),
     }
     
     return render(request, 'pages/church_form.html', context)
@@ -793,9 +933,20 @@ def user_list(request):
     """Lista de usuários"""
     users = User.objects.all()
     
+    # Busca por nome, email ou função
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) | 
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(role__icontains=search_query)
+        )
+    
     context = {
         'title': 'Usuários',
         'users': users,
+        'search_query': search_query,
     }
     
     return render(request, 'pages/user_list.html', context)
@@ -909,11 +1060,21 @@ def user_activate(request, pk):
 @admin_required
 def field_list(request):
     """Lista de campos"""
-    fields = Field.objects.all()
+    from django.db.models import Count
+    
+    fields = Field.objects.annotate(
+        church_count=Count('church', distinct=True)
+    ).all()
+    
+    # Busca por nome
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        fields = fields.filter(name__icontains=search_query)
     
     context = {
         'title': 'Campos',
         'fields': fields,
+        'search_query': search_query,
     }
     
     return render(request, 'pages/field_list.html', context)
@@ -982,16 +1143,22 @@ def field_delete(request, pk):
 # API Views para AJAX
 @password_changed_required
 def get_churches(request):
-    """Retorna igrejas de um campo via AJAX"""
+    """Retorna igrejas de um campo e/ou pastor via AJAX"""
     field_id = request.GET.get('field')
+    shepherd_id = request.GET.get('shepherd')
     
     churches = Church.objects.all()
     
     if field_id:
         churches = churches.filter(field_id=field_id)
     
+    if shepherd_id:
+        churches = churches.filter(shepherd_id=shepherd_id)
+    
     churches_data = churches.values('id', 'name')
     return JsonResponse({'churches': list(churches_data)})
+
+
 
 @password_changed_required
 @admin_or_treasurer_required
@@ -1031,6 +1198,7 @@ def transaction_export_pdf(request):
     date_to = request.GET.get('date_to', '')
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
+    selected_shepherd = request.GET.get('shepherd', '')
     
     # Debug: Log dos filtros aplicados
     print(f"DEBUG - Filtros aplicados:")
@@ -1081,6 +1249,10 @@ def transaction_export_pdf(request):
     if selected_church:
         transactions = transactions.filter(church_id=selected_church)
         print(f"DEBUG - Após filtro de igreja: {transactions.count()} transações")
+    
+    if selected_shepherd and request.user.is_admin():
+        transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+        print(f"DEBUG - Após filtro de pastor: {transactions.count()} transações")
     
     print(f"DEBUG - Total final de transações: {transactions.count()}")
     
@@ -1782,14 +1954,11 @@ def dashboard_export_pdf(request):
 @password_changed_required
 def churches_by_field_api(request, field_id):
     """API para retornar igrejas de um campo específico"""
+    from django.http import JsonResponse
+    from .models import Field, Church
+    
     try:
-        field = get_object_or_404(Field, pk=field_id)
-        
-        # Verificar permissões do usuário
-        if not request.user.is_admin():
-            # Tesoureiros só podem ver igrejas dos seus campos
-            if not request.user.fields.filter(id=field_id).exists():
-                return JsonResponse({'error': 'Acesso negado'}, status=403)
+        field = Field.objects.get(pk=field_id)
         
         # Buscar igrejas do campo
         churches = Church.objects.filter(field=field).order_by('name')
@@ -1800,7 +1969,7 @@ def churches_by_field_api(request, field_id):
                 'id': church.id,
                 'name': church.name,
                 'address': church.address or '',
-                'shepherd': church.shepherd
+                'shepherd': church.shepherd.name if church.shepherd else ''
             })
         
         return JsonResponse({
@@ -1812,4 +1981,320 @@ def churches_by_field_api(request, field_id):
         return JsonResponse({'error': 'Campo não encontrado'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@password_changed_required
+def category_info_api(request, category_id):
+    """API para retornar informações de uma categoria específica"""
+    try:
+        category = get_object_or_404(Category, pk=category_id)
+        
+        return JsonResponse({
+            'id': category.id,
+            'name': category.name,
+            'mandatory_proof': category.mandatory_proof
+        })
+        
+    except Category.DoesNotExist:
+        return JsonResponse({'error': 'Categoria não encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# Views de Pastores (apenas admin)
+@password_changed_required
+@admin_required
+def shepherd_list(request):
+    """Lista de pastores"""
+    shepherds = Shepherd.objects.all().order_by('name')
+    
+    # Busca por nome
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        shepherds = shepherds.filter(name__icontains=search_query)
+    
+    # Incluir igrejas vinculadas para cada pastor
+    shepherds = shepherds.prefetch_related('church_set')
+    
+    context = {
+        'title': 'Pastores',
+        'shepherds': shepherds,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'pages/shepherd_list.html', context)
+
+@password_changed_required
+@admin_required
+def shepherd_create(request):
+    """Criar novo pastor"""
+    if request.method == 'POST':
+        form = ShepherdForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Pastor criado com sucesso!')
+            return redirect('shepherd_list')
+    else:
+        form = ShepherdForm()
+    
+    context = {
+        'title': 'Novo Pastor',
+        'form': form,
+    }
+    
+    return render(request, 'pages/shepherd_form.html', context)
+
+@password_changed_required
+@admin_required
+def shepherd_edit(request, pk):
+    """Editar pastor"""
+    shepherd = get_object_or_404(Shepherd, pk=pk)
+    
+    if request.method == 'POST':
+        form = ShepherdForm(request.POST, instance=shepherd)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Pastor atualizado com sucesso!')
+            return redirect('shepherd_list')
+    else:
+        form = ShepherdForm(instance=shepherd)
+    
+    # Calcular estatísticas
+    churches = shepherd.church_set.all()
+    unique_fields = churches.values('field').distinct().count()
+    
+    context = {
+        'title': 'Editar Pastor',
+        'form': form,
+        'shepherd': shepherd,
+        'church_count': churches.count(),
+        'unique_fields_count': unique_fields,
+    }
+    
+    return render(request, 'pages/shepherd_form.html', context)
+
+@password_changed_required
+@admin_required
+def shepherd_delete(request, pk):
+    """Excluir pastor"""
+    shepherd = get_object_or_404(Shepherd, pk=pk)
+    
+    if request.method == 'POST':
+        shepherd.delete()
+        messages.success(request, f'Pastor {shepherd.name} excluído com sucesso!')
+        return redirect('shepherd_list')
+    
+    context = {
+        'title': 'Excluir Pastor',
+        'shepherd': shepherd,
+    }
+    
+    return render(request, 'pages/shepherd_confirm_delete.html', context)
+
+# Views de Logs de Acesso (apenas admin)
+@password_changed_required
+@admin_required
+def access_log_list(request):
+    """Lista de logs de acesso"""
+    logs = AccessLog.objects.select_related('user').order_by('-timestamp')
+    
+    # Busca por nome ou email do usuário
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        logs = logs.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+    
+    context = {
+        'title': 'Logs de Acesso',
+        'logs': logs,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'pages/access_log_list.html', context)
+
+
+# Views de Notificações (apenas admin)
+@password_changed_required
+@admin_required
+def notification_list(request):
+    """Lista de notificações"""
+    notifications = Notification.objects.select_related('created_by').order_by('-created_at')
+    
+    # Busca por título ou mensagem
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        notifications = notifications.filter(
+            Q(title__icontains=search_query) |
+            Q(body__icontains=search_query)
+        )
+    
+    context = {
+        'title': 'Notificações',
+        'notifications': notifications,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'pages/notification_list.html', context)
+
+
+@password_changed_required
+@admin_required
+def notification_create(request):
+    """Criar nova notificação"""
+    if request.method == 'POST':
+        form = NotificationForm(request.POST)
+        if form.is_valid():
+            notification = form.save(commit=False)
+            notification.created_by = request.user
+            
+            # Verificar se há uma transação relacionada
+            related_transaction_id = request.POST.get('related_transaction')
+            if related_transaction_id:
+                try:
+                    from .models import Transaction
+                    transaction = Transaction.objects.get(pk=related_transaction_id)
+                    notification.related_transaction = transaction
+                    messages.success(request, f'Lembrete criado com sucesso para a transação de {transaction.church.name}!')
+                except Transaction.DoesNotExist:
+                    messages.success(request, 'Notificação criada com sucesso!')
+            else:
+                messages.success(request, 'Notificação criada com sucesso!')
+            
+            notification.save()
+            
+            # Redirecionar de volta para a transação se foi criada a partir dela
+            if related_transaction_id:
+                return redirect('transaction_edit', pk=related_transaction_id)
+            else:
+                return redirect('notification_list')
+    else:
+        form = NotificationForm()
+    
+    context = {
+        'title': 'Nova Notificação',
+        'form': form,
+    }
+    
+    return render(request, 'pages/notification_form.html', context)
+
+
+@password_changed_required
+@admin_required
+def notification_edit(request, pk):
+    """Editar notificação"""
+    notification = get_object_or_404(Notification, pk=pk)
+    
+    if request.method == 'POST':
+        form = NotificationForm(request.POST, instance=notification)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Notificação atualizada com sucesso!')
+            return redirect('notification_list')
+    else:
+        form = NotificationForm(instance=notification)
+    
+    # Debug: verificar valores
+    print(f"DEBUG - Notification date: {notification.date}")
+    print(f"DEBUG - Form date initial: {form.initial.get('date') if form.initial else 'No initial'}")
+    print(f"DEBUG - Form date field value: {form['date'].value()}")
+    
+    context = {
+        'title': 'Editar Notificação',
+        'form': form,
+        'notification': notification,
+    }
+    
+    return render(request, 'pages/notification_form.html', context)
+
+@password_changed_required
+@admin_required
+def notification_delete(request, pk):
+    """Excluir notificação"""
+    notification = get_object_or_404(Notification, pk=pk)
+    
+    if request.method == 'POST':
+        notification.delete()
+        messages.success(request, 'Notificação excluída com sucesso!')
+        return redirect('notification_list')
+    
+    context = {
+        'title': 'Excluir Notificação',
+        'notification': notification,
+    }
+    
+    return render(request, 'pages/notification_confirm_delete.html', context)
+
+
+@password_changed_required
+@admin_required
+def notification_mark_read(request, pk):
+    """Marcar notificação como lida/não lida via AJAX"""
+    if request.method == 'POST':
+        try:
+            import json
+            data = json.loads(request.body)
+            is_read = data.get('is_read', False)
+            
+            notification = get_object_or_404(Notification, pk=pk)
+            notification.is_read = is_read
+            notification.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Status atualizado com sucesso',
+                'is_read': is_read
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Método não permitido'
+    }, status=405)
+
+@password_changed_required
+def get_today_notifications(request):
+    """Buscar notificações do dia atual via AJAX"""
+    if request.method == 'GET':
+        try:
+            from datetime import date
+            today = date.today()
+            
+            # Buscar notificações do dia atual
+            notifications = Notification.objects.filter(
+                date__date=today,
+                is_read=False
+            ).select_related('created_by').order_by('-date')[:10]
+            
+            notifications_data = []
+            for notification in notifications:
+                notifications_data.append({
+                    'id': notification.id,
+                    'title': notification.title,
+                    'body': notification.body,
+                    'date': notification.date.strftime('%d/%m/%Y %H:%M'),
+                    'created_by': notification.created_by.get_full_name() or notification.created_by.username
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'notifications': notifications_data,
+                'count': len(notifications_data)
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Método não permitido'
+    }, status=405)
+
 

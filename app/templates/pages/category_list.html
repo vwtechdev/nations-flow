@@ -10,21 +10,39 @@
             </div>
             <div class="card-body">
                 <!-- Search Container -->
-                <div class="search-container">
-                    <div class="search-input-wrapper">
-                        <input type="text" id="categorySearch" class="form-control search-input" placeholder="Pesquisar">
-                        <button type="button" class="search-button">
-                            <i class="bi bi-search"></i>
-                        </button>
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="search-container">
+                            <form method="GET" action="{% url 'category_list' %}">
+                                <div class="form-floating">
+                                    <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="categorySearch">
+                                    <label for="categorySearch">
+                                        <i class="bi bi-search"></i> Pesquisar
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 
+                {% if search_query %}
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-search"></i>
+                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
+                        <a href="{% url 'category_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-x-circle"></i> Limpar busca
+                        </a>
+                    </div>
+                {% endif %}
+                
                 {% if categories %}
+                    <!-- Tabela Desktop -->
                     <div class="table-responsive">
                         <table class="table table-bordered" id="categoriesTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
                                     <th>Nome</th>
+                                    <th>Comprovante Obrigatório</th>
                                     <th>Data de Criação</th>
                                     <th>Última Atualização</th>
                                     <th>Ações</th>
@@ -34,6 +52,17 @@
                                 {% for category in categories %}
                                     <tr>
                                         <td>{{ category.name }}</td>
+                                        <td>
+                                            {% if category.mandatory_proof %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> Sim
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-x-circle"></i> Não
+                                                </span>
+                                            {% endif %}
+                                        </td>
                                         <td>{{ category.created_at|date:"d/m/Y H:i" }}</td>
                                         <td>{{ category.updated_at|date:"d/m/Y H:i" }}</td>
                                         <td>
@@ -54,6 +83,60 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Cards Mobile -->
+                    <div class="mobile-cards">
+                        <div class="mobile-cards-container">
+                            {% for category in categories %}
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Nome:</span>
+                                            <span class="mobile-card-value">{{ category.name }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Comprovante Obrigatório:</span>
+                                            <span class="mobile-card-value">
+                                                {% if category.mandatory_proof %}
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle"></i> Sim
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-x-circle"></i> Não
+                                                    </span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-body">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Criado em:</span>
+                                            <span class="mobile-card-value">{{ category.created_at|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Atualizado em:</span>
+                                            <span class="mobile-card-value">{{ category.updated_at|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-footer">
+                                        <a href="{% url 'category_edit' category.pk %}" class="mobile-card-btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal" 
+                                                data-category-id="{{ category.pk }}"
+                                                data-category-name="{{ category.name }}"
+                                                data-category-created="{{ category.created_at|date:'d/m/Y H:i' }}"
+                                                data-category-updated="{{ category.updated_at|date:'d/m/Y H:i' }}">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% else %}
                     <p class="text-muted">Nenhuma categoria encontrada.</p>
@@ -112,7 +195,6 @@
 {% endblock %}
 
 {% block js %}
-<script src="{% static 'js/search.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Captura os dados da categoria quando o modal é aberto

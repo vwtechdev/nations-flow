@@ -10,21 +10,39 @@
             </div>
             <div class="card-body">
                 <!-- Search Container -->
-                <div class="search-container">
-                    <div class="search-input-wrapper">
-                        <input type="text" id="fieldSearch" class="form-control search-input" placeholder="Pesquisar">
-                        <button type="button" class="search-button">
-                            <i class="bi bi-search"></i>
-                        </button>
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="search-container">
+                            <form method="GET" action="{% url 'field_list' %}">
+                                <div class="form-floating">
+                                    <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="fieldSearch">
+                                    <label for="fieldSearch">
+                                        <i class="bi bi-search"></i> Pesquisar
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 
+                {% if search_query %}
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-search"></i>
+                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
+                        <a href="{% url 'field_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-x-circle"></i> Limpar busca
+                        </a>
+                    </div>
+                {% endif %}
+                
                 {% if fields %}
+                    <!-- Tabela Desktop -->
                     <div class="table-responsive">
                         <table class="table table-bordered" id="fieldsTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
                                     <th>Nome</th>
+                                    <th>Igrejas</th>
                                     <th>Data de Criação</th>
                                     <th>Última Atualização</th>
                                     <th>Ações</th>
@@ -34,6 +52,17 @@
                                 {% for field in fields %}
                                     <tr>
                                         <td>{{ field.name }}</td>
+                                        <td>
+                                            {% if field.church_count == 0 %}
+                                                <span class="badge bg-secondary me-1 mb-1">
+                                                    {{ field.church_count }}
+                                                </span>
+                                            {% else %}
+                                            <span class="badge bg-primary me-1 mb-1">
+                                                {{ field.church_count }}
+                                            </span>
+                                            {% endif %}
+                                        </td>
                                         <td>{{ field.created_at|date:"d/m/Y H:i" }}</td>
                                         <td>{{ field.updated_at|date:"d/m/Y H:i" }}</td>
                                         <td>
@@ -45,6 +74,7 @@
                                                     data-bs-target="#deleteModal" 
                                                     data-field-id="{{ field.pk }}"
                                                     data-field-name="{{ field.name }}"
+                                                    data-field-churches="{{ field.church_count }}"
                                                     data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
                                                     data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
                                                 <i class="bi bi-trash"></i>
@@ -54,6 +84,59 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Cards Mobile -->
+                    <div class="mobile-cards">
+                        <div class="mobile-cards-container">
+                            {% for field in fields %}
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Nome:</span>
+                                            <span class="mobile-card-value">{{ field.name }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Igrejas:</span>
+                                            {% if field.church_count == 0 %}
+                                                <span class="mobile-card-badge secondary">
+                                                    {{ field.church_count }}
+                                                </span>
+                                            {% else %}
+                                                <span class="mobile-card-badge primary">
+                                                    {{ field.church_count }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-body">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Criado em:</span>
+                                            <span class="mobile-card-value">{{ field.created_at|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Atualizado em:</span>
+                                            <span class="mobile-card-value">{{ field.updated_at|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-footer">
+                                        <a href="{% url 'field_edit' field.pk %}" class="mobile-card-btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal" 
+                                                data-field-id="{{ field.pk }}"
+                                                data-field-name="{{ field.name }}"
+                                                data-field-churches="{{ field.church_count }}"
+                                                data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
+                                                data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% else %}
                     <p class="text-muted">Nenhum campo encontrado.</p>
@@ -86,6 +169,7 @@
                             <i class="bi bi-exclamation-triangle"></i> <span id="fieldName"></span>
                         </h6>
                         <p class="card-text mb-1"><strong>Nome:</strong> <span id="fieldNameText"></span></p>
+                        <p class="card-text mb-1"><strong>Igrejas:</strong> <span id="fieldChurches"></span></p>
                         <p class="card-text mb-1"><strong>Criado em:</strong> <span id="fieldCreated"></span></p>
                         <p class="card-text"><strong>Última atualização:</strong> <span id="fieldUpdated"></span></p>
                     </div>
@@ -112,7 +196,6 @@
 {% endblock %}
 
 {% block js %}
-<script src="{% static 'js/search.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Captura os dados do campo quando o modal é aberto
@@ -121,12 +204,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = event.relatedTarget;
         const fieldId = button.getAttribute('data-field-id');
         const fieldName = button.getAttribute('data-field-name');
+        const fieldChurches = button.getAttribute('data-field-churches');
         const fieldCreated = button.getAttribute('data-field-created');
         const fieldUpdated = button.getAttribute('data-field-updated');
         
         // Preenche os dados no modal
         document.getElementById('fieldName').textContent = fieldName;
         document.getElementById('fieldNameText').textContent = fieldName;
+        
+        // Formata a contagem de igrejas
+        let churchesText = '';
+        if (fieldChurches === '0') {
+            churchesText = 'Nenhuma igreja';
+        } else if (fieldChurches === '1') {
+            churchesText = '1 igreja';
+        } else {
+            churchesText = `${fieldChurches} igrejas`;
+        }
+        document.getElementById('fieldChurches').textContent = churchesText;
+        
         document.getElementById('fieldCreated').textContent = fieldCreated;
         document.getElementById('fieldUpdated').textContent = fieldUpdated;
         

@@ -9,6 +9,11 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
+                <div class="alert alert-warning mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Quando o campo "Comprovante obrigatório" estiver marcado, todas as transações desta categoria exigirão o upload de um comprovante para serem aprovadas.
+                </div>
+                
                 <form method="post">
                     {% csrf_token %}
                     
@@ -22,6 +27,24 @@
                                 {% if form.name.errors %}
                                     <div class="invalid-feedback d-block">
                                         {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check mb-3">
+                                {{ form.mandatory_proof }}
+                                <label class="form-check-label" for="{{ form.mandatory_proof.id_for_label }}">
+                                    <i class="bi bi-file-earmark-check"></i> {{ form.mandatory_proof.label }}
+                                </label>
+                                {% if form.mandatory_proof.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.mandatory_proof.errors %}
                                             {{ error }}
                                         {% endfor %}
                                     </div>

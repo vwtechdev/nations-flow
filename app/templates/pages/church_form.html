@@ -1,6 +1,10 @@
 {% extends 'pages/index.html' %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/church_form.css' %}" />
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8 col-md-10">
@@ -17,7 +21,7 @@
                             <div class="form-floating mb-3">
                                 {{ form.name }}
                                 <label for="{{ form.name.id_for_label }}">
-                                    <i class="bi bi-sticky"></i> {{ form.name.label }}
+                                    <i class="bi bi-sticky"></i> Nome da Igreja
                                 </label>
                                 {% if form.name.errors %}
                                     <div class="invalid-feedback d-block">
@@ -31,9 +35,16 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
-                                {{ form.shepherd }}
-                                <label for="{{ form.shepherd.id_for_label }}">
-                                    <i class="bi bi-person-badge"></i> {{ form.shepherd.label }}
+                                <select name="shepherd" id="shepherdSelect" class="form-control" required>
+                                    <option value="">Selecione um pastor...</option>
+                                    {% for shepherd in shepherds %}
+                                        <option value="{{ shepherd.id }}" {% if form.shepherd.value == shepherd.id %}selected{% endif %}>
+                                            {{ shepherd.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="shepherdSelect">
+                                    <i class="bi bi-person-badge"></i> Pastor Responsável
                                 </label>
                                 {% if form.shepherd.errors %}
                                     <div class="invalid-feedback d-block">
@@ -47,9 +58,16 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
-                                {{ form.field }}
-                                <label for="{{ form.field.id_for_label }}">
-                                    <i class="bi bi-signpost-2-fill"></i> {{ form.field.label }}
+                                <select name="field" id="churchField" class="form-control" required>
+                                    <option value="">Selecione um campo...</option>
+                                    {% for field in fields %}
+                                        <option value="{{ field.id }}" {% if form.field.value == field.id %}selected{% endif %}>
+                                            {{ field.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="churchField">
+                                    <i class="bi bi-geo-alt"></i> Campo
                                 </label>
                                 {% if form.field.errors %}
                                     <div class="invalid-feedback d-block">
@@ -65,7 +83,7 @@
                             <div class="form-floating mb-3">
                                 {{ form.address }}
                                 <label for="{{ form.address.id_for_label }}">
-                                    <i class="bi bi-geo-alt-fill"></i> {{ form.address.label }}
+                                    <i class="bi bi-geo-alt-fill"></i> Endereço
                                 </label>
                                 {% if form.address.errors %}
                                     <div class="invalid-feedback d-block">
@@ -94,5 +112,68 @@
 
 <!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Inicializar Select2 para o campo pastor
+    $('#shepherdSelect').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Selecione um pastor...',
+        allowClear: true,
+        width: '100%',
+        language: 'pt-BR'
+    });
+    
+    // Inicializar Select2 para o campo field (campo)
+    $('#churchField').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Selecione um campo...',
+        allowClear: true,
+        width: '100%',
+        language: 'pt-BR'
+    });
+    
+
+    
+    // Adicionar validação personalizada
+    $('form').on('submit', function(e) {
+        const shepherdValue = $('#shepherdSelect').val();
+        const fieldValue = $('#churchField').val();
+        
+        if (!shepherdValue) {
+            e.preventDefault();
+            alert('Por favor, selecione um pastor.');
+            $('#shepherdSelect').focus();
+            return false;
+        }
+        
+        if (!fieldValue) {
+            e.preventDefault();
+            alert('Por favor, selecione um campo.');
+            $('#churchField').focus();
+            return false;
+        }
+    });
+    
+    // Adicionar feedback visual
+    $('#shepherdSelect').on('select2:select', function(e) {
+        $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+    });
+    
+    $('#shepherdSelect').on('select2:clear', function(e) {
+        $(this).closest('.form-floating').removeClass('has-success has-error');
+    });
+    
+    $('#churchField').on('select2:select', function(e) {
+        $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+    });
+    
+    $('#churchField').on('select2:clear', function(e) {
+        $(this).closest('.form-floating').removeClass('has-success has-error');
+    });
+});
+</script>
+{% endblock %}
 
 {% endblock %} 

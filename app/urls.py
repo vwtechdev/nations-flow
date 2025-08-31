@@ -18,6 +18,8 @@ urlpatterns = [
     
     # API para buscar igrejas por campo
     path('api/churches-by-field/<int:field_id>/', views.churches_by_field_api, name='churches_by_field_api'),
+    # API para buscar informações da categoria
+    path('api/category/<int:category_id>/', views.category_info_api, name='category_info_api'),
     path('transactions/export-pdf/', views.transaction_export_pdf, name='transaction_export_pdf'),
     path('dashboard/export-pdf/', views.dashboard_export_pdf, name='dashboard_export_pdf'),
     
@@ -41,12 +43,31 @@ urlpatterns = [
     path('users/<int:pk>/activate/', views.user_activate, name='user_activate'),
     path('users/<int:pk>/reset-password/', views.user_reset_password, name='user_reset_password'),
     
+    # Logs de Acesso
+    path('access-logs/', views.access_log_list, name='access_log_list'),
+    
+    # Notificações
+    path('notifications/', views.notification_list, name='notification_list'),
+    path('notifications/create/', views.notification_create, name='notification_create'),
+    path('notifications/<int:pk>/edit/', views.notification_edit, name='notification_edit'),
+    path('notifications/<int:pk>/delete/', views.notification_delete, name='notification_delete'),
+    path('notifications/<int:pk>/mark-read/', views.notification_mark_read, name='notification_mark_read'),
+    path('api/notifications/today/', views.get_today_notifications, name='get_today_notifications'),
+    
     # Campos
     path('fields/', views.field_list, name='field_list'),
     path('fields/create/', views.field_create, name='field_create'),
     path('fields/<int:pk>/edit/', views.field_edit, name='field_edit'),
     path('fields/<int:pk>/delete/', views.field_delete, name='field_delete'),
     
+    # Pastores
+    path('shepherds/', views.shepherd_list, name='shepherd_list'),
+    path('shepherds/create/', views.shepherd_create, name='shepherd_create'),
+    path('shepherds/<int:pk>/edit/', views.shepherd_edit, name='shepherd_edit'),
+    path('shepherds/<int:pk>/delete/', views.shepherd_delete, name='shepherd_delete'),
+    
     # API AJAX
     path('api/churches/', views.get_churches, name='get_churches'),
+    
+
 ]

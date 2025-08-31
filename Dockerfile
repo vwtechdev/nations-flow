@@ -1,20 +1,25 @@
-# pull official base image
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-# set work directory
-WORKDIR /usr/src/nations-flow
+# Variáveis de ambiente
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Diretório do app
+WORKDIR /app
 
-# update system
-RUN apt-get update
+# Dependências
+COPY requirements.txt /app/
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
 
-# install dependencies
-RUN pip install --upgrade pip
-COPY ./requirements.txt .
-RUN pip install -r requirements.txt
+# Copia o código
+COPY . /app/
 
-# copy project
-COPY . .
+# Coleta estáticos (pode rodar durante build ou no entrypoint)
+RUN python manage.py collectstatic --noinput
+
+# Expõe a porta
+EXPOSE 8000
+
+# Comando padrão
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]

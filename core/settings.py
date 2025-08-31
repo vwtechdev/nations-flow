@@ -11,30 +11,24 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-from dotenv import load_dotenv
 from pathlib import Path
-
-# Loads the environment variables from .env
-load_dotenv()
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production-12345')
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Para desenvolvimento - mude para False em produção
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-# Para desenvolvimento local
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
-
-# PythonAnywhere - descomente esta linha em produção
-# ALLOWED_HOSTS = ['nationsflow.pythonanywhere.com']
+# Para desenvolvimento
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 # Application definition
 
@@ -50,12 +44,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Para servir estáticos
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'app.middleware.AdminAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -81,24 +77,17 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Banco de dados
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv("POSTGRES_DB"),
+        'USER': os.getenv("POSTGRES_USER"),
+        'PASSWORD': os.getenv("POSTGRES_PASSWORD"),
+        'HOST': os.getenv("POSTGRES_HOST"),
+        'PORT': os.getenv("POSTGRES_PORT"),
     }
 }
-
-# Para usar PostgreSQL em produção, descomente as linhas abaixo:
-# DATABASES = {
-#     "default": {
-#         "ENGINE": os.environ.get("DATABASE_ENGINE", "django.db.backends.postgresql"),
-#         "NAME": os.environ.get("DATABASE_NAME", "nationsflow"),
-#         "USER": os.environ.get("DATABASE_USER", "nations"),
-#         "PASSWORD": os.environ.get("DATABASE_PASSWORD", "password"),
-#         "HOST": os.environ.get("DATABASE_HOST", "localhost"),
-#         "PORT": os.environ.get("DATABASE_PORT", "5432"),
-#     }
-# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -137,10 +126,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Para desenvolvimento local
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# Para PythonAnywhere, descomente a linha abaixo:
-# STATIC_ROOT = '/home/nationsflow/nations-flow/staticfiles'
+STATIC_ROOT = BASE_DIR / 'static'
 
 # Arquivos estáticos adicionais
 STATICFILES_DIRS = [
@@ -150,6 +136,9 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Whitenoise para produção
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -176,3 +165,31 @@ DATE_INPUT_FORMATS = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
 TIME_FORMAT = 'H:i'
 DATETIME_FORMAT = 'd/m/Y H:i'
 DATETIME_INPUT_FORMATS = ['%Y-%m-%d %H:%M:%S', '%d/%m/%Y %H:%M', '%d/%m/%Y %H:%M:%S']
+
+# File upload settings
+MAX_UPLOAD_SIZE = 1 * 1024 * 1024  # 1MB em bytes
+DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
+FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
+
+# HTTPS
+SECURE_SSL_REDIRECT = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+# Headers de segurança
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# Logging básico
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}

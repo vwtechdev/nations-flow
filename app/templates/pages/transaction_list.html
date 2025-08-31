@@ -1,6 +1,10 @@
 {% extends 'pages/index.html' %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
+{% endblock %}
+
 {% block content %}
 <!-- Filtros -->
 <div class="row mb-4">
@@ -13,7 +17,8 @@
             </div>
             <div class="card-body">
                 <form method="get" id="chartFilterForm">
-                    <div class="row">
+                    <!-- Desktop Layout -->
+                    <div class="row d-none d-md-flex">
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from">
@@ -79,6 +84,24 @@
                         </div>
                         {% endif %}
                         
+                        {% if user.is_admin %}
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="shepherd" id="shepherdFilter" class="form-control">
+                                    <option value="">Todos os pastores</option>
+                                    {% for shepherd in shepherds %}
+                                        <option value="{{ shepherd.id }}" {% if selected_shepherd == shepherd.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ shepherd.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="shepherdFilter">
+                                    <i class="bi bi-person-badge"></i> Pastor
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="church" id="churchFilter" class="form-control">
@@ -109,6 +132,146 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Mobile Layout -->
+                    <div class="d-md-none">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from_mobile">
+                                    <label for="date_from_mobile">
+                                        <i class="bi bi-calendar-date"></i> Data Inicial
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to_mobile">
+                                    <label for="date_to_mobile">
+                                        <i class="bi bi-calendar-date"></i> Data Final
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="category" id="categoryFilter_mobile" class="form-control">
+                                        <option value="">Todas as categorias</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ category.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="categoryFilter_mobile">
+                                        <i class="bi bi-tag"></i> Categoria
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="type" id="typeFilter_mobile" class="form-control">
+                                        <option value="">Todos os tipos</option>
+                                        <option value="income" {% if selected_type == 'income' %}selected{% endif %}>Entrada</option>
+                                        <option value="expense" {% if selected_type == 'expense' %}selected{% endif %}>Saída</option>
+                                    </select>
+                                    <label for="typeFilter_mobile">
+                                        <i class="bi bi-arrow-left-right"></i> Tipo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if user.is_admin or user.fields.count > 1 %}
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="field" id="fieldFilter_mobile" class="form-control">
+                                        <option value="">Todos os campos</option>
+                                        {% for field in fields %}
+                                            <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ field.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="fieldFilter_mobile">
+                                        <i class="bi bi-geo-alt"></i> Campo
+                                    </label>
+                                </div>
+                            </div>
+                            {% if user.is_admin %}
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="shepherd" id="shepherdFilter_mobile" class="form-control">
+                                        <option value="">Todos os pastores</option>
+                                        {% for shepherd in shepherds %}
+                                            <option value="{{ shepherd.id }}" {% if selected_shepherd == shepherd.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ shepherd.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="shepherdFilter_mobile">
+                                        <i class="bi bi-person-badge"></i> Pastor
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="church" id="churchFilter_mobile" class="form-control">
+                                        <option value="">Todas as igrejas</option>
+                                        {% for church in churches %}
+                                            <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ church.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="churchFilter_mobile">
+                                        <i class="bi bi-building"></i> Igreja
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="church" id="churchFilter_mobile" class="form-control">
+                                        <option value="">Todas as igrejas</option>
+                                        {% for church in churches %}
+                                            <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ church.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="churchFilter_mobile">
+                                        <i class="bi bi-building"></i> Igreja
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Filtrar
+                            </button>
+                            <div class="row">
+                                <div class="col-6">
+                                    <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton_mobile" class="btn btn-success w-100">
+                                        <i class="bi bi-file-pdf-fill"></i> PDF
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{% url 'transaction_list' %}" class="btn btn-secondary w-100">
+                                        <i class="bi bi-x-circle"></i> Limpar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -117,8 +280,8 @@
 
 <!-- Cards de Totais -->
 <div class="row">
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
+    <div class="col-xl-3 col-md-6 col-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
@@ -135,8 +298,8 @@
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card shadow h-100 py-2" style="border-left: 4px solid #28a745;">
+    <div class="col-xl-3 col-md-6 col-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #28a745;">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
@@ -153,8 +316,8 @@
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card shadow h-100 py-2" style="border-left: 4px solid #ff6b6b;">
+    <div class="col-xl-3 col-md-6 col-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #ff6b6b;">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
@@ -171,8 +334,8 @@
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
+    <div class="col-xl-3 col-md-6 col-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
@@ -201,10 +364,20 @@
             </div>
             
             <div class="card-body">
-                <!-- Tabela de Transações -->
+                <!-- Tabela de Transações (Desktop) -->
                 <div id="transactionsTable">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Carregando transações...</p>
+                    </div>
+                </div>
+                
+                <!-- Cards Mobile -->
+                <div id="mobileTransactionsTable" class="mobile-cards">
+                    <div class="mobile-cards-loading">
+                        <div class="spinner-border" role="status">
                             <span class="visually-hidden">Carregando...</span>
                         </div>
                         <p class="mt-2 text-muted">Carregando transações...</p>
@@ -225,6 +398,70 @@
 
 <!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
+
+<!-- Modal de Visualização de Comprovante -->
+<div class="modal fade" id="proofModal" tabindex="-1" aria-labelledby="proofModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-primary" id="proofModalLabel">
+                    <i class="bi bi-file-earmark-check"></i> Visualizar Comprovante
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-info-circle"></i> Informações da Transação
+                        </h6>
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <p class="card-text mb-1"><strong>ID:</strong> <span id="proofTransactionId"></span></p>
+                                <p class="card-text mb-1"><strong>Data:</strong> <span id="proofTransactionDate"></span></p>
+                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="proofTransactionType"></span></p>
+                                <p class="card-text mb-1"><strong>Categoria:</strong> <span id="proofTransactionCategory"></span></p>
+                                <p class="card-text mb-1"><strong>Igreja:</strong> <span id="proofTransactionChurch"></span></p>
+                                <p class="card-text mb-1"><strong>Valor:</strong> <span id="proofTransactionValue"></span></p>
+                                <p class="card-text mb-0"><strong>Descrição:</strong> <span id="proofTransactionDesc"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-file-earmark"></i> Detalhes do Arquivo
+                        </h6>
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="proofFileName"></span></p>
+                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="proofFileType"></span></p>
+                                <p class="card-text mb-1"><strong>Tamanho:</strong> <span id="proofFileSize"></span></p>
+                                <p class="card-text mb-0"><strong>Data:</strong> <span id="proofFileDate"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-eye"></i> Visualização do Comprovante
+                    </h6>
+                    <div id="proofContent" class="text-center">
+                        <!-- Conteúdo do comprovante será carregado aqui -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="downloadProofLink" class="btn btn-success" target="_blank">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal de Confirmação de Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -290,4 +527,5 @@
 document.body.setAttribute('data-is-admin', '{{ user.is_admin|yesno:"true,false" }}');
 </script>
 <script src="{% static 'js/transaction_list.js' %}"></script>
+<script src="{% static 'js/filters_form.js' %}"></script>
 {% endblock %} 

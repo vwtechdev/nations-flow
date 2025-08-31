@@ -9,17 +9,65 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
-                <!-- Search Container -->
-                <div class="search-container">
-                    <div class="search-input-wrapper">
-                        <input type="text" id="churchSearch" class="form-control search-input" placeholder="Pesquisar">
-                        <button type="button" class="search-button">
-                            <i class="bi bi-search"></i>
-                        </button>
+                <!-- Filtros e Busca -->
+                <form method="get" id="churchFilterForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <!-- Filtro por Campo -->
+                            <div class="form-floating">
+                                <select name="field" id="fieldFilter" class="form-control" onchange="this.form.submit()">
+                                    <option value="">Todos os campos</option>
+                                    {% for field in fields %}
+                                        <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ field.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="fieldFilter">
+                                    <i class="bi bi-geo-alt"></i> Filtrar por Campo
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <!-- Busca -->
+                            <div class="search-container">
+                                <div class="form-floating">
+                                    <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar igrejas..." id="churchSearch">
+                                    <label for="churchSearch">
+                                        <i class="bi bi-search"></i> Pesquisar Igrejas
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </form>
+                
+                <!-- Informações do filtro -->
+                {% if selected_field_obj %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Filtro ativo:</strong> Mostrando igrejas do campo 
+                        <strong>{{ selected_field_obj.name }}</strong>
+                        <span class="badge bg-primary ms-2">{{ churches|length }} igreja{{ churches|length|pluralize:"s" }}</span>
+                        <a href="{% url 'church_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-x-circle"></i> Limpar filtro
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if search_query %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-search"></i>
+                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
+                        <a href="{% url 'church_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-x-circle"></i> Limpar busca
+                        </a>
+                    </div>
+                {% endif %}
                 
                 {% if churches %}
+                    <!-- Tabela Desktop -->
                     <div class="table-responsive">
                         <table class="table table-bordered" id="churchesTable" width="100%" cellspacing="0">
                             <thead>
@@ -36,7 +84,11 @@
                                     <tr>
                                         <td>{{ church.name }}</td>
                                         <td>{{ church.shepherd }}</td>
-                                        <td>{{ church.field.name }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary me-1 mb-1">
+                                                <i class="bi bi-geo-alt"></i> {{ church.field.name }}
+                                            </span>
+                                        </td>
                                         <td>{{ church.address|default:"-" }}</td>
                                         <td>
                                             <a href="{% url 'church_edit' church.pk %}" class="btn btn-sm btn-outline-primary">
@@ -57,6 +109,53 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Cards Mobile -->
+                    <div class="mobile-cards">
+                        <div class="mobile-cards-container">
+                            {% for church in churches %}
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Nome:</span>
+                                            <span class="mobile-card-value">{{ church.name }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Pastor:</span>
+                                            <span class="mobile-card-value">{{ church.shepherd }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-body">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Campo:</span>
+                                            <span class="mobile-card-badge secondary">
+                                                <i class="bi bi-geo-alt"></i> {{ church.field.name }}
+                                            </span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Endereço:</span>
+                                            <span class="mobile-card-value">{{ church.address|default:"-" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-footer">
+                                        <a href="{% url 'church_edit' church.pk %}" class="mobile-card-btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal" 
+                                                data-church-id="{{ church.pk }}"
+                                                data-church-name="{{ church.name }}"
+                                                data-church-shepherd="{{ church.shepherd }}"
+                                                data-church-field="{{ church.field.name }}"
+                                                data-church-address="{{ church.address|default:'Não informado' }}">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% else %}
                     <p class="text-muted">Nenhuma igreja encontrada.</p>
@@ -144,5 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('deleteForm').action = `/churches/${churchId}/delete/`;
     });
 });
+
+
 </script>
 {% endblock %} 

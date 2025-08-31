@@ -1,6 +1,130 @@
 'use strict'
 
 $(function() {
+    // Função para verificar e exibir notificações do dia
+    function checkTodayNotifications() {
+        // Verificar se o modal existe na página
+        const notificationsModal = $('#notificationsModal');
+        
+        if (notificationsModal.length === 0) {
+            return; // Modal não existe nesta página
+        }
+
+        // Não mostrar o modal se o usuário estiver na página de lista de notificações
+        if (window.location.pathname.includes('/notifications/')) {
+            return;
+        }
+
+        // Buscar notificações do dia via AJAX
+        $.ajax({
+            url: '/api/notifications/today/',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.count > 0) {
+                    // Exibir notificações no modal
+                    displayNotifications(response.notifications);
+                    
+                    // Mostrar o modal automaticamente usando Bootstrap 5
+                    const modal = new bootstrap.Modal(notificationsModal[0]);
+                    modal.show();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao buscar notificações:', error);
+            }
+        });
+    }
+
+    // Função para exibir notificações no modal
+    function displayNotifications(notifications) {
+        const content = $('#notificationsContent');
+        
+        if (notifications.length === 0) {
+            content.html(`
+                <div class="text-center text-muted">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Nenhuma notificação pendente para hoje!</p>
+                </div>
+            `);
+            return;
+        }
+
+        let notificationsHtml = '';
+        notifications.forEach(function(notification) {
+            notificationsHtml += `
+                <div class="notification-item border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 fw-bold notification-title">${notification.title}</h6>
+                            <p class="mb-2 notification-body">${notification.body}</p>
+                            <div class="d-flex align-items-center gap-3 notification-meta small">
+                                <span><i class="bi bi-person me-1"></i>${notification.created_by}</span>
+                                <span><i class="bi bi-clock me-1"></i>${notification.date}</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm mark-read-btn" 
+                                data-notification-id="${notification.id}" 
+                                title="Marcar como lida">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        content.html(notificationsHtml);
+
+        // Adicionar evento para marcar como lida
+        $('.mark-read-btn').on('click', function() {
+            const notificationId = $(this).data('notification-id');
+            const btn = $(this);
+            
+            $.ajax({
+                url: `/notifications/${notificationId}/mark-read/`,
+                method: 'POST',
+                data: JSON.stringify({ is_read: true }),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content')
+                },
+                success: function(response) {
+                    if (response.success) {
+                        btn.removeClass('btn-outline-primary').addClass('btn-success');
+                        btn.html('<i class="bi bi-check-lg"></i>');
+                        btn.prop('disabled', true);
+                        
+                        // Remover a notificação da lista após um delay
+                        setTimeout(function() {
+                            btn.closest('.notification-item').fadeOut(300, function() {
+                                $(this).remove();
+                                
+                                // Se não houver mais notificações, fechar o modal
+                                if ($('.notification-item').length === 0) {
+                                    $('#notificationsModal').modal('hide');
+                                }
+                            });
+                        }, 1000);
+                    }
+                },
+                error: function() {
+                    btn.removeClass('btn-outline-primary').addClass('btn-danger');
+                    btn.html('<i class="bi bi-x-lg"></i>');
+                    setTimeout(function() {
+                        btn.removeClass('btn-danger').addClass('btn-outline-primary');
+                        btn.html('<i class="bi bi-check-lg"></i>');
+                    }, 2000);
+                }
+            });
+        });
+    }
+
+    // Verificar notificações do dia quando a página carregar
+    // Aguardar um pouco para garantir que o DOM esteja completamente carregado
+    setTimeout(function() {
+        checkTodayNotifications();
+    }, 1000);
+
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -89,11 +213,19 @@ $(function() {
     // Add smooth scrolling for anchor links
     $('a[href^="#"]').on('click', function(e) {
         e.preventDefault();
-        const target = $(this.getAttribute('href'));
-        if (target.length) {
-            $('html, body').animate({
-                scrollTop: target.offset().top - 100
-            }, 500);
+        const href = this.getAttribute('href');
+        
+        // Debug: log para identificar links problemáticos
+        console.log('Link clicado com href^="#":', href, 'Elemento:', this);
+        
+        // Verificar se é um seletor CSS válido (começa com #)
+        if (href && href.startsWith('#')) {
+            const target = $(href);
+            if (target.length) {
+                $('html, body').animate({
+                    scrollTop: target.offset().top - 100
+                }, 500);
+            }
         }
     });
     
@@ -220,7 +352,9 @@ $(function() {
         // Load active link from localStorage as fallback
         const savedActiveLink = localStorage.getItem('activeSidebarLink');
         if (savedActiveLink && !$('.sidebar-link.active').length) {
-            const savedLink = $(`.sidebar-link[href="${savedActiveLink}"]`);
+            // Escape the URL to prevent jQuery selector syntax errors
+            const escapedHref = savedActiveLink.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
+            const savedLink = $(`.sidebar-link[href="${escapedHref}"]`);
             if (savedLink.length > 0) {
                 savedLink.addClass('active');
                 console.log('Active link loaded from localStorage:', savedActiveLink);
@@ -298,8 +432,10 @@ $(function() {
             for (const pattern of patterns) {
                 // Special handling for dashboard (root path)
                 if (pattern === '/' && currentPath === '/') {
-                    const activeSidebarLink = $(`.sidebar-link[href="/"]`);
-                    const activeDrawerLink = $(`.navigation-drawer-link[href="/"]`);
+                    // Escape the root path to prevent jQuery selector syntax errors
+                    const escapedRoot = '\\/';
+                    const activeSidebarLink = $(`.sidebar-link[href="${escapedRoot}"]`);
+                    const activeDrawerLink = $(`.navigation-drawer-link[href="${escapedRoot}"]`);
                     if (activeSidebarLink.length > 0) {
                         activeSidebarLink.addClass('active');
                         activeFound = true;
@@ -314,8 +450,10 @@ $(function() {
                 }
                 // For other patterns, check if current path starts with the pattern
                 else if (pattern !== '/' && currentPath.startsWith(pattern)) {
-                    const activeSidebarLink = $(`.sidebar-link[href*="${pattern}"]`);
-                    const activeDrawerLink = $(`.navigation-drawer-link[href*="${pattern}"]`);
+                    // Escape the pattern to prevent jQuery selector syntax errors
+                    const escapedPattern = pattern.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
+                    const activeSidebarLink = $(`.sidebar-link[href*="${escapedPattern}"]`);
+                    const activeDrawerLink = $(`.navigation-drawer-link[href*="${escapedPattern}"]`);
                     if (activeSidebarLink.length > 0) {
                         activeSidebarLink.addClass('active');
                         activeFound = true;
@@ -355,7 +493,9 @@ $(function() {
         
         // If still no active link found and we're on the root, set dashboard as active
         if (!activeFound && currentPath === '/') {
-            $('.sidebar-link[href="/"], .navigation-drawer-link[href="/"]').addClass('active');
+            // Escape the root path to prevent jQuery selector syntax errors
+            const escapedRoot = '\\/';
+            $(`.sidebar-link[href="${escapedRoot}"], .navigation-drawer-link[href="${escapedRoot}"]`).addClass('active');
             console.log('Active link set for dashboard (root) - fallback');
         }
         
@@ -579,5 +719,37 @@ $(function() {
         });
     } else {
         console.log('No floating button found on page');
+    }
+    
+    // Controle do botão Top Page
+    const topPageBtn = document.getElementById('topPageBtn');
+    
+    if (topPageBtn) {
+        // Função para mostrar/ocultar botão
+        function toggleTopPageButton() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > 300) {
+                topPageBtn.classList.add('show');
+            } else {
+                topPageBtn.classList.remove('show');
+            }
+        }
+        
+        // Mostrar/ocultar botão baseado no scroll
+        window.addEventListener('scroll', toggleTopPageButton, { passive: true });
+        
+        // Também verificar na carga da página
+        toggleTopPageButton();
+        
+        // Scroll suave para o topo quando clicado
+        topPageBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
     }
 });

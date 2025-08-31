@@ -1,0 +1,318 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Search Container -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="search-container">
+                            <form method="GET" action="{% url 'shepherd_list' %}">
+                                <div class="form-floating">
+                                    <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="shepherdSearch">
+                                    <label for="shepherdSearch">
+                                        <i class="bi bi-search"></i> Pesquisar
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if search_query %}
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-search"></i>
+                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
+                        <a href="{% url 'shepherd_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-x-circle"></i> Limpar busca
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if shepherds %}
+                    <!-- Tabela Desktop -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="shepherdsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Igrejas</th>
+                                    <th>Data de Criação</th>
+                                    <th>Última Atualização</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for shepherd in shepherds %}
+                                    <tr>
+                                        <td>{{ shepherd.name }}</td>
+                                        <td>
+                                            {% if shepherd.church_set.all %}
+                                                <div class="church-list">
+                                                    {% for church in shepherd.church_set.all %}
+                                                        <span class="badge bg-primary me-1 mb-1">
+                                                            <i class="bi bi-house-heart"></i> {{ church.name }}
+                                                        </span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-house"></i> Nenhuma igreja
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ shepherd.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ shepherd.updated_at|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <a href="{% url 'shepherd_edit' shepherd.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-shepherd-id="{{ shepherd.pk }}"
+                                                    data-shepherd-name="{{ shepherd.name }}"
+                                                    data-shepherd-created="{{ shepherd.created_at|date:'d/m/Y H:i' }}"
+                                                    data-shepherd-updated="{{ shepherd.updated_at|date:'d/m/Y H:i' }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Cards Mobile -->
+                    <div class="mobile-cards">
+                        <div class="mobile-cards-container">
+                            {% for shepherd in shepherds %}
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Nome:</span>
+                                            <span class="mobile-card-value">{{ shepherd.name }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Igrejas:</span>
+                                            <span class="mobile-card-value">
+                                                {% if shepherd.church_set.all %}
+                                                    <div class="church-list-mobile">
+                                                        {% for church in shepherd.church_set.all %}
+                                                            <span class="badge bg-primary me-1 mb-1 d-inline-block">
+                                                                <i class="bi bi-house-heart"></i> {{ church.name }}
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-house"></i> Nenhuma igreja
+                                                    </span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Data de Criação:</span>
+                                            <span class="mobile-card-value">{{ shepherd.created_at|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Última Atualização:</span>
+                                            <span class="mobile-card-value">{{ shepherd.updated_at|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-actions">
+                                        <a href="{% url 'shepherd_edit' shepherd.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal" 
+                                                data-shepherd-id="{{ shepherd.pk }}"
+                                                data-shepherd-name="{{ shepherd.name }}"
+                                                data-shepherd-created="{{ shepherd.created_at|date:'d/m/Y H:i' }}"
+                                                data-shepherd-updated="{{ shepherd.updated_at|date:'d/m/Y H:i' }}">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Estado vazio -->
+                    <div class="text-center py-5">
+                        {% if search_query %}
+                            <i class="bi bi-search display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">Nenhum pastor encontrado</h4>
+                            <p class="text-muted">Não foi possível encontrar pastores para "{{ search_query }}"</p>
+                            <a href="{% url 'shepherd_list' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left"></i> Ver todos os pastores
+                            </a>
+                        {% else %}
+                            <i class="bi bi-person-badge display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">Nenhum pastor cadastrado</h4>
+                            <p class="text-muted">Comece cadastrando o primeiro pastor do sistema</p>
+                            <a href="{% url 'shepherd_create' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Cadastrar Pastor
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita!
+                </div>
+                
+                <p>Tem certeza que deseja excluir o pastor <strong id="shepherdName"></strong>?</p>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-person-badge"></i> Informações do Pastor
+                        </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Nome:</small>
+                                <p class="mb-1" id="shepherdNameInfo"></p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Criado em:</small>
+                                <p class="mb-1" id="shepherdCreated"></p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Última atualização:</small>
+                                <p class="mb-1" id="shepherdUpdated"></p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">ID:</small>
+                                <p class="mb-1" id="shepherdId"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-danger mt-3">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-exclamation-triangle"></i> Impacto da Exclusão
+                    </h6>
+                    <ul class="mb-0">
+                        <li>Igrejas associadas ficarão sem pastor responsável</li>
+                        <li>Transações relacionadas podem ser afetadas</li>
+                        <li>Esta ação não pode ser desfeita</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar modal de exclusão
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const shepherdId = button.getAttribute('data-shepherd-id');
+        const shepherdName = button.getAttribute('data-shepherd-name');
+        const shepherdCreated = button.getAttribute('data-shepherd-created');
+        const shepherdUpdated = button.getAttribute('data-shepherd-updated');
+        
+        // Atualizar modal com dados do pastor
+        document.getElementById('shepherdName').textContent = shepherdName;
+        document.getElementById('shepherdNameInfo').textContent = shepherdName;
+        document.getElementById('shepherdCreated').textContent = shepherdCreated;
+        document.getElementById('shepherdUpdated').textContent = shepherdUpdated;
+        document.getElementById('shepherdId').textContent = shepherdId;
+        document.getElementById('deleteForm').action = `/shepherds/${shepherdId}/delete/`;
+    });
+    
+    // DataTable para a tabela desktop (se disponível)
+    if (typeof $.fn.DataTable !== 'undefined') {
+        $('#shepherdsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            },
+            pageLength: 25,
+            order: [[0, 'asc']],
+            responsive: true
+        });
+    }
+});
+</script>
+
+<style>
+.church-list {
+    max-width: 300px;
+}
+
+.church-list .badge {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.church-list-mobile .badge {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.badge {
+    transition: all 0.2s ease-in-out;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %}

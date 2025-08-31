@@ -1,33 +1,37 @@
+version: "3.9"
+
 services:
+  web:
+    build: ./django
+    container_name: nations-flow_web
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./django:/app
+      - ./static:/app/static
+      - ./.env:/app/.env
+    env_file: .env
+    networks:
+      - nations-flow_net
+      - proxy
+    labels:
+      - "traefik.enable=true" 
+      - "traefik.http.routers.nations-flow.rule=Host(`www.nationsflow.com.br`)"
+      - "traefik.http.routers.nations-flow.entrypoints=websecure"
+      - "traefik.http.routers.nations-flow.tls.certresolver=myresolver"
+    restart: always
+
   db:
     image: postgres:15
-    container_name: postgres-nations
-    ports:
-      - '5432:5432'
+    container_name: nations-flow_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=nations
-      - POSTGRES_PASSWORD=91Jgy0q8a5BnV
-      - POSTGRES_DB=nationsflow
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: django-nations
-    command: >
-      sh -c "python manage.py wait_for_database &&
-             python manage.py makemigrations && 
-             python manage.py migrate && 
-             python manage.py runserver 0.0.0.0:8000"
-    volumes:
-      - .:/usr/src/nations-flow/
-    ports:
-      - 8000:8000
-    env_file:
-      - ./.env
-    depends_on:
-      - db
+      - ./db_data:/var/lib/postgresql/data
+    env_file: .env
+    networks:
+      - nations-flow_net
+    restart: always
 
-volumes:
-  postgres_data:
+networks:
+  nations-flow_net:
+    driver: bridge
+  proxy:
+    external: true

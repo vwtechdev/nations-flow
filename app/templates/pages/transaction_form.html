@@ -1,6 +1,10 @@
 {% extends 'pages/index.html' %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/transaction_form.css' %}" />
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8 col-md-10">
@@ -52,7 +56,7 @@
                 </style>
                 {% endif %}
                 
-                <form method="post"{% if readonly %} class="readonly-form"{% endif %}>
+                <form method="post" enctype="multipart/form-data"{% if readonly %} class="readonly-form"{% endif %}>
                     {% csrf_token %}
                     
                     <div class="row">
@@ -74,8 +78,15 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
-                                {{ form.category }}
-                                <label for="{{ form.category.id_for_label }}">
+                                <select name="category" id="categorySelect" class="form-control" required>
+                                    <option value="">Selecione uma categoria...</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}" {% if form.category.value == category.id %}selected{% endif %}>
+                                            {{ category.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="categorySelect">
                                     <i class="bi bi-tag"></i> {{ form.category.label }}
                                 </label>
                                 {% if form.category.errors %}
@@ -122,8 +133,15 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
-                                {{ form.field }}
-                                <label for="{{ form.field.id_for_label }}">
+                                <select name="field" id="fieldSelect" class="form-control" required>
+                                    <option value="">Selecione um campo...</option>
+                                    {% for field in fields %}
+                                        <option value="{{ field.id }}" {% if form.field.value == field.id %}selected{% endif %}>
+                                            {{ field.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="fieldSelect">
                                     <i class="bi bi-geo-alt"></i> {{ form.field.label }}
                                 </label>
                                 {% if form.field.errors %}
@@ -138,8 +156,15 @@
                         
                         <div class="col-md-6">
                             <div class="form-floating mb-3">
-                                {{ form.church }}
-                                <label for="{{ form.church.id_for_label }}">
+                                <select name="church" id="churchSelect" class="form-control" required>
+                                    <option value="">Selecione uma igreja...</option>
+                                    {% for church in churches %}
+                                        <option value="{{ church.id }}" {% if form.church.value == church.id %}selected{% endif %}>
+                                            {{ church.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="churchSelect">
                                     <i class="bi bi-house-heart"></i> {{ form.church.label }}
                                 </label>
                                 {% if form.church.errors %}
@@ -167,6 +192,82 @@
                                 {% endif %}
                             </div>
                         </div>
+                        
+                        <div class="col-12">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.proof.id_for_label }}" class="form-label">
+                                    <i class="bi bi-file-earmark-check"></i> {{ form.proof.label }}
+                                </label>
+                                
+
+                                
+                                <!-- Campo de upload -->
+                                <div class="input-group">
+                                    {{ form.proof }}
+                                    {% if form.instance.proof and not readonly %}
+                                    <button type="button" class="btn btn-outline-success" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#proofModal"
+                                            onclick="openProofModal('{{ form.instance.proof.url }}', '{{ form.instance.date|date:"d/m/Y" }}', '{{ form.instance.category.name }}', '{{ form.instance.church.name }}', 'R$ {{ form.instance.value|floatformat:2 }}')"
+                                            title="Visualizar comprovante atual">
+                                        <i class="bi bi-eye"></i> Visualizar
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="clearProofField()">
+                                        <i class="bi bi-x-circle"></i> Limpar
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Texto de ajuda -->
+                                <div class="form-text" id="proofHelp">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>Tipos de arquivo aceitos:</strong> PDF, JPG, JPEG, PNG
+                                    <br>
+                                    <i class="bi bi-hdd"></i>
+                                    <strong>Tamanho máximo:</strong> 1MB
+                                    {% if form.instance.proof and not readonly %}
+                                    <br>
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <strong>Nota:</strong> Selecione um novo arquivo para substituir o comprovante atual
+                                    {% endif %}
+                                </div>
+                                
+
+                                
+
+                                
+                                {% if form.proof.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.proof.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                
+
+                                
+
+                            </div>
+                        </div>
+                        
+                        <!-- Campo para criar lembrete -->
+                        {% if not readonly %}
+                        <div class="col-12">
+                            <div class="form-group mb-3">
+                                <div class="form-check">
+                                    {{ form.create_reminder }}
+                                    <label class="form-check-label" for="{{ form.create_reminder.id_for_label }}">
+                                        <i class="bi bi-bell"></i> {{ form.create_reminder.label }}
+                                    </label>
+                                    {% if form.create_reminder.help_text %}
+                                        <div class="form-text">
+                                            <i class="bi bi-info-circle"></i> {{ form.create_reminder.help_text }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                     
                     <div class="d-flex gap-2 justify-content-end">
@@ -194,81 +295,856 @@
 <!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
+<!-- Modal de Visualização de Comprovante -->
+<div class="modal fade" id="proofModal" tabindex="-1" aria-labelledby="proofModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-primary" id="proofModalLabel">
+                    <i class="bi bi-file-earmark-check"></i> Visualizar Comprovante
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-info-circle"></i> Informações da Transação
+                        </h6>
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <p class="card-text mb-1"><strong>Data:</strong> <span id="proofTransactionDate"></span></p>
+                                <p class="card-text mb-1"><strong>Categoria:</strong> <span id="proofTransactionCategory"></span></p>
+                                <p class="card-text mb-1"><strong>Igreja:</strong> <span id="proofTransactionChurch"></span></p>
+                                <p class="card-text mb-0"><strong>Valor:</strong> <span id="proofTransactionValue"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-file-earmark"></i> Detalhes do Arquivo
+                        </h6>
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="proofFileName"></span></p>
+                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="proofFileType"></span></p>
+                                <p class="card-text mb-1"><strong>Tamanho:</strong> <span id="proofFileSize"></span></p>
+                                <p class="card-text mb-0"><strong>Data:</strong> <span id="proofFileDate"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-eye"></i> Visualização do Comprovante
+                    </h6>
+                    <div id="proofContent" class="text-center">
+                        <!-- Conteúdo do comprovante será carregado aqui -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="downloadProofLink" class="btn btn-success" target="_blank">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Criação de Lembrete -->
+<div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-info" id="reminderModalLabel">
+                    <i class="bi bi-bell"></i> Criar Lembrete para Transação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reminderForm" method="POST" action="{% url 'notification_create' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Informações da Transação -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-info-circle"></i> Transação Relacionada
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Data:</strong> <span id="reminderTransactionDate"></span></p>
+                                <p class="mb-1"><strong>Categoria:</strong> <span id="reminderTransactionCategory"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Igreja:</strong> <span id="reminderTransactionChurch"></span></p>
+                                <p class="mb-1"><strong>Valor:</strong> <span id="reminderTransactionValue"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos do Lembrete -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-floating mb-3">
+                                <input type="text" name="title" id="reminderTitle" class="form-control" required 
+                                       placeholder="Título do Lembrete">
+                                <label for="reminderTitle">
+                                    <i class="bi bi-pencil"></i> Título do Lembrete
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="datetime-local" name="date" id="reminderDate" class="form-control" required>
+                                <label for="reminderDate">
+                                    <i class="bi bi-calendar"></i> Data e Hora
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-floating mb-3">
+                        <textarea name="body" id="reminderBody" class="form-control" rows="4" required 
+                                  placeholder="Mensagem do lembrete"></textarea>
+                        <label for="reminderBody">
+                            <i class="bi bi-chat-text"></i> Mensagem do Lembrete
+                        </label>
+                    </div>
+                    
+
+                    
+                    <div class="form-check mb-3">
+                        <input type="checkbox" name="is_read" id="reminderRead" class="form-check-input">
+                        <label class="form-check-label" for="reminderRead">
+                            <i class="bi bi-check-circle"></i> Marcar como Lida
+                        </label>
+                    </div>
+                    
+                    <!-- Campo oculto para relacionar com a transação -->
+                    <input type="hidden" name="related_transaction" id="reminderTransactionId" value="">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="submit" form="reminderForm" class="btn btn-info">
+                    <i class="bi bi-bell"></i> Criar Lembrete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const fieldSelect = document.getElementById('{{ form.field.id_for_label }}');
-    const churchSelect = document.getElementById('{{ form.church.id_for_label }}');
-    
-    if (fieldSelect && churchSelect) {
-        // Função para atualizar as igrejas baseado no campo selecionado
-        function updateChurches() {
-            const selectedFieldId = fieldSelect.value;
+    // Função para limpar o campo de comprovante
+    function clearProofField() {
+        const proofInput = document.querySelector('input[name="proof"]');
+        const categorySelect = $('#categorySelect');
+        
+        if (proofInput) {
+            // Verificar se a categoria selecionada requer comprovante obrigatório
+            const selectedCategoryId = categorySelect.length ? categorySelect.val() : null;
+            let isMandatory = false;
             
-            if (selectedFieldId) {
-                // Habilitar o campo de igreja
-                churchSelect.disabled = false;
-                churchSelect.classList.remove('form-control-disabled');
-                churchSelect.innerHTML = '<option value="">Carregando igrejas...</option>';
-                
-                // Fazer requisição AJAX para buscar igrejas do campo selecionado
-                fetch(`/api/churches-by-field/${selectedFieldId}/`)
+            // Se não há categoria selecionada, verificar se há uma categoria atual na transação
+            if (!selectedCategoryId && '{{ form.instance.category.id|default:"" }}') {
+                isMandatory = {{ form.instance.category.mandatory_proof|yesno:"true,false" }};
+            } else if (selectedCategoryId) {
+                // Buscar informações da categoria selecionada via AJAX
+                fetch(`/api/category/${selectedCategoryId}/`)
                     .then(response => response.json())
                     .then(data => {
-                        churchSelect.innerHTML = '<option value="">Selecione uma igreja</option>';
-                        
-                        if (data.churches && data.churches.length > 0) {
-                            data.churches.forEach(church => {
-                                const option = document.createElement('option');
-                                option.value = church.id;
-                                option.textContent = church.name;
-                                churchSelect.appendChild(option);
-                            });
-                        } else {
-                            churchSelect.innerHTML = '<option value="">Nenhuma igreja encontrada para este campo</option>';
-                        }
+                        isMandatory = data.mandatory_proof;
+                        proceedWithClear(proofInput, isMandatory);
                     })
-                    .catch(error => {
-                        console.error('Erro ao carregar igrejas:', error);
-                        churchSelect.innerHTML = '<option value="">Erro ao carregar igrejas</option>';
+                    .catch(() => {
+                        // Se não conseguir buscar, assumir que é obrigatório por segurança
+                        proceedWithClear(proofInput, true);
                     });
-            } else {
-                // Desabilitar o campo de igreja se nenhum campo estiver selecionado
-                churchSelect.disabled = true;
-                churchSelect.classList.add('form-control-disabled');
-                churchSelect.innerHTML = '<option value="">Selecione um campo primeiro</option>';
+                return;
             }
+            
+            // Se não há categoria selecionada, verificar se há uma atual
+            proceedWithClear(proofInput, isMandatory);
+        }
+    }
+    
+    // Função auxiliar para proceder com a limpeza
+    function proceedWithClear(proofInput, isMandatory) {
+        if (isMandatory) {
+            // Categoria requer comprovante obrigatório - mostrar erro
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger mt-2';
+            errorDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Erro:</strong> Não é possível remover o comprovante!
+                <br><strong>Motivo:</strong> Esta categoria requer anexo de comprovante obrigatório.
+                <br><strong>Solução:</strong> Selecione uma nova categoria ou mantenha o comprovante atual.
+            `;
+            proofInput.parentNode.parentNode.appendChild(errorDiv);
+            
+            // Restaurar o arquivo original se existir
+            if (proofInput.dataset.currentFile) {
+                // Criar um input file temporário para simular o arquivo original
+                const tempInput = document.createElement('input');
+                tempInput.type = 'file';
+                tempInput.name = 'proof';
+                tempInput.className = 'form-control';
+                tempInput.style.display = 'none';
+                
+                // Adicionar um atributo para indicar que é o arquivo original
+                tempInput.dataset.originalFile = 'true';
+                
+                // Substituir o input atual
+                proofInput.parentNode.appendChild(tempInput);
+                proofInput.style.display = 'none';
+                
+                // Mostrar mensagem informativa
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'alert alert-info mt-2';
+                infoDiv.innerHTML = `
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Arquivo mantido:</strong> ${proofInput.dataset.currentFile}
+                    <br><strong>Motivo:</strong> Categoria requer comprovante obrigatório.
+                `;
+                proofInput.parentNode.parentNode.appendChild(infoDiv);
+            }
+            
+            return;
         }
         
-        // Adicionar evento de mudança no campo de seleção de campo
-        fieldSelect.addEventListener('change', updateChurches);
+        // Categoria não requer comprovante - permitir limpeza
+        proofInput.value = '';
         
-        // Executar uma vez para configurar o estado inicial
-        updateChurches();
+        // Mostrar mensagem de confirmação
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-2';
+        alertDiv.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Comprovante removido!</strong> O arquivo atual será removido quando você salvar a transação.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        proofInput.parentNode.parentNode.appendChild(alertDiv);
         
-        // Adicionar validação visual antes do envio do formulário
+        // Atualizar o estilo do campo
+        proofInput.style.border = '2px solid #dc3545';
+        proofInput.classList.remove('border-success');
+        proofInput.classList.add('border-danger');
+        
+        // Adicionar validação para impedir envio
+        addProofValidation();
+        
+        // Validar novamente a categoria para atualizar o estado do botão
+        validateProofForCategory();
+    }
+    
+    // Função para adicionar validação que impede envio sem comprovante
+    function addProofValidation() {
         const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            const selectedField = fieldSelect.value;
-            const selectedChurch = churchSelect.value;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.title = 'Não é possível salvar: comprovante obrigatório foi removido';
+            submitBtn.classList.add('btn-secondary');
+            submitBtn.classList.remove('btn-primary');
+        }
+    }
+    
+    // Função para reabilitar o botão de envio
+    function enableSubmitButton() {
+        const form = document.querySelector('form');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.title = '';
+            submitBtn.classList.remove('btn-secondary');
+            submitBtn.classList.add('btn-primary');
+        }
+    }
+    
+    // Função para validar se o comprovante é necessário para a categoria selecionada
+    function validateProofForCategory() {
+        const categorySelect = $('#categorySelect');
+        const proofInput = document.querySelector('input[name="proof"]');
+        const submitBtn = document.querySelector('button[type="submit"]');
+        
+        if (!categorySelect.length || !proofInput || !submitBtn) return;
+        
+        const selectedCategoryId = categorySelect.val();
+        
+        if (!selectedCategoryId) {
+            // Nenhuma categoria selecionada, reabilitar botão
+            enableSubmitButton();
+            return;
+        }
+        
+        // Buscar informações da categoria selecionada
+        fetch(`/api/category/${selectedCategoryId}/`)
+            .then(response => response.json())
+            .then(data => {
+                const isMandatory = data.mandatory_proof;
+                
+                if (isMandatory) {
+                    // Categoria requer comprovante obrigatório
+                    const hasProof = proofInput.files && proofInput.files.length > 0;
+                    const hasCurrentProof = proofInput.dataset.currentFile;
+                    
+                    if (!hasProof && !hasCurrentProof) {
+                        // Não há comprovante - desabilitar botão
+                        submitBtn.disabled = true;
+                        submitBtn.title = 'Não é possível salvar: comprovante obrigatório não fornecido';
+                        submitBtn.classList.add('btn-secondary');
+                        submitBtn.classList.remove('btn-primary');
+                        
+                        // Mostrar aviso
+                        showProofWarning('Esta categoria requer anexo de comprovante obrigatório.');
+                    } else {
+                        // Há comprovante - reabilitar botão
+                        enableSubmitButton();
+                        hideProofWarning();
+                    }
+                } else {
+                    // Categoria não requer comprovante - reabilitar botão
+                    enableSubmitButton();
+                    hideProofWarning();
+                }
+            })
+            .catch(() => {
+                // Em caso de erro, assumir que é obrigatório por segurança
+                enableSubmitButton();
+            });
+    }
+    
+    // Função para mostrar aviso sobre comprovante obrigatório
+    function showProofWarning(message) {
+        hideProofWarning(); // Remover avisos anteriores
+        
+        const proofInput = document.querySelector('input[name="proof"]');
+        if (proofInput) {
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'alert alert-warning mt-2';
+            warningDiv.id = 'proofWarning';
+            warningDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Atenção:</strong> ${message}
+            `;
+            proofInput.parentNode.parentNode.appendChild(warningDiv);
+        }
+    }
+    
+    // Função para ocultar aviso sobre comprovante
+    function hideProofWarning() {
+        const existingWarning = document.getElementById('proofWarning');
+        if (existingWarning) {
+            existingWarning.remove();
+        }
+    }
+    
+    // Função para abrir o modal de comprovante
+    function openProofModal(proofUrl, date, category, church, value) {
+        // Preencher informações da transação
+        document.getElementById('proofTransactionDate').textContent = date;
+        document.getElementById('proofTransactionCategory').textContent = category;
+        document.getElementById('proofTransactionChurch').textContent = church;
+        document.getElementById('proofTransactionValue').textContent = value;
+        
+        // Atualizar link de download
+        document.getElementById('downloadProofLink').href = proofUrl;
+        
+        // Carregar e exibir o comprovante
+        loadProofContent(proofUrl);
+    }
+    
+    // Função para atualizar o campo de comprovante quando um arquivo for selecionado
+    function updateProofField(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const fileSizeKB = (file.size / 1024).toFixed(2);
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            const maxSizeMB = 1;
+            const maxSizeBytes = maxSizeMB * 1024 * 1024;
             
-            if (!selectedField) {
-                e.preventDefault();
-                alert('Por favor, selecione um campo primeiro.');
-                fieldSelect.focus();
-                return false;
+            // Remover alertas anteriores
+            const existingAlerts = input.parentNode.parentNode.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Verificar tamanho do arquivo
+            if (file.size > maxSizeBytes) {
+                // Arquivo muito grande
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-2';
+                errorDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Erro:</strong> O arquivo é muito grande! 
+                    <br><strong>Tamanho máximo:</strong> ${maxSizeMB}MB
+                    <br><strong>Seu arquivo:</strong> ${fileSizeMB}MB
+                `;
+                input.parentNode.parentNode.appendChild(errorDiv);
+                
+                // Atualizar o estilo do campo para erro
+                input.style.border = '2px solid #dc3545';
+                input.classList.remove('border-success');
+                input.classList.add('border-danger');
+                
+                // Limpar o campo
+                input.value = '';
+                return;
             }
             
-            if (!selectedChurch) {
-                e.preventDefault();
-                alert('Por favor, selecione uma igreja.');
-                churchSelect.focus();
-                return false;
+            // Verificar tipo de arquivo
+            const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedExtensions.includes(fileExtension)) {
+                // Tipo de arquivo não permitido
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-2';
+                errorDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Erro:</strong> Tipo de arquivo não permitido!
+                    <br><strong>Formatos aceitos:</strong> PDF, JPG, JPEG, PNG
+                `;
+                input.parentNode.parentNode.appendChild(errorDiv);
+                
+                // Atualizar o estilo do campo para erro
+                input.style.border = '2px solid #dc3545';
+                input.classList.remove('border-success');
+                input.classList.add('border-danger');
+                
+                // Limpar o campo
+                input.value = '';
+                return;
+            }
+            
+            // Arquivo válido - mostrar informações
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'alert alert-success mt-2';
+            infoDiv.innerHTML = `
+                <i class="bi bi-check-circle"></i>
+                <strong>Arquivo válido:</strong> ${file.name}
+                <br><strong>Tamanho:</strong> ${fileSizeMB}MB (${fileSizeKB} KB)
+            `;
+            input.parentNode.parentNode.appendChild(infoDiv);
+            
+            // Atualizar o estilo do campo para sucesso
+            input.style.border = '2px solid #28a745';
+            input.classList.remove('border-danger');
+            input.classList.add('border-success');
+            
+            // Reabilitar o botão de envio se estava desabilitado
+            enableSubmitButton();
+        }
+    }
+    
+    // Função para atualizar as igrejas baseado no campo selecionado
+    function updateChurches() {
+        const fieldSelect = $('#fieldSelect');
+        const churchSelect = $('#churchSelect');
+        
+        if (!fieldSelect.length || !churchSelect.length) return;
+        
+        const selectedFieldId = fieldSelect.val();
+        
+        if (selectedFieldId) {
+            // Habilitar o campo de igreja
+            $('#churchSelect').prop('disabled', false);
+            $('#churchSelect').closest('.form-floating').removeClass('form-control-disabled');
+            
+            // Fazer requisição AJAX para buscar igrejas do campo selecionado
+            fetch(`/api/churches-by-field/${selectedFieldId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 403) {
+                            throw new Error('Acesso negado - Você não tem permissão para ver as igrejas deste campo');
+                        } else if (response.status === 404) {
+                            throw new Error('Campo não encontrado');
+                        } else {
+                            throw new Error(`Erro HTTP: ${response.status}`);
+                        }
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Limpar e recriar as opções
+                    $('#churchSelect').empty().append('<option value="">Selecione uma igreja</option>');
+                    
+                    if (data.error) {
+                        // Se há um erro na resposta JSON
+                        $('#churchSelect').append(`<option value="">Erro: ${data.error}</option>`);
+                    } else if (data.churches && data.churches.length > 0) {
+                        data.churches.forEach(church => {
+                            const isSelected = church.id == {{ form.church.value|default:"null" }};
+                            $('#churchSelect').append(`<option value="${church.id}" ${isSelected ? 'selected' : ''}>${church.name}</option>`);
+                        });
+                    } else {
+                        $('#churchSelect').append('<option value="">Nenhuma igreja encontrada para este campo</option>');
+                    }
+                    
+                    // Atualizar o select2
+                    $('#churchSelect').trigger('change');
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar igrejas:', error);
+                    $('#churchSelect').empty().append(`<option value="">Erro: ${error.message}</option>`);
+                    $('#churchSelect').trigger('change');
+                });
+        } else {
+            // Desabilitar o campo de igreja se nenhum campo estiver selecionado
+            $('#churchSelect').prop('disabled', true);
+            $('#churchSelect').closest('.form-floating').addClass('form-control-disabled');
+            $('#churchSelect').empty().append('<option value="">Selecione um campo primeiro</option>');
+            $('#churchSelect').trigger('change');
+        }
+    }
+    
+    // Adicionar event listener para o campo de comprovante
+    document.addEventListener('DOMContentLoaded', function() {
+        const proofInput = document.querySelector('input[name="proof"]');
+        const fieldSelect = $('#fieldSelect');
+        const churchSelect = $('#churchSelect');
+        const categorySelect = $('#categorySelect');
+        
+        // Configurar campo de comprovante
+        if (proofInput) {
+            proofInput.addEventListener('change', function() {
+                updateProofField(this);
+            });
+        }
+        
+        // Configurar campos field e church
+        if (fieldSelect.length && churchSelect.length) {
+            // Adicionar evento de mudança no campo de seleção de campo
+            fieldSelect.on('change', updateChurches);
+            
+            // Se o formulário já tem um campo selecionado (modo de edição), carregar as igrejas
+            if (fieldSelect.val()) {
+                // Aguardar um pouco para garantir que o DOM esteja pronto
+                setTimeout(() => {
+                    updateChurches();
+                }, 200);
+            } else {
+                // Executar uma vez para configurar o estado inicial
+                updateChurches();
+            }
+            
+            // Configurar estado inicial do campo de igreja
+            if (!fieldSelect.val()) {
+                $('#churchSelect').prop('disabled', true);
+                $('#churchSelect').closest('.form-floating').addClass('form-control-disabled');
+            }
+            
+            // Adicionar validação visual antes do envio do formulário
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const selectedField = $('#fieldSelect').val();
+                const selectedChurch = $('#churchSelect').val();
+                
+                if (!selectedField) {
+                    e.preventDefault();
+                    alert('Por favor, selecione um campo primeiro.');
+                    $('#fieldSelect').select2('open');
+                    return false;
+                }
+                
+                if (!selectedChurch) {
+                    e.preventDefault();
+                    alert('Por favor, selecione uma igreja.');
+                    $('#churchSelect').select2('open');
+                    return false;
+                }
+            });
+        }
+        
+        // Configurar campo de categoria para validar comprovante
+        if (categorySelect.length) {
+            categorySelect.on('change', function() {
+                validateProofForCategory();
+            });
+        }
+        
+        // Inicializar Select2 para os campos
+        $('#categorySelect').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Selecione uma categoria...',
+            allowClear: true,
+            width: '100%',
+            language: 'pt-BR'
+        });
+        
+        $('#fieldSelect').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Selecione um campo...',
+            allowClear: true,
+            width: '100%',
+            language: 'pt-BR'
+        });
+        
+        $('#churchSelect').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Selecione uma igreja...',
+            allowClear: true,
+            width: '100%',
+            language: 'pt-BR'
+        });
+        
+        // Configurar estado inicial do campo de igreja
+        if (!$('#fieldSelect').val()) {
+            $('#churchSelect').prop('disabled', true);
+            $('#churchSelect').closest('.form-floating').addClass('form-control-disabled');
+        }
+        
+        // Adicionar validação personalizada para os campos select2
+        $('#categorySelect').on('select2:select', function(e) {
+            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+            validateProofForCategory();
+        });
+        
+        $('#categorySelect').on('select2:clear', function(e) {
+            $(this).closest('.form-floating').removeClass('has-success has-error');
+            validateProofForCategory();
+        });
+        
+        $('#fieldSelect').on('select2:select', function(e) {
+            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+            updateChurches();
+        });
+        
+        $('#fieldSelect').on('select2:clear', function(e) {
+            $(this).closest('.form-floating').removeClass('has-success has-error');
+            updateChurches();
+        });
+        
+        $('#churchSelect').on('select2:select', function(e) {
+            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+        });
+        
+        $('#churchSelect').on('select2:clear', function(e) {
+            $(this).closest('.form-floating').removeClass('has-success has-error');
+        });
+        
+        // Executar validação inicial do comprovante
+        validateProofForCategory();
+        
+        // Executar uma vez para configurar o estado inicial dos campos
+        updateChurches();
+    });
+    
+    // Função para carregar e exibir o conteúdo do comprovante
+    function loadProofContent(proofUrl) {
+        const proofContent = document.getElementById('proofContent');
+        
+        // Mostrar loading
+        proofContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-2 text-muted">Carregando comprovante...</p>
+            </div>
+        `;
+        
+        // Extrair informações do arquivo da URL
+        const fileName = proofUrl.split('/').pop();
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        
+        // Preencher informações do arquivo
+        document.getElementById('proofFileName').textContent = fileName;
+        document.getElementById('proofFileType').textContent = fileExtension.toUpperCase();
+        
+        // Determinar o tipo de arquivo e exibir adequadamente
+        if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
+            // Imagem - exibir diretamente
+            const img = document.createElement('img');
+            img.src = proofUrl;
+            img.className = 'img-fluid';
+            img.style.maxHeight = '500px';
+            img.style.maxWidth = '100%';
+            img.alt = 'Comprovante';
+            
+            img.onload = function() {
+                proofContent.innerHTML = '';
+                proofContent.appendChild(img);
+                
+                // Adicionar informações de tamanho se disponível
+                if (this.naturalWidth && this.naturalHeight) {
+                    const sizeInfo = document.createElement('p');
+                    sizeInfo.className = 'text-muted mt-2';
+                    sizeInfo.innerHTML = `<small>Dimensões: ${this.naturalWidth} × ${this.naturalHeight} pixels</small>`;
+                    proofContent.appendChild(sizeInfo);
+                }
+            };
+            
+            img.onerror = function() {
+                showProofError('Erro ao carregar a imagem');
+            };
+            
+        } else if (fileExtension === 'pdf') {
+            // PDF - mostrar mensagem e botão para abrir em nova aba
+            proofContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-file-pdf text-danger" style="font-size: 4rem;"></i>
+                    <p class="mt-2 text-muted">Este é um arquivo PDF</p>
+                    <p class="text-muted mb-3">Para melhor visualização, abra o arquivo em uma nova aba</p>
+                    <a href="${proofUrl}" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-up-right"></i> Abrir PDF em Nova Aba
+                    </a>
+                </div>
+            `;
+            
+        } else {
+            // Outros tipos de arquivo - mostrar mensagem
+            proofContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-file-earmark-text text-muted" style="font-size: 4rem;"></i>
+                    <p class="mt-2 text-muted">Visualização não disponível para este tipo de arquivo</p>
+                    <p class="text-muted"><small>Use o botão de download para abrir o arquivo</small></p>
+                </div>
+            `;
+        }
+        
+        // Tentar obter informações de tamanho do arquivo (se disponível)
+        fetch(proofUrl, { method: 'HEAD' })
+            .then(response => {
+                const contentLength = response.headers.get('content-length');
+                if (contentLength) {
+                    const sizeInBytes = parseInt(contentLength);
+                    const sizeInKB = (sizeInBytes / 1024).toFixed(2);
+                    const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+                    
+                    let sizeText;
+                    if (sizeInBytes < 1024) {
+                        sizeText = `${sizeInBytes} bytes`;
+                    } else if (sizeInBytes < 1024 * 1024) {
+                        sizeText = `${sizeInKB} KB`;
+                    } else {
+                        sizeText = `${sizeInMB} MB`;
+                    }
+                    
+                    document.getElementById('proofFileSize').textContent = sizeText;
+                }
+            })
+            .catch(() => {
+                document.getElementById('proofFileSize').textContent = 'N/A';
+            });
+        
+        // Adicionar data atual (já que não temos a data real do arquivo)
+        const currentDate = new Date().toLocaleDateString('pt-BR');
+        document.getElementById('proofFileDate').textContent = currentDate;
+    }
+    
+    // Função para mostrar erro ao carregar comprovante
+    function showProofError(message) {
+        const proofContent = document.getElementById('proofContent');
+        proofContent.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-exclamation-triangle text-danger" style="font-size: 4rem;"></i>
+                <p class="mt-2 text-danger">${message}</p>
+                <p class="text-muted"><small>Verifique se o arquivo ainda existe ou tente novamente</small></p>
+            </div>
+        `;
+    }
+    
+    // Configuração do Modal de Lembretes
+    document.addEventListener('DOMContentLoaded', function() {
+        const reminderModal = document.getElementById('reminderModal');
+
+        
+        // Preencher informações da transação quando o modal abrir
+        reminderModal.addEventListener('show.bs.modal', function() {
+            // Preencher informações da transação
+            const transactionDate = document.querySelector('input[name="date"]').value;
+            const categorySelect = document.getElementById('categorySelect');
+            const fieldSelect = document.getElementById('fieldSelect');
+            const churchSelect = document.getElementById('churchSelect');
+            const amountInput = document.querySelector('input[name="amount"]');
+            
+            // Formatar data para exibição
+            let displayDate = '';
+            if (transactionDate) {
+                const date = new Date(transactionDate);
+                displayDate = date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+            }
+            
+            // Preencher campos do modal
+            document.getElementById('reminderTransactionDate').textContent = displayDate || 'Não definida';
+            document.getElementById('reminderTransactionCategory').textContent = categorySelect.options[categorySelect.selectedIndex]?.text || 'Não selecionada';
+            document.getElementById('reminderTransactionChurch').textContent = churchSelect.options[churchSelect.selectedIndex]?.text || 'Não selecionada';
+            document.getElementById('reminderTransactionValue').textContent = amountInput ? `R$ ${parseFloat(amountInput.value || 0).toFixed(2)}` : 'R$ 0,00';
+            
+            // Definir data padrão para o lembrete (1 dia após a transação)
+            if (transactionDate) {
+                const reminderDate = new Date(transactionDate);
+                reminderDate.setDate(reminderDate.getDate() + 1);
+                reminderDate.setHours(9, 0, 0, 0); // 9:00 da manhã
+                document.getElementById('reminderDate').value = reminderDate.toISOString().slice(0, 16);
+            } else {
+                // Se não há data da transação, usar amanhã às 9:00
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(9, 0, 0, 0);
+                document.getElementById('reminderDate').value = tomorrow.toISOString().slice(0, 16);
+            }
+            
+            // Preencher título padrão baseado na categoria
+            const categoryName = categorySelect.options[categorySelect.selectedIndex]?.text || 'Transação';
+            document.getElementById('reminderTitle').value = `Lembrete: ${categoryName}`;
+            
+            // Preencher mensagem padrão
+            const churchName = churchSelect.options[churchSelect.selectedIndex]?.text || 'igreja';
+            const amount = amountInput ? parseFloat(amountInput.value || 0).toFixed(2) : '0,00';
+            document.getElementById('reminderBody').value = `Lembrete sobre a transação de R$ ${amount} para ${churchName}.`;
+            
+            // Definir ID da transação relacionada
+            const transactionId = '{{ transaction.pk|default:"" }}';
+            if (transactionId) {
+                document.getElementById('reminderTransactionId').value = transactionId;
             }
         });
-    }
-});
+        
+
+        
+        // Limpar formulário quando o modal fechar
+        reminderModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('reminderForm').reset();
+        });
+        
+        // Configurar envio do formulário
+        document.getElementById('reminderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validar campos obrigatórios
+            const title = document.getElementById('reminderTitle').value.trim();
+            const date = document.getElementById('reminderDate').value;
+            const body = document.getElementById('reminderBody').value.trim();
+            
+            if (!title || !date || !body) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+            
+
+            
+            // Enviar formulário
+            this.submit();
+        });
+    });
 </script>
 {% endblock %} 

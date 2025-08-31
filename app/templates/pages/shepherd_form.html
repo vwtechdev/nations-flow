@@ -1,0 +1,221 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                {{ form.name }}
+                                <label for="{{ form.name.id_for_label }}">
+                                    <i class="bi bi-person-badge"></i> Nome do Pastor
+                                </label>
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i> Digite o nome completo do pastor responsável.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
+                            <i class="bi bi-check-circle"></i> Salvar
+                        </button>
+                        <a href="{% url 'shepherd_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Foco automático no campo nome
+    const nameInput = document.querySelector('input[name="name"]');
+    if (nameInput) {
+        nameInput.focus();
+        
+        // Selecionar todo o texto se estiver editando
+        if (nameInput.value) {
+            nameInput.select();
+        }
+    }
+    
+    // Validação do formulário
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const nameValue = nameInput.value.trim();
+        
+        if (!nameValue) {
+            e.preventDefault();
+            showAlert('Por favor, digite o nome do pastor.', 'warning');
+            nameInput.focus();
+            return false;
+        }
+        
+        if (nameValue.length < 3) {
+            e.preventDefault();
+            showAlert('O nome do pastor deve ter pelo menos 3 caracteres.', 'warning');
+            nameInput.focus();
+            return false;
+        }
+        
+        if (nameValue.length > 100) {
+            e.preventDefault();
+            showAlert('O nome do pastor deve ter no máximo 100 caracteres.', 'warning');
+            nameInput.focus();
+            return false;
+        }
+    });
+    
+    // Feedback visual em tempo real
+    nameInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        const formGroup = this.closest('.form-floating');
+        
+        // Remover classes anteriores
+        formGroup.classList.remove('has-success', 'has-error', 'has-warning');
+        
+        if (value.length === 0) {
+            // Campo vazio
+            formGroup.classList.remove('has-success', 'has-error', 'has-warning');
+        } else if (value.length < 3) {
+            // Muito curto
+            formGroup.classList.add('has-warning');
+        } else if (value.length > 100) {
+            // Muito longo
+            formGroup.classList.add('has-error');
+        } else {
+            // Tamanho adequado
+            formGroup.classList.add('has-success');
+        }
+    });
+    
+    // Função para mostrar alertas
+    function showAlert(message, type = 'info') {
+        // Remover alertas anteriores
+        const existingAlert = document.querySelector('.alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+        
+        // Criar novo alerta
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Inserir antes do formulário
+        const cardBody = document.querySelector('.card-body');
+        cardBody.insertBefore(alertDiv, cardBody.firstChild);
+        
+        // Auto-remover após 5 segundos
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    // Contador de caracteres
+    const charCounter = document.createElement('div');
+    charCounter.className = 'form-text text-end';
+    charCounter.innerHTML = '<small><span id="charCount">0</span>/100 caracteres</small>';
+    
+    nameInput.parentNode.appendChild(charCounter);
+    
+    nameInput.addEventListener('input', function() {
+        const count = this.value.length;
+        document.getElementById('charCount').textContent = count;
+        
+        // Mudar cor baseado no tamanho
+        const charCountSpan = document.getElementById('charCount');
+        if (count < 3) {
+            charCountSpan.className = 'text-warning';
+        } else if (count > 100) {
+            charCountSpan.className = 'text-danger';
+        } else {
+            charCountSpan.className = 'text-success';
+        }
+    });
+    
+    // Atualizar contador inicial
+    nameInput.dispatchEvent(new Event('input'));
+});
+</script>
+
+<style>
+.info-item {
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    display: block;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    display: block;
+    color: #212529;
+    font-size: 1.1rem;
+}
+
+.stat-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.form-floating.has-success .form-control {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+.form-floating.has-error .form-control {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.form-floating.has-warning .form-control {
+    border-color: #ffc107;
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Search Container -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="search-container">
+                            <form method="GET" action="{% url 'access_log_list' %}">
+                                <div class="form-floating">
+                                    <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="accessLogSearch">
+                                    <label for="accessLogSearch">
+                                        <i class="bi bi-search"></i> Pesquisar
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if search_query %}
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-search"></i>
+                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
+                        <a href="{% url 'access_log_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-x-circle"></i> Limpar busca
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if logs %}
+                    <!-- Tabela Desktop -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="accessLogsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Usuário</th>
+                                    <th>Data e Hora</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                    <tr>
+                                        <td>
+                                            {% if log.user.get_full_name %}
+                                                {{ log.user.get_full_name }}
+                                            {% else %}
+                                                {{ log.user.email }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if log.action == 'login' %}success{% else %}warning{% endif %}">
+                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% else %}box-arrow-left{% endif %}"></i>
+                                                {{ log.get_action_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Cards Mobile -->
+                    <div class="mobile-cards">
+                        <div class="mobile-cards-container">
+                            {% for log in logs %}
+                                <div class="mobile-card">
+                                    <div class="mobile-card-header">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Usuário:</span>
+                                            <span class="mobile-card-value">
+                                                {% if log.user.get_full_name %}
+                                                    {{ log.user.get_full_name }}
+                                                {% else %}
+                                                    {{ log.user.email }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Ação:</span>
+                                            <span class="mobile-card-badge {% if log.action == 'login' %}income{% else %}expense{% endif %}">
+                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% else %}box-arrow-left{% endif %}"></i>
+                                                {{ log.get_action_display }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mobile-card-body">
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Data e Hora:</span>
+                                            <span class="mobile-card-value">{{ log.timestamp|date:"d/m/Y H:i:s" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum log de acesso encontrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Espaçamento para o botão flutuante -->
+<div style="height: 100px;"></div>
+{% endblock %}

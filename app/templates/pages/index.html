@@ -5,6 +5,7 @@
     <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
+    <meta name="csrf-token" content="{{ csrf_token }}">
 
     <link rel="icon" sizes="192x192" href="{% static 'img/icon.svg' %}">
     <link rel="shortcut icon" href="{% static 'img/icon.svg' %}">
@@ -13,13 +14,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/responsive_tables.css' %}" />
     
     {% block extra_head %}{% endblock %}
 
   </head>
-  <body>
+  <body class="{% if request.resolver_match.url_name == 'login' or request.resolver_match.url_name == 'change_password' or request.resolver_match.url_name == 'logout' %}login-page{% endif %}">
     <!-- Mobile Action Bar -->
     <div class="mobile-action-bar" id="mobileActionBar">
         <div class="action-bar-content">
@@ -89,7 +94,12 @@
                     </li>
                     <li class="navigation-drawer-item">
                         <a class="navigation-drawer-link" href="{% url 'field_list' %}" title="Campos">
-                            <i class="bi bi-signpost-2-fill"></i> <span>Campos</span>
+                            <i class="bi bi bi-geo-alt"></i> <span>Campos</span>
+                        </a>
+                    </li>
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'shepherd_list' %}" title="Pastores">
+                            <i class="bi bi-person-badge"></i> <span>Pastores</span>
                         </a>
                     </li>
                     <li class="navigation-drawer-item">
@@ -100,6 +110,16 @@
                     <li class="navigation-drawer-item">
                         <a class="navigation-drawer-link" href="{% url 'user_list' %}" title="Usuários">
                             <i class="bi bi-people"></i> <span>Usuários</span>
+                        </a>
+                    </li>
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'notification_list' %}" title="Notificações">
+                            <i class="bi bi-bell"></i> <span>Notificações</span>
+                        </a>
+                    </li>
+                    <li class="navigation-drawer-item">
+                        <a class="navigation-drawer-link" href="{% url 'access_log_list' %}" title="Logs de Acesso">
+                            <i class="bi bi-clock-history"></i> <span>Logs de Acesso</span>
                         </a>
                     </li>
                 {% endif %}
@@ -138,7 +158,12 @@
                     </li>
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'field_list' %}" title="Campos">
-                            <i class="bi bi-signpost-2-fill"></i> <span>Campos</span>
+                            <i class="bi bi bi-geo-alt"></i> <span>Campos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'shepherd_list' %}" title="Pastores">
+                            <i class="bi bi-person-badge"></i> <span>Pastores</span>
                         </a>
                     </li>
                     <li class="sidebar-item">
@@ -149,6 +174,16 @@
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{% url 'user_list' %}" title="Usuários">
                             <i class="bi bi-people"></i> <span>Usuários</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'notification_list' %}" title="Notificações">
+                            <i class="bi bi-bell"></i> <span>Notificações</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="{% url 'access_log_list' %}" title="Logs de Acesso">
+                            <i class="bi bi-clock-history"></i> <span>Logs</span>
                         </a>
                     </li>
                 {% endif %}
@@ -194,6 +229,11 @@
             {% endblock %}
         </div>
     </div>
+
+    <!-- Top Page Button -->
+    <button class="top-page-btn" id="topPageBtn" title="Voltar ao Topo" style="display: none;">
+        <i class="bi bi-arrow-up"></i>
+    </button>
 
     <!-- Floating Action Button -->
     {% if user.is_treasurer %}
@@ -242,11 +282,21 @@
                         
                         <a href="{% url 'field_create' %}" class="bottom-sheet-action">
                             <div class="action-icon">
-                                <i class="bi bi-signpost-2-fill"></i>
+                                <i class="bi bi bi-geo-alt"></i>
                             </div>
                             <div class="action-content">
                                 <span class="action-title">Novo Campo</span>
                                 <span class="action-subtitle">Adicionar região</span>
+                            </div>
+                        </a>
+                        
+                        <a href="{% url 'shepherd_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Novo Pastor</span>
+                                <span class="action-subtitle">Cadastrar pastor</span>
                             </div>
                         </a>
                         
@@ -257,6 +307,16 @@
                             <div class="action-content">
                                 <span class="action-title">Nova Igreja</span>
                                 <span class="action-subtitle">Cadastrar congregação</span>
+                            </div>
+                        </a>
+
+                        <a href="{% url 'notification_create' %}" class="bottom-sheet-action">
+                            <div class="action-icon">
+                                <i class="bi bi-bell"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nova Notificação</span>
+                                <span class="action-subtitle">Criar lembretes de notificação</span>
                             </div>
                         </a>
                         
@@ -275,12 +335,58 @@
         </div>
     {% endif %}
 
+    <!-- Modal de Notificações do Dia -->
+    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header notifications-modal-header">
+                    <h5 class="modal-title" id="notificationsModalLabel">
+                        <i class="bi bi-bell-fill me-2"></i>Notificações do Dia
+                    </h5>
+                    <button type="button" class="btn-close notifications-close-btn" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="notificationsContent">
+                        <div class="text-center">
+                            <div class="spinner-border notifications-spinner" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <p class="mt-2">Carregando notificações...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <a href="{% url 'notification_list' %}" class="btn notifications-btn-primary">
+                        <i class="bi bi-list me-1"></i>Ver Todas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Custom JS -->
-    <script src="{% static 'js/index.js' %}"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+    // Aguardar Bootstrap estar disponível
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verificar se Bootstrap está disponível
+        if (typeof bootstrap !== 'undefined') {
+            console.log('✅ Bootstrap carregado, carregando script customizado...');
+            // Carregar script customizado após Bootstrap estar disponível
+            const script = document.createElement('script');
+            script.src = '{% static "js/index.js" %}';
+            document.head.appendChild(script);
+        } else {
+            console.error('❌ Bootstrap não está disponível');
+        }
+    });
+    </script>
 
     {% block extra_js %}
     {% endblock %}

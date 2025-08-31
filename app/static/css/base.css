@@ -494,15 +494,274 @@
     transform: translateY(-2px);
 }
 
+/* Responsive dashboard cards for mobile */
+@media (max-width: 768px) {
+    .dashboard-card .card-body {
+        padding: 1rem 0.75rem;
+    }
+    
+    .dashboard-card .text-xs {
+        font-size: 0.7rem !important;
+    }
+    
+    .dashboard-card .h5 {
+        font-size: 1.1rem !important;
+    }
+    
+    .dashboard-card .fa-2x {
+        font-size: 1.5rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-card .card-body {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .dashboard-card .text-xs {
+        font-size: 0.65rem !important;
+    }
+    
+    .dashboard-card .h5 {
+        font-size: 1rem !important;
+    }
+    
+    .dashboard-card .fa-2x {
+        font-size: 1.25rem !important;
+    }
+}
+
 /* Chart container */
 .chart-container {
     position: relative;
     height: 400px;
     width: 100%;
+    margin: 0 auto;
 }
 
 #categoryChart {
     max-height: 400px;
+}
+
+/* Responsive chart adjustments for mobile */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+        margin: 0 -15px;
+        padding: 0 15px;
+    }
+    
+    #categoryChart {
+        max-height: 300px;
+    }
+    
+    /* Improve chart readability on small screens */
+    .chart-container canvas {
+        max-width: 100%;
+        height: auto !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .chart-container {
+        height: 250px;
+        margin: 0 -10px;
+        padding: 0 10px;
+    }
+    
+    #categoryChart {
+        max-height: 250px;
+    }
+    
+    /* Additional mobile chart improvements */
+    .chart-container canvas {
+        max-width: 100%;
+        height: auto !important;
+    }
+    
+    /* Improve chart readability on very small screens */
+    .chart-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+}
+
+/* Chart.js specific mobile optimizations */
+@media (max-width: 768px) {
+    .chart-container canvas {
+        touch-action: pan-x pan-y;
+    }
+    
+    /* Ensure charts are properly sized on mobile */
+    .chart-container {
+        min-height: 300px;
+        max-height: 400px;
+    }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chart-container {
+        height: 250px;
+        min-height: 200px;
+    }
+}
+
+/* Transaction list specific mobile improvements */
+@media (max-width: 768px) {
+    /* Improve filter form spacing on mobile */
+    .card-body .form-floating {
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Better button layout for mobile */
+    .d-grid.gap-2 {
+        gap: 0.75rem !important;
+    }
+    
+    /* Improve mobile cards layout */
+    .mobile-cards {
+        margin: 0 -10px;
+    }
+    
+    .mobile-cards-container {
+        padding: 0 10px;
+    }
+    
+    /* Better spacing for mobile transaction cards */
+    .mobile-card {
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .mobile-card-header {
+        padding: 0.75rem;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .mobile-card-body {
+        padding: 0.75rem;
+    }
+    
+    .mobile-card-footer {
+        padding: 0.75rem;
+        border-radius: 0 0 8px 8px;
+    }
+    
+    /* Improve mobile card buttons */
+    .mobile-card-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 6px;
+    }
+    
+    /* Better mobile card rows */
+    .mobile-card-row {
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .mobile-card-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .mobile-card-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.875rem;
+        min-width: 80px;
+    }
+    
+    .mobile-card-value {
+        color: #212529;
+        font-size: 0.875rem;
+        text-align: right;
+        flex: 1;
+        word-break: break-word;
+    }
+    
+    .mobile-card-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-align: center;
+        min-width: 60px;
+    }
+    
+    .mobile-card-badge.income {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.2);
+    }
+    
+    .mobile-card-badge.expense {
+        background-color: rgba(255, 107, 107, 0.1);
+        color: #ff6b6b;
+        border: 1px solid rgba(255, 107, 107, 0.2);
+    }
+    
+    .mobile-card-badge.secondary {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+        border: 1px solid rgba(108, 117, 125, 0.2);
+    }
+    
+    /* Improve mobile card description */
+    .mobile-card-value.description {
+        max-width: 200px;
+        text-align: left;
+        word-break: break-word;
+    }
+    
+    /* Improve mobile card money values */
+    .mobile-card-value.money {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .mobile-card-value.money.income {
+        color: #28a745;
+    }
+    
+    .mobile-card-value.money.expense {
+        color: #ff6b6b;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Further optimize for very small screens */
+    .mobile-card {
+        margin-bottom: 0.75rem;
+    }
+    
+    .mobile-card-header,
+    .mobile-card-body,
+    .mobile-card-footer {
+        padding: 0.5rem;
+    }
+    
+    .mobile-card-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .mobile-card-label {
+        font-size: 0.8rem;
+        min-width: 70px;
+    }
+    
+    .mobile-card-value {
+        font-size: 0.8rem;
+    }
+    
+    .mobile-card-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
 }
 
 /* Chart legend */
@@ -511,18 +770,51 @@
     justify-content: center;
     margin-top: 1rem;
     gap: 1.5rem;
+    flex-wrap: wrap;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin: 0.25rem;
 }
 
 .legend-color {
     width: 20px;
     height: 20px;
     border-radius: 3px;
+}
+
+/* Responsive legend for mobile */
+@media (max-width: 768px) {
+    .chart-legend {
+        gap: 1rem;
+        justify-content: center;
+    }
+    
+    .legend-item {
+        font-size: 0.9rem;
+        margin: 0.2rem;
+    }
+    
+    .legend-color {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+@media (max-width: 576px) {
+    .chart-legend {
+        gap: 0.75rem;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .legend-item {
+        font-size: 0.85rem;
+        margin: 0.15rem;
+    }
 }
 
 .legend-income {
@@ -548,6 +840,33 @@
 .form-floating > .form-control:focus ~ label,
 .form-floating > .form-control:not(:placeholder-shown) ~ label {
     color: var(--primary-color);
+}
+
+/* Responsive form improvements for mobile */
+@media (max-width: 768px) {
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+    
+    .form-floating .form-control {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .form-floating label {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .form-floating .form-control {
+        font-size: 16px;
+        padding: 1rem 0.75rem;
+    }
+    
+    .form-floating label {
+        font-size: 0.85rem;
+        padding: 0 0.75rem;
+    }
 }
 
 /* Custom button styles */
@@ -1050,9 +1369,50 @@ kbd {
     color: white;
     font-size: 1.5rem;
     cursor: pointer;
-    /* Debug: garantir visibilidade */
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Top Page Button */
+.top-page-btn {
+    position: fixed;
+    bottom: 100px;
+    right: 35px;
+    z-index: 9999;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c757d, #495057);
+    border: none;
+    box-shadow: 0 3px 12px rgba(108, 117, 125, 0.4);
+    transition: all 0.3s ease;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px);
+    visibility: hidden;
+}
+
+.top-page-btn.show {
+    display: flex !important;
     opacity: 1 !important;
+    transform: translateY(0) !important;
     visibility: visible !important;
+}
+
+.top-page-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6);
+    color: white;
+    text-decoration: none;
+}
+
+.top-page-btn:active {
+    transform: translateY(0) scale(1.02);
 }
 
 .floating-action-btn:hover {
@@ -1463,14 +1823,24 @@ kbd {
 /* Responsive adjustments for floating button */
 @media (max-width: 768px) {
     .floating-action-btn {
-        bottom: 5px;
-        right: 25px;
+        bottom: 20px;
+        right: 20px;
         width: 55px;
         height: 55px;
         font-size: 1.3rem;
         /* Garantir que não seja cortado */
         max-width: calc(100vw - 40px);
         max-height: calc(100vh - 40px);
+        z-index: 9998;
+    }
+    
+    .top-page-btn {
+        bottom: 85px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+        z-index: 9999;
     }
     
     .floating-action-menu {
@@ -1495,11 +1865,21 @@ kbd {
 /* Ajuste adicional para telas muito pequenas */
 @media (max-width: 480px) {
     .floating-action-btn {
-        bottom: 50px;
-        right: 50px;    
+        bottom: 10px;
+        right: 15px;    
         width: 50px;
         height: 50px;
         font-size: 1.2rem;
+        z-index: 9998;
+    }
+    
+    .top-page-btn {
+        bottom: 80px;
+        right: 25px;
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        z-index: 9999;
     }
     
     .floating-action-menu {
@@ -1808,10 +2188,22 @@ kbd {
         display: block;
     }
     
+    /* Hide mobile action bar and navigation drawer on login page */
+    body.login-page .mobile-action-bar,
+    body.login-page .navigation-drawer,
+    body.login-page .navigation-drawer-overlay {
+        display: none !important;
+    }
+    
     /* Adjust main content to account for action bar */
     .main-content {
         margin-top: 60px;
         margin-left: 0;
+    }
+    
+    /* Remove top margin on login page for mobile */
+    body.login-page .main-content {
+        margin-top: 0;
     }
     
     /* Hide legacy mobile menu toggle on mobile */
@@ -2057,7 +2449,7 @@ kbd {
     
     /* Adjust floating action button to account for action bar */
     .floating-action-btn {
-        bottom: 80px;
+        bottom: 20px;
     }
     
     .floating-action-menu {
@@ -2091,4 +2483,123 @@ kbd {
 /* Prevent body scroll when navigation drawer is open */
 body.drawer-open {
     overflow: hidden;
+}
+
+/* Modal de Notificações - Estilos personalizados usando cores do sistema */
+.notifications-modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.notifications-modal-header .modal-title {
+    color: white;
+    font-weight: 600;
+}
+
+.notifications-close-btn {
+    filter: invert(1) brightness(1);
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.notifications-close-btn:hover {
+    opacity: 1;
+}
+
+.notifications-spinner {
+    color: var(--primary-color) !important;
+}
+
+.notifications-btn-primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.notifications-btn-primary:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(103, 58, 183, 0.3);
+}
+
+.notifications-btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(103, 58, 183, 0.3);
+}
+
+/* Estilos para os itens de notificação */
+.notification-item {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.notification-item:hover {
+    background: rgba(103, 58, 183, 0.05);
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.1);
+}
+
+.notification-item .notification-title {
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+
+.notification-item .notification-body {
+    color: #666;
+    line-height: 1.5;
+}
+
+.notification-item .notification-meta {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* Botão marcar como lida */
+.mark-read-btn {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.mark-read-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: scale(1.05);
+}
+
+.mark-read-btn:active {
+    transform: scale(0.95);
+}
+
+/* Animação de entrada do modal */
+.modal.fade .modal-dialog {
+    transform: scale(0.8);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}
+
+/* Responsividade do modal */
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    .notifications-modal-header {
+        padding: 1rem;
+    }
+    
+    .notifications-modal-header .modal-title {
+        font-size: 1.1rem;
+    }
 }
