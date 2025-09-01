@@ -933,6 +933,9 @@ def user_list(request):
     """Lista de usuários"""
     users = User.objects.all()
     
+    # Excluir o usuário vwtechdev@gmail.com da lista
+    users = users.exclude(email='vwtechdev@gmail.com')
+    
     # Busca por nome, email ou função
     search_query = request.GET.get('search', '').strip()
     if search_query:
@@ -984,6 +987,11 @@ def user_edit(request, pk):
     """Editar usuário"""
     user = get_object_or_404(User, pk=pk)
     
+    # Impedir edição do usuário vwtechdev@gmail.com
+    if user.email == 'vwtechdev@gmail.com':
+        messages.error(request, 'Este usuário não pode ser editado.')
+        return redirect('user_list')
+    
     if request.method == 'POST':
         form = UserForm(request.POST, instance=user, user=request.user)
         if form.is_valid():
@@ -1007,6 +1015,11 @@ def user_delete(request, pk):
     """Desativar usuário"""
     user = get_object_or_404(User, pk=pk)
     
+    # Impedir desativação do usuário vwtechdev@gmail.com
+    if user.email == 'vwtechdev@gmail.com':
+        messages.error(request, 'Este usuário não pode ser desativado.')
+        return redirect('user_list')
+    
     if request.method == 'POST':
         user.is_active = False
         user.save()
@@ -1025,6 +1038,11 @@ def user_reset_password(request, pk):
     """Resetar senha do usuário para a senha padrão"""
     if request.method == 'POST':
         user = get_object_or_404(User, pk=pk)
+        
+        # Impedir reset de senha do usuário vwtechdev@gmail.com
+        if user.email == 'vwtechdev@gmail.com':
+            return JsonResponse({'success': False, 'error': 'Este usuário não pode ter a senha resetada.'})
+        
         try:
             user.password = make_password('nations123456')
             user.password_changed = False  # Força o usuário a trocar a senha novamente
@@ -1041,6 +1059,11 @@ def user_reset_password(request, pk):
 def user_activate(request, pk):
     """Reativar usuário"""
     user = get_object_or_404(User, pk=pk)
+    
+    # Impedir ativação do usuário vwtechdev@gmail.com
+    if user.email == 'vwtechdev@gmail.com':
+        messages.error(request, 'Este usuário não pode ser reativado.')
+        return redirect('user_list')
     
     if request.method == 'POST':
         user.is_active = True

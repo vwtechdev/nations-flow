@@ -1,23 +1,26 @@
-version: "3.9"
-
 services:
   web:
-    build: ./django
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: nations-flow_web
-    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
+    command: ["./wait-for-database.sh", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120", "--workers", "3", "--worker-class", "sync", "--keep-alive", "5", "--max-requests", "1000", "--max-requests-jitter", "100"]
     volumes:
-      - ./django:/app
-      - ./static:/app/static
-      - ./.env:/app/.env
-    env_file: .env
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
     networks:
       - nations-flow_net
       - proxy
     labels:
-      - "traefik.enable=true" 
-      - "traefik.http.routers.nations-flow.rule=Host(`www.nationsflow.com.br`)"
+      - "traefik.enable=true"
+      - "traefik.http.routers.nations-flow.rule=Host(`nationsflow.com.br`)"
       - "traefik.http.routers.nations-flow.entrypoints=websecure"
       - "traefik.http.routers.nations-flow.tls.certresolver=myresolver"
+      - "traefik.http.services.nations-flow.loadbalancer.server.port=8000"
+      - "traefik.http.services.nations-flow.loadbalancer.server.scheme=http"
     restart: always
 
   db:
@@ -25,7 +28,8 @@ services:
     container_name: nations-flow_db
     volumes:
       - ./db_data:/var/lib/postgresql/data
-    env_file: .env
+    env_file:
+      - .env
     networks:
       - nations-flow_net
     restart: always

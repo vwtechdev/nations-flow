@@ -171,10 +171,21 @@ MAX_UPLOAD_SIZE = 1 * 1024 * 1024  # 1MB em bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
 FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
 
-# HTTPS
-SECURE_SSL_REDIRECT = True
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+# HTTPS - Desabilitado pois o Traefik já lida com HTTPS
+SECURE_SSL_REDIRECT = False
+CSRF_COOKIE_SECURE = False  # Desabilitado pois o Traefik lida com HTTPS
+SESSION_COOKIE_SECURE = False  # Desabilitado pois o Traefik lida com HTTPS
+
+# Configurações para proxy reverso
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://nationsflow.com.br',
+    'https://www.nationsflow.com.br',
+]
 
 # Headers de segurança
 SECURE_BROWSER_XSS_FILTER = True
@@ -192,4 +203,19 @@ LOGGING = {
         'handlers': ['console'],
         'level': 'INFO',
     },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'gunicorn': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
 }
+
+# Configurações de timeout para produção
+GUNICORN_TIMEOUT = 120
+GUNICORN_WORKERS = 3
+GUNICORN_WORKER_CLASS = 'sync'
