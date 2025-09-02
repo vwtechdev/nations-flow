@@ -34,6 +34,20 @@ services:
       - nations-flow_net
     restart: always
 
+  backup:
+    build:
+      context: ./backup
+    container_name: nations-flow_backup
+    volumes:
+      - ./backups:/backups
+      - ./rclone.conf:/root/.config/rclone/rclone.conf:ro
+    env_file: .env
+    depends_on:
+      - db
+    networks:
+      - nations-flow_net
+    restart: always
+
 networks:
   nations-flow_net:
     driver: bridge
