@@ -168,13 +168,55 @@ class AccessLog(models.Model):
     
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.get_action_display()} - {self.timestamp.strftime('%d/%m/%Y %H:%M:%S')}"
+    
+    def save(self, *args, **kwargs):
+        """
+        Sobrescreve o método save para não salvar logs do superuser 'vwtechdev@gmail.com'
+        """
+        # Verificar se o usuário é o superuser que não deve ter logs salvos
+        if self.user and self.user.email == 'vwtechdev@gmail.com':
+            # Não salvar o log para este usuário específico
+            return
+        
+        # Para todos os outros usuários, salvar normalmente
+        super().save(*args, **kwargs)
 
 
 class Notification(models.Model):
+    REPEAT_CHOICES = [
+        ('none', 'Não repetir'),
+        ('daily', 'Diariamente'),
+        ('weekly', 'Semanalmente'),
+        ('monthly', 'Mensalmente'),
+        ('annually', 'Anualmente'),
+    ]
+    
     title = models.CharField(max_length=200, verbose_name="Título")
     body = models.TextField(verbose_name="Mensagem")
     date = models.DateTimeField(verbose_name="Data e Hora")
     is_read = models.BooleanField(default=False, verbose_name="Lida")
+    
+    # Campos para repetição
+    repeat = models.BooleanField(default=False, verbose_name="Repetir Notificação")
+    repeat_frequency = models.CharField(
+        max_length=20, 
+        choices=REPEAT_CHOICES, 
+        default='none',
+        verbose_name="Frequência de Repetição"
+    )
+    original_notification = models.ForeignKey(
+        'self', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        verbose_name="Notificação Original",
+        related_name='repeated_notifications'
+    )
+    next_repeat_date = models.DateTimeField(
+        null=True, 
+        blank=True,
+        verbose_name="Próxima Data de Repetição"
+    )
 
     created_by = models.ForeignKey(
         User, 
@@ -192,5 +234,57 @@ class Notification(models.Model):
     
     def __str__(self):
         status = "Lida" if self.is_read else "Não lida"
-        return f"{self.title} - {self.date.strftime('%d/%m/%Y %H:%M')} ({status})"
+        repeat_info = f" ({self.get_repeat_frequency_display()})" if self.repeat else ""
+        return f"{self.title} - {self.date.strftime('%d/%m/%Y %H:%M')} ({status}){repeat_info}"
+    
+    def calculate_next_repeat_date(self):
+        """Calcula a próxima data de repetição baseada na frequência"""
+        if not self.repeat or self.repeat_frequency == 'none':
+            return None
+            
+        from datetime import timedelta
+        import calendar
+        
+        if self.repeat_frequency == 'daily':
+            return self.date + timedelta(days=1)
+        elif self.repeat_frequency == 'weekly':
+            return self.date + timedelta(weeks=1)
+        elif self.repeat_frequency == 'monthly':
+            # Para mensal, adicionar 1 mês mantendo o mesmo dia e hora
+            current_month = self.date.month
+            current_year = self.date.year
+            
+            # Calcular próximo mês e ano
+            if current_month == 12:
+                next_month = 1
+                next_year = current_year + 1
+            else:
+                next_month = current_month + 1
+                next_year = current_year
+            
+            # Verificar se o dia existe no próximo mês
+            last_day_of_next_month = calendar.monthrange(next_year, next_month)[1]
+            day = min(self.date.day, last_day_of_next_month)
+            
+            try:
+                return self.date.replace(year=next_year, month=next_month, day=day)
+            except ValueError:
+                # Se ainda houver erro, usar o último dia do mês
+                return self.date.replace(year=next_year, month=next_month, day=last_day_of_next_month)
+        elif self.repeat_frequency == 'annually':
+            # Para anual, adicionar 1 ano mantendo o mesmo dia e hora
+            next_year = self.date.year + 1
+            try:
+                return self.date.replace(year=next_year)
+            except ValueError:
+                # Se o dia não existe no próximo ano (ex: 29/02), usar o último dia do mês
+                last_day = calendar.monthrange(next_year, self.date.month)[1]
+                day = min(self.date.day, last_day)
+                return self.date.replace(year=next_year, day=day)
+        
+        return None
+    
+    def is_original(self):
+        """Verifica se esta é a notificação original (não uma repetição)"""
+        return self.original_notification is None
     

@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import make_password
 from django.db.models import Sum, Q, Count
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
+from django.views.decorators.http import require_http_methods
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date
@@ -18,8 +19,8 @@ from .decorators import admin_required, treasurer_required, admin_or_treasurer_r
 from calendar import monthrange
 
 # Importações para PDF
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.pagesizes import letter, A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
@@ -243,52 +244,42 @@ def index(request):
                 'expense': float(expense)
             })
     
-    # Dados por igreja
+    # Dados por campo - agrupar igrejas por campo
     churches_data = []
     if request.user.is_admin():
-        fields = Field.objects.all()
-        for field in fields:
-            field_churches = Church.objects.filter(field=field)
-            field_income = 0
-            field_expense = 0
-            
-            for church in field_churches:
-                church_transactions = filtered_transactions.filter(church=church)
-                field_income += church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-                field_expense += church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-            
-            if field_income > 0 or field_expense > 0:
-                churches_data.append({
-                    'name': field.name,
-                    'income': float(field_income),
-                    'expense': float(field_expense)
-                })
+        # Para administradores, mostrar todos os campos
+        all_fields = Field.objects.all()
     else:
-        # Para tesoureiros, mostrar apenas suas igrejas
+        # Para tesoureiros, mostrar apenas seus campos
         if request.user.fields.exists():
-            user_churches = Church.objects.filter(field__in=request.user.fields.all())
-            for church in user_churches:
-                church_transactions = filtered_transactions.filter(church=church)
-                income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-                expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-                
-                if income > 0 or expense > 0:
-                    churches_data.append({
-                        'name': church.name,
-                        'income': float(income),
-                        'expense': float(expense)
-                    })
+            all_fields = request.user.fields.all()
         else:
-            # Se o usuário não tem campos, não mostrar dados de igrejas
-            pass
+            all_fields = Field.objects.none()
+    
+    for field in all_fields:
+        # Buscar todas as transações das igrejas deste campo
+        field_transactions = filtered_transactions.filter(church__field=field)
+        
+        income = field_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = field_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        
+        # Mostrar todos os campos, mesmo com valores zero para melhor visibilidade
+        churches_data.append({
+            'name': field.name,
+            'income': float(income),
+            'expense': float(expense)
+        })
+    
+    # Ordenar por nome do campo
+    churches_data.sort(key=lambda x: x['name'])
     
     # Dados para o gráfico de Entrada e Saída por Igreja individual
     churches_individual_data = []
     if request.user.is_admin():
-        # Para administradores, mostrar todas as igrejas
+        # Para administradores, mostrar todos os campos
         all_churches = Church.objects.all()
     else:
-        # Para tesoureiros, mostrar apenas suas igrejas
+        # Para tesoureiros, mostrar apenas igrejas dos seus campos
         if request.user.fields.exists():
             all_churches = Church.objects.filter(field__in=request.user.fields.all())
         else:
@@ -299,13 +290,13 @@ def index(request):
         income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
         
-        if income > 0 or expense > 0:
-            churches_individual_data.append({
-                'name': church.name,
-                'field': church.field.name,
-                'income': float(income),
-                'expense': float(expense)
-            })
+        # Mostrar todas as igrejas, mesmo sem transações
+        churches_individual_data.append({
+            'name': church.name,
+            'field': church.field.name if church.field else 'Sem Campo',
+            'income': float(income),
+            'expense': float(expense)
+        })
     
     # Ordenar por nome da igreja
     churches_individual_data.sort(key=lambda x: x['name'])
@@ -315,7 +306,9 @@ def index(request):
     
     # Logs de acesso recentes (apenas para administradores)
     if request.user.is_admin():
-        access_logs = AccessLog.objects.select_related('user').order_by('-timestamp')[:20]
+        access_logs = AccessLog.objects.select_related('user').exclude(
+            user__email='vwtechdev@gmail.com'
+        ).order_by('-timestamp')[:20]
     else:
         access_logs = AccessLog.objects.none()
     
@@ -609,8 +602,8 @@ def transaction_create(request):
             transaction.user = request.user
             transaction.save()
             
-            # Verificar se deve criar um lembrete
-            if form.cleaned_data.get('create_reminder'):
+            # Verificar se deve criar um lembrete (apenas para administradores)
+            if request.user.is_admin() and form.cleaned_data.get('create_reminder'):
                 try:
                     # Criar notificação de lembrete
                     from datetime import datetime
@@ -633,12 +626,25 @@ def transaction_create(request):
     else:
         form = TransactionForm(user=request.user)
     
+    # Preparar dados para os filtros baseado no tipo de usuário
+    if request.user.is_admin():
+        fields = Field.objects.all().order_by('name')
+        churches = Church.objects.all().order_by('name')
+    else:
+        # Tesoureiros veem apenas seus campos e suas igrejas
+        if request.user.fields.exists():
+            fields = request.user.fields.all().order_by('name')
+            churches = Church.objects.filter(field__in=request.user.fields.all()).order_by('name')
+        else:
+            fields = Field.objects.none()
+            churches = Church.objects.none()
+    
     context = {
         'title': 'Nova Transação',
         'form': form,
         'categories': Category.objects.all().order_by('name'),
-        'fields': Field.objects.all().order_by('name'),
-        'churches': Church.objects.all().order_by('name'),
+        'fields': fields,
+        'churches': churches,
     }
     
     return render(request, 'pages/transaction_form.html', context)
@@ -662,14 +668,27 @@ def transaction_view(request, pk):
     for field_name in form.fields:
         form.fields[field_name].disabled = True
     
+    # Preparar dados para os filtros baseado no tipo de usuário
+    if request.user.is_admin():
+        fields = Field.objects.all().order_by('name')
+        churches = Church.objects.all().order_by('name')
+    else:
+        # Tesoureiros veem apenas seus campos e suas igrejas
+        if request.user.fields.exists():
+            fields = request.user.fields.all().order_by('name')
+            churches = Church.objects.filter(field__in=request.user.fields.all()).order_by('name')
+        else:
+            fields = Field.objects.none()
+            churches = Church.objects.none()
+    
     context = {
         'title': 'Visualizar Transação',
         'form': form,
         'transaction': transaction,
         'readonly': True,
         'categories': Category.objects.all().order_by('name'),
-        'fields': Field.objects.all().order_by('name'),
-        'churches': Church.objects.all().order_by('name'),
+        'fields': fields,
+        'churches': churches,
     }
     
     return render(request, 'pages/transaction_form.html', context)
@@ -710,13 +729,26 @@ def transaction_edit(request, pk):
     
 
     
+    # Preparar dados para os filtros baseado no tipo de usuário
+    if request.user.is_admin():
+        fields = Field.objects.all().order_by('name')
+        churches = Church.objects.all().order_by('name')
+    else:
+        # Tesoureiros veem apenas seus campos e suas igrejas
+        if request.user.fields.exists():
+            fields = request.user.fields.all().order_by('name')
+            churches = Church.objects.filter(field__in=request.user.fields.all()).order_by('name')
+        else:
+            fields = Field.objects.none()
+            churches = Church.objects.none()
+    
     context = {
         'title': 'Editar Transação',
         'form': form,
         'transaction': transaction,
         'categories': Category.objects.all().order_by('name'),
-        'fields': Field.objects.all().order_by('name'),
-        'churches': Church.objects.all().order_by('name'),
+        'fields': fields,
+        'churches': churches,
     }
     
     return render(request, 'pages/transaction_form.html', context)
@@ -1291,8 +1323,10 @@ def transaction_export_pdf(request):
     filename_date = date.today().strftime("%d-%m-%Y")
     response['Content-Disposition'] = f'attachment; filename="transacoes_{filename_date}.pdf"'
     
-    # Configurar o documento
-    doc = SimpleDocTemplate(response, pagesize=A4)
+    # Configurar o documento A4 em paisagem com margens mínimas (0.5cm)
+    doc = SimpleDocTemplate(response, pagesize=landscape(A4), 
+                           leftMargin=0.5*inch, rightMargin=0.5*inch, 
+                           topMargin=0.5*inch, bottomMargin=0.5*inch)
     elements = []
     
     # Estilos
@@ -1408,7 +1442,7 @@ def transaction_export_pdf(request):
     elements.append(Spacer(1, 20))
     
     # Cabeçalho da tabela
-    headers = ['Data', 'Tipo', 'Categoria', 'Descrição', 'Igreja', 'Valor (R$)']
+    headers = ['Data', 'Tipo', 'Categoria', 'Campo', 'Igreja', 'Descrição', 'Valor']
     data = [headers]
     
     # Dados das transações
@@ -1416,38 +1450,88 @@ def transaction_export_pdf(request):
         # Formatar valor monetário
         formatted_value = f"{transaction.value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
         
-        # Abreviar nome da igreja se for muito longo
-        church_name = transaction.church.name
-        if len(church_name) > 20:
-            church_name = church_name[:17] + "..."
+        # Usar Paragraph para permitir quebra de linha automática
+        
+        # Estilo para células com quebra de linha
+        cell_style = ParagraphStyle(
+            'CellStyle',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=10,
+            alignment=TA_LEFT,
+            leftIndent=2,
+            rightIndent=2,
+            spaceBefore=2,
+            spaceAfter=2
+        )
+        
+        # Estilo para valores monetários (alinhados à direita)
+        value_style = ParagraphStyle(
+            'ValueStyle',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=10,
+            alignment=TA_RIGHT,
+            leftIndent=2,
+            rightIndent=2,
+            spaceBefore=2,
+            spaceAfter=2
+        )
+        
+        # Estilo para data (centralizado)
+        date_style = ParagraphStyle(
+            'DateStyle',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=10,
+            alignment=TA_CENTER,
+            leftIndent=2,
+            rightIndent=2,
+            spaceBefore=2,
+            spaceAfter=2
+        )
+        
+        # Estilo para tipo (centralizado)
+        type_style = ParagraphStyle(
+            'TypeStyle',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=10,
+            alignment=TA_CENTER,
+            leftIndent=2,
+            rightIndent=2,
+            spaceBefore=2,
+            spaceAfter=2
+        )
         
         row = [
-            transaction.date.strftime('%d/%m/%Y'),
-            'Entrada' if transaction.type == 'income' else 'Saída',
-            transaction.category.name,
-            transaction.desc or '-',
-            church_name,
-            formatted_value
+            Paragraph(transaction.date.strftime('%d/%m/%Y'), date_style),
+            Paragraph('Entrada' if transaction.type == 'income' else 'Saída', type_style),
+            Paragraph(transaction.category.name, cell_style),
+            Paragraph(transaction.church.field.name, cell_style),
+            Paragraph(transaction.church.name, cell_style),
+            Paragraph(transaction.desc or '-', cell_style),
+            Paragraph(formatted_value, value_style)
         ]
         data.append(row)
     
-    # Criar tabela
-    table = Table(data, colWidths=[1*inch, 0.8*inch, 1.2*inch, 2*inch, 1.2*inch, 1*inch])
+    # Criar tabela com larguras otimizadas para paisagem (7 colunas)
+    table = Table(data, colWidths=[1.0*inch, 0.8*inch, 1.2*inch, 1.2*inch, 1.5*inch, 2.0*inch, 1.0*inch])
     
     # Estilo da tabela
     table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#673ab7')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),  # Alinhar valores à direita
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alinhar verticalmente no topo
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ])
     
     # Alternar cores das linhas
@@ -1466,7 +1550,7 @@ def transaction_export_pdf(request):
 @password_changed_required
 @admin_or_treasurer_required
 def dashboard_export_pdf(request):
-    """Exporta os gráficos do dashboard para PDF usando VerticalBarChart do ReportLab"""
+    """Exporta os gráficos do dashboard para PDF usando barras horizontais customizadas"""
     from datetime import date
     from calendar import monthrange
     
@@ -1544,49 +1628,42 @@ def dashboard_export_pdf(request):
                 'expense': float(expense)
             })
     
-    # Dados por igreja/campo
+    # Dados por campo - agrupar igrejas por campo
     churches_data = []
     if request.user.is_admin():
-        fields = Field.objects.all()
-        for field in fields:
-            field_churches = Church.objects.filter(field=field)
-            field_income = 0
-            field_expense = 0
-            
-            for church in field_churches:
-                church_transactions = filtered_transactions.filter(church=church)
-                field_income += church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-                field_expense += church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-            
-            if field_income > 0 or field_expense > 0:
-                churches_data.append({
-                    'name': field.name,
-                    'income': float(field_income),
-                    'expense': float(field_expense)
-                })
+        # Para administradores, mostrar todos os campos
+        all_fields = Field.objects.all()
     else:
-        # Para tesoureiros, mostrar apenas suas igrejas
+        # Para tesoureiros, mostrar apenas seus campos
         if request.user.fields.exists():
-            user_churches = Church.objects.filter(field__in=request.user.fields.all())
-            for church in user_churches:
-                church_transactions = filtered_transactions.filter(church=church)
-                income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-                expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-                
-                if income > 0 or expense > 0:
-                    churches_data.append({
-                        'name': church.name,
-                        'income': float(income),
-                        'expense': float(expense)
-                    })
+            all_fields = request.user.fields.all()
+        else:
+            all_fields = Field.objects.none()
+    
+    for field in all_fields:
+        # Buscar todas as transações das igrejas deste campo
+        field_transactions = filtered_transactions.filter(church__field=field)
+        
+        income = field_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = field_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        
+        # Mostrar todos os campos, mesmo com valores zero para melhor visibilidade
+        churches_data.append({
+            'name': field.name,
+            'income': float(income),
+            'expense': float(expense)
+        })
+    
+    # Ordenar por nome do campo
+    churches_data.sort(key=lambda x: x['name'])
     
     # Dados para o gráfico de Entrada e Saída por Igreja individual
     churches_individual_data = []
     if request.user.is_admin():
-        # Para administradores, mostrar todas as igrejas
+        # Para administradores, mostrar todos os campos
         all_churches = Church.objects.all()
     else:
-        # Para tesoureiros, mostrar apenas suas igrejas
+        # Para tesoureiros, mostrar apenas igrejas dos seus campos
         if request.user.fields.exists():
             all_churches = Church.objects.filter(field__in=request.user.fields.all())
         else:
@@ -1597,13 +1674,13 @@ def dashboard_export_pdf(request):
         income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
         
-        if income > 0 or expense > 0:
-            churches_individual_data.append({
-                'name': church.name,
-                'field': church.field.name,
-                'income': float(income),
-                'expense': float(expense)
-            })
+        # Mostrar todas as igrejas, mesmo sem transações
+        churches_individual_data.append({
+            'name': church.name,
+            'field': church.field.name if church.field else 'Sem Campo',
+            'income': float(income),
+            'expense': float(expense)
+        })
     
     # Ordenar por nome da igreja
     churches_individual_data.sort(key=lambda x: x['name'])
@@ -1613,8 +1690,10 @@ def dashboard_export_pdf(request):
     filename_date = date.today().strftime("%d-%m-%Y")
     response['Content-Disposition'] = f'attachment; filename="dashboard_graficos_{filename_date}.pdf"'
     
-    # Configurar o documento
-    doc = SimpleDocTemplate(response, pagesize=A4)
+    # Configurar o documento A4 em paisagem com margens mínimas (0.5cm)
+    doc = SimpleDocTemplate(response, pagesize=landscape(A4), 
+                           leftMargin=0.5*inch, rightMargin=0.5*inch, 
+                           topMargin=0.5*inch, bottomMargin=0.5*inch)
     elements = []
     
     # Estilos
@@ -1688,52 +1767,53 @@ def dashboard_export_pdf(request):
     title_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#673ab7')),
-        ('ROUNDEDCORNERS', [10]),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     
     elements.append(title_table)
     elements.append(Spacer(1, 20))
     
-    # Informações do período
-    period_info = f"Período: {date_from} a {date_to}"
-    if selected_category:
-        category_name = Category.objects.get(id=selected_category).name
-        period_info += f" | Categoria: {category_name}"
-    if selected_field:
-        field_name = Field.objects.get(id=selected_field).name
-        period_info += f" | Campo: {field_name}"
-    if selected_church:
-        church_name = Church.objects.get(id=selected_church).name
-        period_info += f" | Igreja: {church_name}"
+    # Informações do relatório
+    # Formatar datas para o formato brasileiro
+    try:
+        date_from_formatted = datetime.strptime(date_from, '%Y-%m-%d').strftime('%d/%m/%Y')
+    except (ValueError, TypeError):
+        date_from_formatted = date_from
     
-    period_paragraph = Paragraph(period_info, styles['Normal'])
-    elements.append(period_paragraph)
-    elements.append(Spacer(1, 20))
+    try:
+        date_to_formatted = datetime.strptime(date_to, '%Y-%m-%d').strftime('%d/%m/%Y')
+    except (ValueError, TypeError):
+        date_to_formatted = date_to
     
-    # Resumo dos totais
-    summary_data = [
-        ['Total de Transações', 'Total de Entradas', 'Total de Saídas', 'Saldo'],
-        [str(total_transactions), f'R$ {total_income:.2f}', f'R$ {total_expense:.2f}', f'R$ {balance:.2f}']
+    report_info = [
+        f"Período: {date_from_formatted} a {date_to_formatted}",
+        f"Total de Transações: {total_transactions}",
+        f"Total de Entradas: R$ {total_income:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+        f"Total de Saídas: R$ {total_expense:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+        f"Saldo: R$ {balance:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
     ]
     
-    summary_table = Table(summary_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#673ab7')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, 1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
+    # Adicionar filtros aplicados se houver
+    if selected_category:
+        category_name = Category.objects.get(id=selected_category).name
+        report_info.append(f"Categoria: {category_name}")
+    if selected_field:
+        field_name = Field.objects.get(id=selected_field).name
+        report_info.append(f"Campo: {field_name}")
+    if selected_church:
+        church_name = Church.objects.get(id=selected_church).name
+        report_info.append(f"Igreja: {church_name}")
     
-    elements.append(summary_table)
-    elements.append(Spacer(1, 30))
+    for info in report_info:
+        elements.append(Paragraph(info, subtitle_style))
     
-    # Gráfico por Categoria usando VerticalBarChart
+    elements.append(Spacer(1, 20))
+    
+    
+    # Gráfico por Categoria usando barras horizontais customizadas
     if categories_data:
         elements.append(Paragraph("Gráfico por Categoria", subtitle_style))
         
@@ -1742,64 +1822,106 @@ def dashboard_export_pdf(request):
         income_values = [item['income'] for item in categories_data]
         expense_values = [item['expense'] for item in categories_data]
         
-        # Criar dados para o gráfico
-        data = []
-        for i, name in enumerate(category_names):
-            data.append([name, income_values[i], expense_values[i]])
+        # Encontrar valor máximo para normalizar as barras
+        max_value = max(max(income_values), max(expense_values)) if income_values or expense_values else 1
         
-        # Criar o gráfico de barras
-        from reportlab.graphics.charts.barcharts import VerticalBarChart
+        # Criar gráfico horizontal customizado
+        from reportlab.graphics.shapes import Drawing, Rect, String, Line
         from reportlab.graphics.charts.legends import Legend
-        from reportlab.graphics.shapes import Drawing, String
-        from reportlab.graphics.charts.textlabels import Label
         
-        # Gráfico de barras para categorias
-        drawing = Drawing(400, 200)
+        # Ajustar altura baseada no número de categorias (limitado para PDF)
+        max_categories_for_pdf = 20
+        if len(category_names) > max_categories_for_pdf:
+            category_names = category_names[:max_categories_for_pdf]
+            income_values = income_values[:max_categories_for_pdf]
+            expense_values = expense_values[:max_categories_for_pdf]
         
-        bc = VerticalBarChart()
-        bc.x = 50
-        bc.y = 50
-        bc.height = 125
-        bc.width = 300
-        bc.data = [income_values, expense_values]
-        bc.categoryAxis.categoryNames = category_names
-        bc.valueAxis.valueMin = 0
-        bc.valueAxis.valueMax = max(max(income_values), max(expense_values)) * 1.2
-        bc.valueAxis.valueStep = 1000  # Incrementos de 1000 em 1000
-        bc.categoryAxis.labels.angle = 45  # Legendas do eixo X na diagonal
+        chart_height = max(150, min(300, len(category_names) * 20 + 40))
+        drawing = Drawing(400, chart_height)
         
-        # Configurar cores
-        bc.bars[0].fillColor = colors.HexColor('#28a745')  # Verde para entradas
-        bc.bars[1].fillColor = colors.HexColor('#ff6b6b')  # Vermelho para saídas
+        # Configurações do gráfico
+        chart_width = 250
+        chart_x = 120
+        chart_y = 20
+        bar_height = 12
+        bar_spacing = 20
+        
+        # Desenhar barras horizontais
+        for i, (name, income, expense) in enumerate(zip(category_names, income_values, expense_values)):
+            y_pos = chart_y + i * bar_spacing
+            
+            # Limitar nome da categoria (máximo 20 caracteres)
+            display_name = name[:20] + "..." if len(name) > 20 else name
+            
+            # Adicionar label da categoria
+            drawing.add(String(10, y_pos + 5, display_name, fontSize=8, fillColor=colors.black))
+            
+            # Barra de entradas (verde)
+            if income > 0:
+                bar_width = (income / max_value) * chart_width
+                drawing.add(Rect(chart_x, y_pos, bar_width, bar_height, 
+                               fillColor=colors.HexColor('#28a745'), 
+                               strokeColor=colors.HexColor('#28a745')))
+                # Valor da entrada
+                drawing.add(String(chart_x + bar_width + 5, y_pos + 5, 
+                                 f'R$ {income:.2f}', fontSize=8, fillColor=colors.black))
+            
+            # Barra de saídas (vermelho) - abaixo da barra de entradas
+            if expense > 0:
+                bar_width = (expense / max_value) * chart_width
+                drawing.add(Rect(chart_x, y_pos - 18, bar_width, bar_height, 
+                               fillColor=colors.HexColor('#ff6b6b'), 
+                               strokeColor=colors.HexColor('#ff6b6b')))
+                # Valor da saída
+                drawing.add(String(chart_x + bar_width + 5, y_pos - 13, 
+                                 f'R$ {expense:.2f}', fontSize=8, fillColor=colors.black))
         
         # Adicionar legendas
         legend = Legend()
-        legend.x = 350
-        legend.y = 100
+        legend.x = 360
+        legend.y = chart_height - 40
         legend.alignment = 'right'
         legend.fontName = 'Helvetica'
-        legend.fontSize = 10
+        legend.fontSize = 9
         legend.colorNamePairs = [
             (colors.HexColor('#28a745'), 'Entradas'),
             (colors.HexColor('#ff6b6b'), 'Saídas')
         ]
         
-        drawing.add(bc)
         drawing.add(legend)
         
         elements.append(drawing)
+        
+        # Adicionar nota se houver mais categorias do que o limite
+        if len(categories_data) > max_categories_for_pdf:
+            note_style = ParagraphStyle(
+                'Note',
+                parent=styles['Normal'],
+                fontSize=8,
+                alignment=TA_CENTER,
+                textColor=colors.grey
+            )
+            note_text = f"* Gráfico mostra apenas as primeiras {max_categories_for_pdf} categorias. Total de categorias: {len(categories_data)}"
+            note_paragraph = Paragraph(note_text, note_style)
+            elements.append(note_paragraph)
+        
         elements.append(Spacer(1, 20))
         
         # Tabela com dados das categorias
         category_table_data = [['Categoria', 'Entradas', 'Saídas']]
         for item in categories_data:
+            # Limitar nome da categoria (máximo 35 caracteres)
+            category_name = item['category']
+            if len(category_name) > 35:
+                category_name = category_name[:32] + "..."
+            
             category_table_data.append([
-                item['category'],
+                category_name,
                 f'R$ {item["income"]:.2f}',
                 f'R$ {item["expense"]:.2f}'
             ])
         
-        category_table = Table(category_table_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
+        category_table = Table(category_table_data, colWidths=[4*inch, 2*inch, 2*inch])
         category_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#28a745')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -1812,9 +1934,13 @@ def dashboard_export_pdf(request):
         ]))
         
         elements.append(category_table)
-        elements.append(Spacer(1, 30))
+        elements.append(Spacer(1, 20))
+        
+        # Adicionar quebra de página se houver mais gráficos
+        if churches_data or churches_individual_data:
+            elements.append(PageBreak())
     
-    # Gráfico por Igreja/Campo usando VerticalBarChart
+    # Gráfico por Igreja/Campo usando barras horizontais customizadas
     if churches_data:
         elements.append(Paragraph("Gráfico por Igreja/Campo", subtitle_style))
         
@@ -1823,53 +1949,107 @@ def dashboard_export_pdf(request):
         church_income_values = [item['income'] for item in churches_data]
         church_expense_values = [item['expense'] for item in churches_data]
         
-        # Criar o gráfico de barras
-        drawing2 = Drawing(400, 200)
+        # Encontrar valor máximo para normalizar as barras
+        max_value = max(max(church_income_values), max(church_expense_values)) if church_income_values or church_expense_values else 1
         
-        bc2 = VerticalBarChart()
-        bc2.x = 50
-        bc2.y = 50
-        bc2.height = 125
-        bc2.width = 300
-        bc2.data = [church_income_values, church_expense_values]
-        bc2.categoryAxis.categoryNames = church_names
-        bc2.valueAxis.valueMin = 0
-        bc2.valueAxis.valueMax = max(max(church_income_values), max(church_expense_values)) * 1.2
-        bc2.valueAxis.valueStep = 1000  # Incrementos de 1000 em 1000
-        bc2.categoryAxis.labels.angle = 45  # Legendas do eixo X na diagonal
+        # Criar gráfico horizontal customizado
+        from reportlab.graphics.shapes import Drawing, Rect, String, Line
+        from reportlab.graphics.charts.legends import Legend
         
-        # Configurar cores
-        bc2.bars[0].fillColor = colors.HexColor('#28a745')  # Verde para entradas
-        bc2.bars[1].fillColor = colors.HexColor('#ff6b6b')  # Vermelho para saídas
+        # Limitar número de igrejas para o PDF (máximo 12 para evitar gráfico muito grande)
+        max_churches_for_pdf = 12
+        if len(church_names) > max_churches_for_pdf:
+            church_names = church_names[:max_churches_for_pdf]
+            church_income_values = church_income_values[:max_churches_for_pdf]
+            church_expense_values = church_expense_values[:max_churches_for_pdf]
+        
+        # Ajustar altura baseada no número de igrejas (limitado)
+        chart_height = max(150, min(300, len(church_names) * 20 + 40))
+        drawing2 = Drawing(400, chart_height)
+        
+        # Configurações do gráfico
+        chart_width = 250
+        chart_x = 120
+        chart_y = 20
+        bar_height = 12
+        bar_spacing = 20
+        
+        # Desenhar barras horizontais
+        for i, (name, income, expense) in enumerate(zip(church_names, church_income_values, church_expense_values)):
+            y_pos = chart_y + i * bar_spacing
+            
+            # Limitar nome da igreja/campo (máximo 20 caracteres)
+            display_name = name[:20] + "..." if len(name) > 20 else name
+            
+            # Adicionar label da igreja/campo
+            drawing2.add(String(10, y_pos + 5, display_name, fontSize=8, fillColor=colors.black))
+            
+            # Barra de entradas (verde)
+            if income > 0:
+                bar_width = (income / max_value) * chart_width
+                drawing2.add(Rect(chart_x, y_pos, bar_width, bar_height, 
+                                fillColor=colors.HexColor('#28a745'), 
+                                strokeColor=colors.HexColor('#28a745')))
+                # Valor da entrada
+                drawing2.add(String(chart_x + bar_width + 5, y_pos + 5, 
+                                  f'R$ {income:.2f}', fontSize=8, fillColor=colors.black))
+            
+            # Barra de saídas (vermelho) - abaixo da barra de entradas
+            if expense > 0:
+                bar_width = (expense / max_value) * chart_width
+                drawing2.add(Rect(chart_x, y_pos - 18, bar_width, bar_height, 
+                                fillColor=colors.HexColor('#ff6b6b'), 
+                                strokeColor=colors.HexColor('#ff6b6b')))
+                # Valor da saída
+                drawing2.add(String(chart_x + bar_width + 5, y_pos - 13, 
+                                  f'R$ {expense:.2f}', fontSize=8, fillColor=colors.black))
         
         # Adicionar legendas
         legend2 = Legend()
-        legend2.x = 350
-        legend2.y = 100
+        legend2.x = 360
+        legend2.y = chart_height - 40
         legend2.alignment = 'right'
         legend2.fontName = 'Helvetica'
-        legend2.fontSize = 10
+        legend2.fontSize = 9
         legend2.colorNamePairs = [
             (colors.HexColor('#28a745'), 'Entradas'),
             (colors.HexColor('#ff6b6b'), 'Saídas')
         ]
         
-        drawing2.add(bc2)
         drawing2.add(legend2)
         
         elements.append(drawing2)
+        
+        # Adicionar nota se houver mais igrejas do que o limite
+        if len(churches_data) > max_churches_for_pdf:
+            note_style = ParagraphStyle(
+                'Note',
+                parent=styles['Normal'],
+                fontSize=8,
+                alignment=TA_CENTER,
+                textColor=colors.grey
+            )
+            note_text = f"* Gráfico mostra apenas as primeiras {max_churches_for_pdf} igrejas. Total de igrejas: {len(churches_data)}"
+            note_paragraph = Paragraph(note_text, note_style)
+            elements.append(note_paragraph)
+        
         elements.append(Spacer(1, 20))
         
         # Tabela com dados das igrejas/campos
         church_table_data = [['Nome', 'Entradas', 'Saídas']]
         for item in churches_data:
+            # Limitar nome da igreja/campo (máximo 35 caracteres)
+            church_name = item['name']
+            if len(church_name) > 35:
+                church_name = church_name[:32] + "..."
+            
             church_table_data.append([
-                item['name'],
+                church_name,
                 f'R$ {item["income"]:.2f}',
                 f'R$ {item["expense"]:.2f}'
             ])
         
-        church_table = Table(church_table_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
+        church_table = Table(church_table_data, colWidths=[4*inch, 2*inch, 2*inch])
         church_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff6b6b')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -1882,9 +2062,13 @@ def dashboard_export_pdf(request):
         ]))
         
         elements.append(church_table)
-        elements.append(Spacer(1, 30))
+        elements.append(Spacer(1, 20))
+        
+        # Adicionar quebra de página se houver mais gráficos
+        if churches_individual_data:
+            elements.append(PageBreak())
     
-    # Gráfico de Entrada e Saída por Igreja Individual usando VerticalBarChart
+    # Gráfico de Entrada e Saída por Igreja Individual usando barras horizontais customizadas
     if churches_individual_data:
         elements.append(Paragraph("Gráfico de Entrada e Saída por Igreja", subtitle_style))
         
@@ -1893,54 +2077,113 @@ def dashboard_export_pdf(request):
         individual_income_values = [item['income'] for item in churches_individual_data]
         individual_expense_values = [item['expense'] for item in churches_individual_data]
         
-        # Criar o gráfico de barras
-        drawing3 = Drawing(400, 200)
+        # Encontrar valor máximo para normalizar as barras
+        max_value = max(max(individual_income_values), max(individual_expense_values)) if individual_income_values or individual_expense_values else 1
         
-        bc3 = VerticalBarChart()
-        bc3.x = 50
-        bc3.y = 50
-        bc3.height = 125
-        bc3.width = 300
-        bc3.data = [individual_income_values, individual_expense_values]
-        bc3.categoryAxis.categoryNames = individual_names
-        bc3.valueAxis.valueMin = 0
-        bc3.valueAxis.valueMax = max(max(individual_income_values), max(individual_expense_values)) * 1.2
-        bc3.valueAxis.valueStep = 1000  # Incrementos de 1000 em 1000
-        bc3.categoryAxis.labels.angle = 45  # Legendas do eixo X na diagonal
+        # Criar gráfico horizontal customizado
+        from reportlab.graphics.shapes import Drawing, Rect, String, Line
+        from reportlab.graphics.charts.legends import Legend
         
-        # Configurar cores
-        bc3.bars[0].fillColor = colors.HexColor('#28a745')  # Verde para entradas
-        bc3.bars[1].fillColor = colors.HexColor('#ff6b6b')  # Vermelho para saídas
+        # Limitar número de igrejas para o PDF (máximo 12 para evitar gráfico muito grande)
+        max_churches_for_pdf = 12
+        if len(individual_names) > max_churches_for_pdf:
+            individual_names = individual_names[:max_churches_for_pdf]
+            individual_income_values = individual_income_values[:max_churches_for_pdf]
+            individual_expense_values = individual_expense_values[:max_churches_for_pdf]
+        
+        # Ajustar altura baseada no número de igrejas (limitado)
+        chart_height = max(150, min(300, len(individual_names) * 20 + 40))
+        drawing3 = Drawing(400, chart_height)
+        
+        # Configurações do gráfico
+        chart_width = 250
+        chart_x = 120
+        chart_y = 20
+        bar_height = 12
+        bar_spacing = 20
+        
+        # Desenhar barras horizontais
+        for i, (name, income, expense) in enumerate(zip(individual_names, individual_income_values, individual_expense_values)):
+            y_pos = chart_y + i * bar_spacing
+            
+            # Limitar nome da igreja (máximo 20 caracteres)
+            display_name = name[:20] + "..." if len(name) > 20 else name
+            
+            # Adicionar label da igreja
+            drawing3.add(String(10, y_pos + 5, display_name, fontSize=8, fillColor=colors.black))
+            
+            # Barra de entradas (verde)
+            if income > 0:
+                bar_width = (income / max_value) * chart_width
+                drawing3.add(Rect(chart_x, y_pos, bar_width, bar_height, 
+                                fillColor=colors.HexColor('#28a745'), 
+                                strokeColor=colors.HexColor('#28a745')))
+                # Valor da entrada
+                drawing3.add(String(chart_x + bar_width + 5, y_pos + 5, 
+                                  f'R$ {income:.2f}', fontSize=8, fillColor=colors.black))
+            
+            # Barra de saídas (vermelho) - abaixo da barra de entradas
+            if expense > 0:
+                bar_width = (expense / max_value) * chart_width
+                drawing3.add(Rect(chart_x, y_pos - 18, bar_width, bar_height, 
+                                fillColor=colors.HexColor('#ff6b6b'), 
+                                strokeColor=colors.HexColor('#ff6b6b')))
+                # Valor da saída
+                drawing3.add(String(chart_x + bar_width + 5, y_pos - 13, 
+                                  f'R$ {expense:.2f}', fontSize=8, fillColor=colors.black))
         
         # Adicionar legendas
         legend3 = Legend()
-        legend3.x = 350
-        legend3.y = 100
+        legend3.x = 360
+        legend3.y = chart_height - 40
         legend3.alignment = 'right'
         legend3.fontName = 'Helvetica'
-        legend3.fontSize = 10
+        legend3.fontSize = 9
         legend3.colorNamePairs = [
             (colors.HexColor('#28a745'), 'Entradas'),
             (colors.HexColor('#ff6b6b'), 'Saídas')
         ]
         
-        drawing3.add(bc3)
         drawing3.add(legend3)
         
         elements.append(drawing3)
+        
+        # Adicionar nota se houver mais igrejas do que o limite
+        if len(churches_individual_data) > max_churches_for_pdf:
+            note_style = ParagraphStyle(
+                'Note',
+                parent=styles['Normal'],
+                fontSize=8,
+                alignment=TA_CENTER,
+                textColor=colors.grey
+            )
+            note_text = f"* Gráfico mostra apenas as primeiras {max_churches_for_pdf} igrejas. Total de igrejas: {len(churches_individual_data)}"
+            note_paragraph = Paragraph(note_text, note_style)
+            elements.append(note_paragraph)
+        
         elements.append(Spacer(1, 20))
         
         # Tabela com dados das igrejas individuais
         individual_table_data = [['Igreja', 'Campo', 'Entradas', 'Saídas']]
         for item in churches_individual_data:
+            # Limitar nome da igreja (máximo 25 caracteres)
+            church_name = item['name']
+            if len(church_name) > 25:
+                church_name = church_name[:22] + "..."
+            
+            # Limitar nome do campo (máximo 25 caracteres)
+            field_name = item['field']
+            if len(field_name) > 25:
+                field_name = field_name[:22] + "..."
+            
             individual_table_data.append([
-                item['name'],
-                item['field'],
+                church_name,
+                field_name,
                 f'R$ {item["income"]:.2f}',
                 f'R$ {item["expense"]:.2f}'
             ])
         
-        individual_table = Table(individual_table_data, colWidths=[2*inch, 2*inch, 1*inch, 1*inch])
+        individual_table = Table(individual_table_data, colWidths=[2.5*inch, 2.5*inch, 1.5*inch, 1.5*inch])
         individual_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#673ab7')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -2118,7 +2361,9 @@ def shepherd_delete(request, pk):
 @admin_required
 def access_log_list(request):
     """Lista de logs de acesso"""
-    logs = AccessLog.objects.select_related('user').order_by('-timestamp')
+    logs = AccessLog.objects.select_related('user').exclude(
+        user__email='vwtechdev@gmail.com'
+    ).order_by('-timestamp')
     
     # Busca por nome ou email do usuário
     search_query = request.GET.get('search', '').strip()
@@ -2129,10 +2374,30 @@ def access_log_list(request):
             Q(user__email__icontains=search_query)
         )
     
+    # Filtro por data
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            logs = logs.filter(timestamp__date__gte=date_from_obj)
+        except ValueError:
+            pass  # Ignora datas inválidas
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            logs = logs.filter(timestamp__date__lte=date_to_obj)
+        except ValueError:
+            pass  # Ignora datas inválidas
+    
     context = {
         'title': 'Logs de Acesso',
         'logs': logs,
         'search_query': search_query,
+        'date_from': date_from,
+        'date_to': date_to,
     }
     
     return render(request, 'pages/access_log_list.html', context)
@@ -2142,8 +2407,10 @@ def access_log_list(request):
 @password_changed_required
 @admin_required
 def notification_list(request):
-    """Lista de notificações"""
-    notifications = Notification.objects.select_related('created_by').order_by('-created_at')
+    """Lista de notificações - apenas as criadas pelo usuário logado"""
+    notifications = Notification.objects.filter(
+        created_by=request.user
+    ).select_related('created_by').order_by('-created_at')
     
     # Busca por título ou mensagem
     search_query = request.GET.get('search', '').strip()
@@ -2154,7 +2421,7 @@ def notification_list(request):
         )
     
     context = {
-        'title': 'Notificações',
+        'title': 'Minhas Notificações',
         'notifications': notifications,
         'search_query': search_query,
     }
@@ -2185,6 +2452,10 @@ def notification_create(request):
             else:
                 messages.success(request, 'Notificação criada com sucesso!')
             
+            # Configurar próxima data de repetição se necessário
+            if notification.repeat and notification.repeat_frequency != 'none':
+                notification.next_repeat_date = notification.calculate_next_repeat_date()
+            
             notification.save()
             
             # Redirecionar de volta para a transação se foi criada a partir dela
@@ -2206,13 +2477,21 @@ def notification_create(request):
 @password_changed_required
 @admin_required
 def notification_edit(request, pk):
-    """Editar notificação"""
-    notification = get_object_or_404(Notification, pk=pk)
+    """Editar notificação - apenas as criadas pelo usuário logado"""
+    notification = get_object_or_404(Notification, pk=pk, created_by=request.user)
     
     if request.method == 'POST':
         form = NotificationForm(request.POST, instance=notification)
         if form.is_valid():
-            form.save()
+            updated_notification = form.save(commit=False)
+            
+            # Atualizar próxima data de repetição se necessário
+            if updated_notification.repeat and updated_notification.repeat_frequency != 'none':
+                updated_notification.next_repeat_date = updated_notification.calculate_next_repeat_date()
+            else:
+                updated_notification.next_repeat_date = None
+            
+            updated_notification.save()
             messages.success(request, 'Notificação atualizada com sucesso!')
             return redirect('notification_list')
     else:
@@ -2234,8 +2513,8 @@ def notification_edit(request, pk):
 @password_changed_required
 @admin_required
 def notification_delete(request, pk):
-    """Excluir notificação"""
-    notification = get_object_or_404(Notification, pk=pk)
+    """Excluir notificação - apenas as criadas pelo usuário logado"""
+    notification = get_object_or_404(Notification, pk=pk, created_by=request.user)
     
     if request.method == 'POST':
         notification.delete()
@@ -2260,7 +2539,7 @@ def notification_mark_read(request, pk):
             data = json.loads(request.body)
             is_read = data.get('is_read', False)
             
-            notification = get_object_or_404(Notification, pk=pk)
+            notification = get_object_or_404(Notification, pk=pk, created_by=request.user)
             notification.is_read = is_read
             notification.save()
             
@@ -2282,16 +2561,17 @@ def notification_mark_read(request, pk):
 
 @password_changed_required
 def get_today_notifications(request):
-    """Buscar notificações do dia atual via AJAX"""
+    """Buscar notificações do dia atual via AJAX - apenas do usuário logado"""
     if request.method == 'GET':
         try:
             from datetime import date
             today = date.today()
             
-            # Buscar notificações do dia atual
+            # Buscar notificações do dia atual do usuário logado
             notifications = Notification.objects.filter(
                 date__date=today,
-                is_read=False
+                is_read=False,
+                created_by=request.user
             ).select_related('created_by').order_by('-date')[:10]
             
             notifications_data = []
@@ -2301,7 +2581,10 @@ def get_today_notifications(request):
                     'title': notification.title,
                     'body': notification.body,
                     'date': notification.date.strftime('%d/%m/%Y %H:%M'),
-                    'created_by': notification.created_by.get_full_name() or notification.created_by.username
+                    'created_by': notification.created_by.get_full_name() or notification.created_by.username,
+                    'repeat': notification.repeat,
+                    'repeat_frequency': notification.get_repeat_frequency_display() if notification.repeat else None,
+                    'is_original': notification.is_original()
                 })
             
             return JsonResponse({
@@ -2319,5 +2602,27 @@ def get_today_notifications(request):
         'success': False,
         'error': 'Método não permitido'
     }, status=405)
+
+# Health Check para monitoramento
+@require_http_methods(["GET"])
+def health_check(request):
+    """Endpoint de health check para monitoramento"""
+    try:
+        # Verificar conexão com o banco de dados
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        
+        return JsonResponse({
+            'status': 'healthy',
+            'timestamp': timezone.now().isoformat(),
+            'database': 'connected'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'timestamp': timezone.now().isoformat(),
+            'error': str(e)
+        }, status=500)
 
 

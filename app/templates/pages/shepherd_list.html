@@ -126,11 +126,11 @@
                                             <span class="mobile-card-value">{{ shepherd.updated_at|date:"d/m/Y H:i" }}</span>
                                         </div>
                                     </div>
-                                    <div class="mobile-card-actions">
-                                        <a href="{% url 'shepherd_edit' shepherd.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <div class="mobile-card-footer">
+                                        <a href="{% url 'shepherd_edit' shepherd.pk %}" class="mobile-card-btn btn-outline-primary">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteModal" 
                                                 data-shepherd-id="{{ shepherd.pk }}"

@@ -236,21 +236,6 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="form-floating mb-3">
-                                    <select name="church" id="churchFilter_mobile" class="form-control">
-                                        <option value="">Todas as igrejas</option>
-                                        {% for church in churches %}
-                                            <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ church.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <label for="churchFilter_mobile">
-                                        <i class="bi bi-building"></i> Igreja
-                                    </label>
-                                </div>
-                            </div>
                         </div>
                         {% endif %}
                         

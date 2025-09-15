@@ -65,19 +65,50 @@
                                     </div>
                                 {% endif %}
                                 
-                                <!-- Debug info -->
-                                {% if notification %}
-                                    <small class="form-text text-muted">
-                                        Debug - Data original: {{ notification.date }}<br>
-                                        Debug - Form date value: {{ form.date.value }}<br>
-                                        Debug - Form date initial: {{ form.date.field.initial }}
-                                    </small>
-                                {% endif %}
+
                             </div>
                         </div>
                     </div>
                     
 
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check mb-3">
+                                {{ form.repeat }}
+                                <label class="form-check-label" for="{{ form.repeat.id_for_label }}">
+                                    <i class="bi bi-arrow-repeat"></i> {{ form.repeat.label }}
+                                </label>
+                                {% if form.repeat.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.repeat.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Marque para repetir esta notificação automaticamente</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="repeat-frequency-row" style="display: none;">
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                {{ form.repeat_frequency }}
+                                <label for="{{ form.repeat_frequency.id_for_label }}">
+                                    <i class="bi bi-clock"></i> {{ form.repeat_frequency.label }}
+                                </label>
+                                {% if form.repeat_frequency.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.repeat_frequency.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Selecione com que frequência a notificação deve ser repetida</small>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="row">
                         <div class="col-12">
@@ -115,6 +146,32 @@
 <!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
+<script>
+function toggleRepeatFrequency() {
+    const repeatCheckbox = document.getElementById('id_repeat');
+    const frequencyRow = document.getElementById('repeat-frequency-row');
+    const frequencySelect = document.getElementById('id_repeat_frequency');
+    
+    if (repeatCheckbox.checked) {
+        frequencyRow.style.display = 'block';
+        frequencySelect.required = true;
+    } else {
+        frequencyRow.style.display = 'none';
+        frequencySelect.required = false;
+        frequencySelect.value = 'none';
+    }
+}
 
+// Executar quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    toggleRepeatFrequency();
+    
+    // Adicionar listener para mudanças no checkbox
+    const repeatCheckbox = document.getElementById('id_repeat');
+    if (repeatCheckbox) {
+        repeatCheckbox.addEventListener('change', toggleRepeatFrequency);
+    }
+});
+</script>
 
 {% endblock %}

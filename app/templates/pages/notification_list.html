@@ -45,6 +45,7 @@
                                     <th>Mensagem</th>
                                     <th>Data e Hora</th>
                                     <th>Status</th>
+                                    <th>Repetir</th>
                                     <th>Transação</th>
                                     <th>Criado por</th>
                                     <th>Data de Criação</th>
@@ -73,6 +74,15 @@
                                             {% endif %}
                                         </td>
                                         <td>
+                                            {% if notification.repeat %}
+                                                <span class="badge bg-info">
+                                                    <i class="bi bi-arrow-repeat"></i> {{ notification.get_repeat_frequency_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                             {% if notification.related_transaction %}
                                                 <a href="{% url 'transaction_edit' notification.related_transaction.pk %}" class="text-decoration-none">
                                                     <span class="badge bg-info">
@@ -95,6 +105,7 @@
                                                     data-notification-date="{{ notification.date|date:'d/m/Y H:i' }}"
 
                                                     data-notification-status="{% if notification.is_read %}Lida{% else %}Não lida{% endif %}"
+                                                    data-notification-repeat="{% if notification.repeat %}{{ notification.get_repeat_frequency_display }}{% else %}Não{% endif %}"
                                                     data-notification-created-by="{{ notification.created_by.get_full_name }}"
                                                     data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}"
                                                     data-notification-related-transaction="{% if notification.related_transaction %}{{ notification.related_transaction.church.name }} - R$ {{ notification.related_transaction.get_formatted_value }}{% else %}Nenhuma{% endif %}">
@@ -148,6 +159,18 @@
                                             </span>
                                         </div>
                                         <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Repetir:</span>
+                                            <span class="mobile-card-value">
+                                                {% if notification.repeat %}
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-arrow-repeat"></i> {{ notification.get_repeat_frequency_display }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="mobile-card-row">
                                             <span class="mobile-card-label">Criado por:</span>
                                             <span class="mobile-card-value">{{ notification.created_by.get_full_name }}</span>
                                         </div>
@@ -170,8 +193,8 @@
                                             <span class="mobile-card-value">{{ notification.created_at|date:"d/m/Y H:i" }}</span>
                                         </div>
                                     </div>
-                                    <div class="mobile-card-actions">
-                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                    <div class="mobile-card-footer">
+                                        <button type="button" class="mobile-card-btn btn-outline-info" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#viewModal" 
                                                 data-notification-id="{{ notification.pk }}"
@@ -179,16 +202,17 @@
                                                 data-notification-body="{{ notification.body }}"
                                                 data-notification-date="{{ notification.date|date:'d/m/Y H:i' }}"
                                                 
-                                                data-notification-status="{% if notification.is_active %}Ativa{% else %}Inativa{% endif %}"
+                                                data-notification-status="{% if notification.is_read %}Lida{% else %}Não lida{% endif %}"
+                                                data-notification-repeat="{% if notification.repeat %}{{ notification.get_repeat_frequency_display }}{% else %}Não{% endif %}"
                                                 data-notification-created-by="{{ notification.created_by.get_full_name }}"
                                                 data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}"
                                                 data-notification-related-transaction="{% if notification.related_transaction %}{{ notification.related_transaction.church.name }} - R$ {{ notification.related_transaction.get_formatted_value }}{% else %}Nenhuma{% endif %}">
                                             <i class="bi bi-eye"></i> Visualizar
                                         </button>
-                                        <a href="{% url 'notification_edit' notification.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{% url 'notification_edit' notification.pk %}" class="mobile-card-btn btn-outline-primary">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteModal" 
                                                 data-notification-id="{{ notification.pk }}"
@@ -316,6 +340,10 @@
                                         <p class="mb-2"><strong>Status:</strong></p>
                                         <p id="viewNotificationStatus"></p>
                                     </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-2"><strong>Repetir:</strong></p>
+                                        <p id="viewNotificationRepeat"></p>
+                                    </div>
                                 </div>
 
                                 <div class="row">
@@ -403,6 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const notificationDate = button.getAttribute('data-notification-date');
 
             const notificationStatus = button.getAttribute('data-notification-status');
+            const notificationRepeat = button.getAttribute('data-notification-repeat');
             const notificationCreatedBy = button.getAttribute('data-notification-created-by');
             const notificationCreatedAt = button.getAttribute('data-notification-created-at');
             const notificationRelatedTransaction = button.getAttribute('data-notification-related-transaction');
@@ -422,6 +451,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 statusElement.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Lida</span>';
             } else {
                 statusElement.innerHTML = '<span class="badge bg-warning"><i class="bi bi-exclamation-circle"></i> Não lida</span>';
+            }
+            
+            // Configurar repetição com badge
+            const repeatElement = document.getElementById('viewNotificationRepeat');
+            if (notificationRepeat && notificationRepeat !== 'Não') {
+                repeatElement.innerHTML = '<span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> ' + notificationRepeat + '</span>';
+            } else {
+                repeatElement.innerHTML = '<span class="text-muted">Não</span>';
             }
             
             // Configurar texto do botão baseado no status atual

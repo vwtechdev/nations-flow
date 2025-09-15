@@ -1,27 +1,78 @@
 services:
-  web:
+  nginx:
     build:
-      context: .
+      context: ./nginx
       dockerfile: Dockerfile
-    container_name: nations-flow_web
-    command: ["./wait-for-database.sh", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120", "--workers", "3", "--worker-class", "sync", "--keep-alive", "5", "--max-requests", "1000", "--max-requests-jitter", "100"]
+    container_name: nations-flow_nginx
+    ports:
+      - "8081:80"
     volumes:
-      - .:/app
-    env_file:
-      - .env
+      - ./static:/app/static:ro
+      - ./media:/app/media:ro
+      - nginx_logs:/var/log/nginx
     depends_on:
-      - db
+      - web
     networks:
       - nations-flow_net
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nations-flow.rule=Host(`nationsflow.com.br`)"
+      - "traefik.http.routers.nations-flow.rule=Host(`nationsflow.com.br`) || Host(`www.nationsflow.com.br`)"
       - "traefik.http.routers.nations-flow.entrypoints=websecure"
       - "traefik.http.routers.nations-flow.tls.certresolver=myresolver"
-      - "traefik.http.services.nations-flow.loadbalancer.server.port=8000"
+      - "traefik.http.services.nations-flow.loadbalancer.server.port=80"
       - "traefik.http.services.nations-flow.loadbalancer.server.scheme=http"
+      - "traefik.http.middlewares.nations-flow-headers.headers.customrequestheaders.Host=nationsflow.com.br"
+      - "traefik.http.routers.nations-flow.middlewares=nations-flow-headers"
+      - "traefik.http.routers.nations-flow.priority=100"
+      - "traefik.docker.network=proxy"
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nations-flow_web
+    command: ["sh", "-c", "./wait-for-database.sh && gunicorn core.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --workers 3 --worker-class sync --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --preload"]
+    volumes:
+      - ./media:/app/media   
+      - ./static:/app/static
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    networks:
+      - nations-flow_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   db:
     image: postgres:15
@@ -34,19 +85,76 @@ services:
       - nations-flow_net
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    container_name: nations-flow_redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - nations-flow_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   backup:
     build:
-      context: ./backup
+      context: ./database
+      dockerfile: Dockerfile
     container_name: nations-flow_backup
-    volumes:
-      - ./backups:/backups
-      - ./rclone.conf:/root/.config/rclone/rclone.conf:ro
-    env_file: .env
+    env_file:
+      - .env
     depends_on:
       - db
     networks:
       - nations-flow_net
+    volumes:
+      - ./backups:/app/backups
     restart: always
+
+  cron:
+    build:
+      context: .
+      dockerfile: ./cron/Dockerfile
+    container_name: nations-flow_cron
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - web
+    networks:
+      - nations-flow_net
+    volumes:
+      - .:/app
+      - cron_logs:/var/log
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+volumes:
+  nginx_logs:
+    driver: local
+  cron_logs:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
   nations-flow_net:

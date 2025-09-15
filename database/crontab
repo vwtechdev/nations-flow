@@ -1,0 +1,5 @@
+# Backup diário do banco de dados às 3:00 da manhã
+0 3 * * * /app/backup_wrapper.sh >> /var/log/backup.log 2>&1
+
+# Manter apenas os últimos 30 logs
+0 4 * * * tail -n 30 /var/log/backup.log > /var/log/backup.log.tmp && mv /var/log/backup.log.tmp /var/log/backup.log

@@ -352,6 +352,10 @@ class TransactionForm(forms.ModelForm):
                         self.fields['field'].initial = self.instance.church.field
                 else:
                     self.fields['field'].queryset = Field.objects.none()
+                
+                # Remover o campo "Criar Lembrete" para tesoureiros
+                if 'create_reminder' in self.fields:
+                    del self.fields['create_reminder']
             else:
                 # Administradores podem ver todos os campos
                 self.fields['field'].queryset = Field.objects.all()
@@ -543,10 +547,23 @@ class NotificationForm(forms.ModelForm):
                 # Converter para o formato YYYY-MM-DDTHH:MM
                 formatted_date = self.instance.date.strftime('%Y-%m-%dT%H:%M')
                 self.initial['date'] = formatted_date
+        
+        # Configurar o campo repeat_frequency para ser condicional
+        self.fields['repeat_frequency'].widget.attrs.update({
+            'class': 'form-control',
+            'id': 'id_repeat_frequency'
+        })
+        
+        # Adicionar JavaScript para mostrar/ocultar o campo de frequência
+        self.fields['repeat'].widget.attrs.update({
+            'class': 'form-check-input',
+            'id': 'id_repeat',
+            'onchange': 'toggleRepeatFrequency()'
+        })
     
     class Meta:
         model = Notification
-        fields = ['title', 'body', 'date', 'is_read']
+        fields = ['title', 'body', 'date', 'is_read', 'repeat', 'repeat_frequency']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -564,5 +581,30 @@ class NotificationForm(forms.ModelForm):
             'is_read': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
+            'repeat': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'id': 'id_repeat'
+            }),
+            'repeat_frequency': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_repeat_frequency'
+            }),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        repeat = cleaned_data.get('repeat')
+        repeat_frequency = cleaned_data.get('repeat_frequency')
+        
+        # Se repeat está marcado, repeat_frequency deve ser diferente de 'none'
+        if repeat and repeat_frequency == 'none':
+            raise forms.ValidationError({
+                'repeat_frequency': 'Selecione uma frequência de repetição quando a opção "Repetir Notificação" estiver marcada.'
+            })
+        
+        # Se repeat não está marcado, repeat_frequency deve ser 'none'
+        if not repeat and repeat_frequency != 'none':
+            cleaned_data['repeat_frequency'] = 'none'
+        
+        return cleaned_data
     

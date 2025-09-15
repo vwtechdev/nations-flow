@@ -311,9 +311,10 @@ $(function() {
             closeNavigationDrawer();
         });
         
-        // Close navigation drawer when clicking on a link (mobile)
+        // Close navigation drawer when clicking on a link (mobile only)
         $(document).on('click', '.navigation-drawer-link', function() {
-            if ($(window).width() <= 768) {
+            // Only close if we're on mobile AND the drawer is actually visible
+            if ($(window).width() <= 768 && navigationDrawer.hasClass('show')) {
                 closeNavigationDrawer();
             }
         });

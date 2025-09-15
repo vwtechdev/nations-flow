@@ -69,5 +69,8 @@ urlpatterns = [
     # API AJAX
     path('api/churches/', views.get_churches, name='get_churches'),
     
+    # Health Check
+    path('health/', views.health_check, name='health_check'),
+    
 
 ]
