@@ -1,7 +1,117 @@
 {% extends 'pages/index.html' %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
+{% endblock %}
+
 {% block content %}
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-funnel"></i> Filtros dos Logs de Acesso
+                </h6>
+                <small class="text-muted">
+                    <i class="bi bi-calendar-range"></i> 
+                    Exibindo logs de {{ first_day_of_month|date:"d/m/Y" }} até {{ last_day_of_month|date:"d/m/Y" }} ({{ current_month }})
+                </small>
+            </div>
+            <div class="card-body">
+                <form method="get" id="accessLogFilterForm">
+                    <!-- Desktop Layout -->
+                    <div class="row d-none d-md-flex">
+                        <div class="col-md-4">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="search" name="search" value="{{ search_query|default:'' }}" id="search">
+                                <label for="search">
+                                    <i class="bi bi-search"></i> Pesquisar usuário
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_from" value="{{ date_from|default:'' }}" id="date_from">
+                                <label for="date_from">
+                                    <i class="bi bi-calendar-date"></i> Data Inicial
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_to" value="{{ date_to|default:'' }}" id="date_to">
+                                <label for="date_to">
+                                    <i class="bi bi-calendar-date"></i> Data Final
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 d-flex align-items-end">
+                            <div class="d-flex gap-2 justify-content-end w-100">
+                                <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                                <a href="{% url 'access_log_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Layout -->
+                    <div class="d-md-none">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="search" name="search" value="{{ search_query|default:'' }}" id="search_mobile">
+                                    <label for="search_mobile">
+                                        <i class="bi bi-search"></i> Pesquisar usuário
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="date" name="date_from" value="{{ date_from|default:'' }}" id="date_from_mobile">
+                                    <label for="date_from_mobile">
+                                        <i class="bi bi-calendar-date"></i> Data Inicial
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="date" name="date_to" value="{{ date_to|default:'' }}" id="date_to_mobile">
+                                    <label for="date_to_mobile">
+                                        <i class="bi bi-calendar-date"></i> Data Final
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Filtrar
+                            </button>
+                            <div class="d-grid gap-2 mt-2">
+                                <a href="{% url 'access_log_list' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Logs -->
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
@@ -9,65 +119,6 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
-                <!-- Search Container -->
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="search-container">
-                            <form method="GET" action="{% url 'access_log_list' %}">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <div class="form-floating">
-                                            <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="accessLogSearch">
-                                            <label for="accessLogSearch">
-                                                <i class="bi bi-search"></i> Pesquisar usuário
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-floating">
-                                            <input type="date" name="date_from" value="{{ date_from|default:'' }}" class="form-control" id="dateFrom">
-                                            <label for="dateFrom">
-                                                <i class="bi bi-calendar"></i> Data inicial
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-floating">
-                                            <input type="date" name="date_to" value="{{ date_to|default:'' }}" class="form-control" id="dateTo">
-                                            <label for="dateTo">
-                                                <i class="bi bi-calendar"></i> Data final
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="submit" class="btn btn-primary w-100 h-100">
-                                            <i class="bi bi-search"></i> Filtrar
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                {% if search_query or date_from or date_to %}
-                    <div class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-search"></i>
-                        <strong>Filtros ativos:</strong>
-                        {% if search_query %}
-                            Busca por "{{ search_query }}"
-                        {% endif %}
-                        {% if date_from %}
-                            {% if search_query %} | {% endif %}De: {{ date_from|date:"d/m/Y" }}
-                        {% endif %}
-                        {% if date_to %}
-                            {% if search_query or date_from %} | {% endif %}Até: {{ date_to|date:"d/m/Y" }}
-                        {% endif %}
-                        <a href="{% url 'access_log_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-x-circle"></i> Limpar filtros
-                        </a>
-                    </div>
-                {% endif %}
                 
                 {% if logs %}
                     <!-- Tabela Desktop -->
@@ -147,4 +198,8 @@
 
 <!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/filters_form.js' %}"></script>
 {% endblock %}

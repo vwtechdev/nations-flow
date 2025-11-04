@@ -1,46 +1,78 @@
 'use strict'
 
 $(function() {
+    
     // Função para verificar e exibir notificações do dia
     function checkTodayNotifications() {
+        console.log('🔔 Iniciando verificação de notificações do dia...');
+        
         // Verificar se o modal existe na página
         const notificationsModal = $('#notificationsModal');
+        console.log('Modal encontrado:', notificationsModal.length > 0);
         
         if (notificationsModal.length === 0) {
+            console.log('❌ Modal de notificações não encontrado nesta página');
             return; // Modal não existe nesta página
         }
 
         // Não mostrar o modal se o usuário estiver na página de lista de notificações
         if (window.location.pathname.includes('/notifications/')) {
+            console.log('⚠️ Usuário está na página de notificações, não exibindo modal');
             return;
         }
 
+        console.log('📡 Fazendo requisição para /api/notifications/today/...');
+        
         // Buscar notificações do dia via AJAX
         $.ajax({
             url: '/api/notifications/today/',
             method: 'GET',
             dataType: 'json',
             success: function(response) {
+                console.log('✅ Resposta da API recebida:', response);
+                
                 if (response.success && response.count > 0) {
+                    console.log(`📋 Encontradas ${response.count} notificações para exibir`);
+                    
                     // Exibir notificações no modal
                     displayNotifications(response.notifications);
                     
                     // Mostrar o modal automaticamente usando Bootstrap 5
-                    const modal = new bootstrap.Modal(notificationsModal[0]);
-                    modal.show();
+                    console.log('🎭 Tentando abrir modal...');
+                    
+                    // Verificar se Bootstrap está disponível
+                    if (typeof bootstrap === 'undefined') {
+                        console.error('❌ Bootstrap não está disponível!');
+                        // Fallback: tentar abrir o modal usando jQuery
+                        notificationsModal.modal('show');
+                        console.log('⚠️ Usando fallback jQuery para abrir modal');
+                    } else {
+                        console.log('✅ Bootstrap disponível, usando bootstrap.Modal');
+                        const modal = new bootstrap.Modal(notificationsModal[0]);
+                        modal.show();
+                        console.log('✅ Modal aberto com sucesso');
+                    }
+                } else {
+                    console.log('ℹ️ Nenhuma notificação encontrada para hoje');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Erro ao buscar notificações:', error);
+                console.error('❌ Erro ao buscar notificações:', error);
+                console.error('Status:', status);
+                console.error('XHR:', xhr);
             }
         });
     }
 
     // Função para exibir notificações no modal
     function displayNotifications(notifications) {
+        console.log('📝 Exibindo notificações:', notifications);
+        
         const content = $('#notificationsContent');
+        console.log('Conteúdo do modal encontrado:', content.length > 0);
         
         if (notifications.length === 0) {
+            console.log('ℹ️ Nenhuma notificação para exibir');
             content.html(`
                 <div class="text-center text-muted">
                     <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
@@ -73,7 +105,9 @@ $(function() {
             `;
         });
 
+        console.log('📄 HTML gerado para notificações:', notificationsHtml);
         content.html(notificationsHtml);
+        console.log('✅ HTML inserido no modal');
 
         // Adicionar evento para marcar como lida
         $('.mark-read-btn').on('click', function() {
@@ -121,9 +155,13 @@ $(function() {
 
     // Verificar notificações do dia quando a página carregar
     // Aguardar um pouco para garantir que o DOM esteja completamente carregado
+    console.log('🚀 Iniciando script de notificações...');
+    console.log('📍 URL atual:', window.location.pathname);
+    
     setTimeout(function() {
+        console.log('⏰ Executando verificação de notificações após delay...');
         checkTodayNotifications();
-    }, 1000);
+    }, 500);
 
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

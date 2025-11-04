@@ -46,6 +46,8 @@ class FiltersForm {
             ...select2Config,
             placeholder: 'Todos os pastores'
         });
+        
+        console.log('🔍 Debug: shepherdFilter inicializado:', document.getElementById('shepherdFilter'));
 
         // Inicializar Select2 para igreja
         this.initializeField('churchFilter', {
@@ -53,7 +55,19 @@ class FiltersForm {
             placeholder: 'Todas as igrejas'
         });
 
-
+        // Inicializar Select2 para usuário (apenas para administradores)
+        this.initializeField('userFilter', {
+            ...select2Config,
+            placeholder: 'Todos os usuários'
+        });
+        
+        // Debug específico para usuário
+        const userElement = document.getElementById('userFilter');
+        console.log('🔍 Debug userFilter - Elemento encontrado:', userElement);
+        if (userElement) {
+            console.log('🔍 Debug userFilter - Options count:', userElement.options.length);
+            console.log('🔍 Debug userFilter - Options:', Array.from(userElement.options).map(opt => ({value: opt.value, text: opt.text})));
+        }
 
         // Inicializar versões mobile se existirem
         this.initializeMobileFields(select2Config);
@@ -76,9 +90,20 @@ class FiltersForm {
                 element.setAttribute('data-select2-initialized', 'true');
                 
                 console.log(`Select2 inicializado para: ${fieldId}`);
+                
+                // Debug específico para shepherd
+                if (fieldId === 'shepherdFilter') {
+                    console.log('🔍 Debug shepherdFilter - Elemento:', element);
+                    console.log('🔍 Debug shepherdFilter - Valor inicial:', $(element).val());
+                    console.log('🔍 Debug shepherdFilter - Select2 instance:', select2Instance);
+                    console.log('🔍 Debug shepherdFilter - Options count:', $(element).find('option').length);
+                    console.log('🔍 Debug shepherdFilter - Options:', $(element).find('option').map(function() { return {value: this.value, text: this.text}; }).get());
+                }
             } catch (error) {
                 console.error(`Erro ao inicializar Select2 para ${fieldId}:`, error);
             }
+        } else {
+            console.warn(`Elemento não encontrado: ${fieldId}`);
         }
     }
 
@@ -90,7 +115,8 @@ class FiltersForm {
             'categoryFilter_mobile',
             'fieldFilter_mobile', 
             'shepherdFilter_mobile',
-            'churchFilter_mobile'
+            'churchFilter_mobile',
+            'userFilter_mobile'
         ];
 
         mobileFields.forEach(fieldId => {
@@ -107,6 +133,9 @@ class FiltersForm {
         // Evento de mudança para filtros dependentes
         this.bindDependentFilters();
         
+        // Evento de atualização de transações
+        this.bindTransactionUpdates();
+        
         // Evento de limpeza de filtros
         this.bindClearFilters();
         
@@ -121,26 +150,100 @@ class FiltersForm {
     }
 
     /**
-     * Vincula filtros dependentes (campo -> igreja)
+     * Vincula filtros dependentes (campo -> igreja, campo -> pastor)
      */
     bindDependentFilters() {
         const fieldFilter = document.getElementById('fieldFilter');
         const churchFilter = document.getElementById('churchFilter');
+        const shepherdFilter = document.getElementById('shepherdFilter');
         
-        if (fieldFilter && churchFilter) {
+        if (fieldFilter) {
             $(fieldFilter).on('select2:select select2:clear', (e) => {
-                this.updateChurchesByField(e.target.value);
+                const fieldId = e.target.value;
+                this.updateChurchesByField(fieldId);
+                this.updateShepherdsByField(fieldId);
+                this.updateTransactions();
+                this.updateExportButtons();
+            });
+        }
+
+        // Quando o pastor mudar, recarregar transações e atualizar export (como na dashboard)
+        if (shepherdFilter) {
+            $(shepherdFilter).on('select2:select select2:clear', () => {
+                this.updateTransactions();
+                this.updateExportButtons();
             });
         }
 
         // Versão mobile
         const fieldFilterMobile = document.getElementById('fieldFilter_mobile');
         const churchFilterMobile = document.getElementById('churchFilter_mobile');
+        const shepherdFilterMobile = document.getElementById('shepherdFilter_mobile');
         
-        if (fieldFilterMobile && churchFilterMobile) {
+        if (fieldFilterMobile) {
             $(fieldFilterMobile).on('select2:select select2:clear', (e) => {
-                this.updateChurchesByField(e.target.value, true);
+                const fieldId = e.target.value;
+                this.updateChurchesByField(fieldId, true);
+                this.updateShepherdsByField(fieldId, true);
+                this.updateTransactions();
+                this.updateExportButtons();
             });
+        }
+
+        if (shepherdFilterMobile) {
+            $(shepherdFilterMobile).on('select2:select select2:clear', () => {
+                this.updateTransactions();
+                this.updateExportButtons();
+            });
+        }
+    }
+
+    /**
+     * Vincula eventos de atualização de transações
+     */
+    bindTransactionUpdates() {
+        // Filtros que devem atualizar as transações automaticamente
+        const filterFields = [
+            'categoryFilter', 'typeFilter', 'fieldFilter', 
+            'shepherdFilter', 'churchFilter', 'userFilter'
+        ];
+
+        filterFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                // Para campos Select2
+                if (element.hasAttribute('data-select2-initialized')) {
+                    $(element).on('select2:select select2:clear', () => {
+                        this.updateTransactions();
+                    });
+                } else {
+                    // Para campos normais
+                    element.addEventListener('change', () => {
+                        this.updateTransactions();
+                    });
+                }
+            }
+        });
+
+        // Campos de data
+        const dateFields = ['date_from', 'date_to'];
+        dateFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.addEventListener('change', () => {
+                    this.updateTransactions();
+                });
+            }
+        });
+    }
+
+    /**
+     * Atualiza as transações
+     */
+    updateTransactions() {
+        // Verificar se a função loadTransactions existe (definida em transaction_list.js)
+        if (typeof window.loadTransactions === 'function') {
+            window.loadTransactions();
         }
     }
 
@@ -188,6 +291,76 @@ class FiltersForm {
         // Aqui você pode implementar uma API para buscar todas as igrejas
         // Por enquanto, vamos apenas limpar e adicionar uma opção padrão
         this.populateChurchFilter(churchFilterId, [], isMobile);
+    }
+
+    /**
+     * Atualiza pastores baseado no campo selecionado
+     */
+    updateShepherdsByField(fieldId, isMobile = false) {
+        const shepherdFilterId = isMobile ? 'shepherdFilter_mobile' : 'shepherdFilter';
+        const shepherdFilter = document.getElementById(shepherdFilterId);
+        
+        if (!shepherdFilter) return;
+
+        if (!fieldId) {
+            // Se nenhum campo selecionado, carregar todos os pastores
+            this.loadAllShepherds(isMobile);
+            return;
+        }
+
+        // Mostrar loading
+        this.showLoading(shepherdFilterId);
+
+        // Fazer requisição AJAX para buscar pastores do campo
+        fetch(`/api/shepherds-by-field/${fieldId}/`)
+            .then(response => response.json())
+            .then(data => {
+                this.populateShepherdFilter(shepherdFilterId, data.shepherds || [], isMobile);
+                this.hideLoading(shepherdFilterId);
+            })
+            .catch(error => {
+                console.error('Erro ao buscar pastores:', error);
+                this.hideLoading(shepherdFilterId);
+                this.showError(shepherdFilterId, 'Erro ao carregar pastores');
+            });
+    }
+
+    /**
+     * Carrega todos os pastores
+     */
+    loadAllShepherds(isMobile = false) {
+        const shepherdFilterId = isMobile ? 'shepherdFilter_mobile' : 'shepherdFilter';
+        const shepherdFilter = document.getElementById(shepherdFilterId);
+        
+        if (!shepherdFilter) return;
+
+        // Aqui você pode implementar uma API para buscar todos os pastores
+        // Por enquanto, vamos apenas limpar e adicionar uma opção padrão
+        this.populateShepherdFilter(shepherdFilterId, [], isMobile);
+    }
+
+    /**
+     * Popula o filtro de pastor
+     */
+    populateShepherdFilter(shepherdFilterId, shepherds, isMobile = false) {
+        const shepherdFilter = document.getElementById(shepherdFilterId);
+        if (!shepherdFilter) return;
+
+        // Limpar opções existentes
+        $(shepherdFilter).empty();
+        
+        // Adicionar opção padrão
+        const defaultOption = new Option('Todos os pastores', '', false, false);
+        $(shepherdFilter).append(defaultOption);
+
+        // Adicionar pastores
+        shepherds.forEach(shepherd => {
+            const option = new Option(shepherd.name, shepherd.id, false, false);
+            $(shepherdFilter).append(option);
+        });
+
+        // Atualizar Select2
+        $(shepherdFilter).trigger('change');
     }
 
     /**
@@ -294,15 +467,8 @@ class FiltersForm {
      * Manipula o envio do formulário de filtros
      */
     handleFilterSubmit(e) {
-        // Validar se pelo menos um filtro foi selecionado
-        const hasFilters = this.hasActiveFilters();
-        
-        if (!hasFilters) {
-            e.preventDefault();
-            this.showNoFiltersWarning();
-            return;
-        }
-
+        // Não bloquear o envio do formulário caso nenhum filtro esteja selecionado
+        // (permitir exibir dashboard com filtros vazios)
         // Mostrar loading
         this.showFormLoading();
         
@@ -334,40 +500,6 @@ class FiltersForm {
         });
 
         return hasDateFilters || hasSelect2Filters || hasOtherFilters;
-    }
-
-    /**
-     * Mostra aviso de que não há filtros selecionados
-     */
-    showNoFiltersWarning() {
-        // Criar toast de aviso
-        const toast = document.createElement('div');
-        toast.className = 'toast align-items-center text-white bg-warning border-0 position-fixed';
-        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'assertive');
-        toast.setAttribute('aria-atomic', 'true');
-        
-        toast.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    Selecione pelo menos um filtro para continuar.
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        // Mostrar toast
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
-        
-        // Remover toast após ser fechado
-        toast.addEventListener('hidden.bs.toast', () => {
-            document.body.removeChild(toast);
-        });
     }
 
     /**
@@ -422,18 +554,21 @@ class FiltersForm {
     }
 
     /**
+     * Atualiza os hrefs dos botões de exportação conforme filtros atuais
+     */
+    updateExportButtons() {
+        if (typeof window.updateExportButton === 'function') {
+            // Reutiliza a função já existente em transaction_list.js
+            window.updateExportButton();
+        }
+    }
+
+    /**
      * Manipula exportação
      */
     handleExport(e) {
         const button = e.target.closest('a');
         if (!button) return;
-
-        // Verificar se há filtros ativos
-        if (!this.hasActiveFilters()) {
-            e.preventDefault();
-            this.showNoFiltersWarning();
-            return;
-        }
 
         // Mostrar loading no botão de exportação
         const originalText = button.innerHTML;
@@ -491,7 +626,8 @@ class FiltersForm {
             { desktop: 'categoryFilter', mobile: 'categoryFilter_mobile' },
             { desktop: 'fieldFilter', mobile: 'fieldFilter_mobile' },
             { desktop: 'shepherdFilter', mobile: 'shepherdFilter_mobile' },
-            { desktop: 'churchFilter', mobile: 'churchFilter_mobile' }
+            { desktop: 'churchFilter', mobile: 'churchFilter_mobile' },
+            { desktop: 'userFilter', mobile: 'userFilter_mobile' }
         ];
 
         select2Fields.forEach(({ desktop, mobile }) => {

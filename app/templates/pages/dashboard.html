@@ -22,8 +22,9 @@
                     <div class="row d-none d-md-flex">
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from">
-                                <label for="date_from">
+                                <input type="date" name="start_date" id="startDateFilter" class="form-control" 
+                                       value="{{ selected_start_date|default:'' }}">
+                                <label for="startDateFilter">
                                     <i class="bi bi-calendar-date"></i> Data Inicial
                                 </label>
                             </div>
@@ -31,8 +32,9 @@
                         
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to">
-                                <label for="date_to">
+                                <input type="date" name="end_date" id="endDateFilter" class="form-control" 
+                                       value="{{ selected_end_date|default:'' }}">
+                                <label for="endDateFilter">
                                     <i class="bi bi-calendar-date"></i> Data Final
                                 </label>
                             </div>
@@ -85,7 +87,6 @@
                         </div>
                         {% endif %}
                         
-                        {% if user.is_admin %}
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="shepherd" id="shepherdFilter" class="form-control">
@@ -101,7 +102,6 @@
                                 </label>
                             </div>
                         </div>
-                        {% endif %}
                         
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
@@ -119,11 +119,26 @@
                             </div>
                         </div>
                         
+                        {% if user.is_admin %}
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="user" id="userFilter" class="form-control">
+                                    <option value="">Todos os usuários</option>
+                                    {% for user_obj in users %}
+                                        <option value="{{ user_obj.id }}" {% if selected_user == user_obj.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ user_obj.get_full_name|default:user_obj.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="userFilter">
+                                    <i class="bi bi-person"></i> Usuário
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <div class="col-12 d-flex align-items-end">
                             <div class="d-flex gap-2 justify-content-end w-100">
-                                <a href="{% url 'dashboard_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton" class="btn btn-success btn-sm" style="width: 120px;">
-                                    <i class="bi bi-file-pdf-fill"></i> PDF
-                                </a>
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
@@ -139,16 +154,18 @@
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from_mobile">
-                                    <label for="date_from_mobile">
+                                    <input type="date" name="start_date" id="startDateFilter_mobile" class="form-control" 
+                                           value="{{ selected_start_date|default:'' }}">
+                                    <label for="startDateFilter_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Inicial
                                     </label>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to_mobile">
-                                    <label for="date_to_mobile">
+                                    <input type="date" name="end_date" id="endDateFilter_mobile" class="form-control" 
+                                           value="{{ selected_end_date|default:'' }}">
+                                    <label for="endDateFilter_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Final
                                     </label>
                                 </div>
@@ -202,7 +219,6 @@
                                     </label>
                                 </div>
                             </div>
-                            {% if user.is_admin %}
                             <div class="col-6">
                                 <div class="form-floating mb-3">
                                     <select name="shepherd" id="shepherdFilter_mobile" class="form-control">
@@ -218,7 +234,6 @@
                                     </label>
                                 </div>
                             </div>
-                            {% endif %}
                         </div>
                         
                         <div class="row">
@@ -237,6 +252,21 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="user" id="userFilter_mobile" class="form-control">
+                                        <option value="">Todos os usuários</option>
+                                        {% for user_obj in users %}
+                                            <option value="{{ user_obj.id }}" {% if selected_user == user_obj.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ user_obj.get_full_name|default:user_obj.username }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="userFilter_mobile">
+                                        <i class="bi bi-person"></i> Usuário
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                         {% endif %}
                         
@@ -244,17 +274,10 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-search"></i> Filtrar
                             </button>
-                            <div class="row">
-                                <div class="col-6">
-                                    <a href="{% url 'dashboard_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton_mobile" class="btn btn-success w-100">
-                                        <i class="bi bi-file-pdf-fill"></i> PDF
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a href="{% url 'index' %}" class="btn btn-secondary w-100">
-                                        <i class="bi bi-x-circle"></i> Limpar
-                                    </a>
-                                </div>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'index' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -263,6 +286,7 @@
         </div>
     </div>
 </div>
+
 
 <div class="row">
     <!-- Cards de Estatísticas -->
@@ -274,7 +298,7 @@
                         <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
                             Total de Transações
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_transactions }}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><span id="totalTransactionsValue">0</span></div>
                     </div>
                     <div class="col-auto">
                         <i class="bi bi-list-ul fa-2x" style="color: #673ab7;"></i>
@@ -292,7 +316,7 @@
                         <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #28a745;">
                             Total de Entradas
                         </div>
-                        <div class="h5 mb-0 font-weight-bold" style="color: #28a745;">R$ {{ total_income|floatformat:2 }}</div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #28a745;">R$ <span id="totalIncomeValue">0,00</span></div>
                     </div>
                     <div class="col-auto">
                         <i class="bi bi-arrow-up-circle fa-2x" style="color: #28a745;"></i>
@@ -310,7 +334,7 @@
                         <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #ff6b6b;">
                             Total de Saídas
                         </div>
-                        <div class="h5 mb-0 font-weight-bold" style="color: #ff6b6b;">R$ {{ total_expense|floatformat:2 }}</div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #ff6b6b;">R$ <span id="totalExpenseValue">0,00</span></div>
                     </div>
                     <div class="col-auto">
                         <i class="bi bi-arrow-down-circle fa-2x" style="color: #ff6b6b;"></i>
@@ -328,9 +352,7 @@
                         <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
                             Saldo
                         </div>
-                        <div class="h5 mb-0 font-weight-bold" style="color: #673ab7;">
-                            R$ {{ balance|floatformat:2 }}
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #673ab7;">R$ <span id="balanceValue">0,00</span></div>
                     </div>
                     <div class="col-auto">
                         <i class="bi bi-calculator fa-2x" style="color: #673ab7;"></i>
@@ -341,57 +363,13 @@
     </div>
 </div>
 
-<!-- Gráfico de Entrada e Saída por Igreja -->
-{% if churches_individual_data %}
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Entradas e Saídas por Igrejas</h6>
-                {% if selected_category or selected_field or selected_church %}
-                    <small class="text-muted">
-                        {% if selected_category %}
-                            Categoria: {{ selected_category_name }}
-                        {% endif %}
-                        {% if selected_field %}
-                            {% if selected_category %} | {% endif %}
-                            Campo: {{ selected_field_name }}
-                        {% endif %}
-                        {% if selected_church %}
-                            {% if selected_category or selected_field %} | {% endif %}
-                            Igreja: {{ selected_church_name }}
-                        {% endif %}
-                    </small>
-                {% endif %}
-            </div>
-            <div class="card-body">
-                <div class="chart-container" id="churchesIndividualChartContainer">
-                    <canvas id="churchesIndividualChart"></canvas>
-                </div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <div class="legend-color legend-income"></div>
-                        <span>Entradas</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color legend-expense"></div>
-                        <span>Saídas</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Gráfico por Igreja -->
-{% if churches_data %}
+<!-- Gráfico de Linhas - Entradas e Saídas -->
 <div class="row">
     <div class="col-12">
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">
-                    Entradas e Saídas por Campo
+                    <i class="bi bi-graph-up"></i> Entradas e Saídas
                 </h6>
                 {% if selected_category or selected_field or selected_church %}
                     <small class="text-muted">
@@ -410,368 +388,269 @@
                 {% endif %}
             </div>
             <div class="card-body">
-                <div class="chart-container" id="churchChartContainer">
-                    <canvas id="churchChart"></canvas>
-                </div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <div class="legend-color legend-income"></div>
-                        <span>Entradas</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color legend-expense"></div>
-                        <span>Saídas</span>
-                    </div>
+                <div class="chart-container" id="monthlyChartContainer" style="height: 400px;">
+                    <canvas id="monthlyChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endif %}
-
-<!-- Gráfico por Categoria -->
-{% if categories_data %}
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Entradas e Saídas por Categoria</h6>
-                {% if selected_category %}
-                    <small class="text-muted">
-                        Categoria: {{ selected_category_name }}
-                    </small>
-                {% endif %}
-            </div>
-            <div class="card-body">
-                <div class="chart-container" id="categoryChartContainer">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <div class="legend-color legend-income"></div>
-                        <span>Entradas</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color legend-expense"></div>
-                        <span>Saídas</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-
-<!-- Dados para o gráfico -->
-<script>
-    var categoriesData = {{ categories_data|safe|default:"[]" }};
-    var churchesData = {{ churches_data|safe|default:"[]" }};
-    var churchesIndividualData = {{ churches_individual_data|safe|default:"[]" }};
-</script>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📊 Iniciando carregamento dos gráficos da dashboard...');
+    
+    // Verificar se Chart.js está carregado
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não está carregado!');
+        return;
+    }
+    console.log('✅ Chart.js carregado com sucesso');
 
-    // Gráfico por Igreja
-    if (typeof churchesData !== 'undefined' && churchesData && churchesData.length > 0) {
-        var churchCtx = document.getElementById('churchChart');
-        if (churchCtx) {
-            var churchLabels = churchesData.map(function(item) {
-                return item.name;
-            });
-            
-            var churchIncomeData = churchesData.map(function(item) {
-                return item.income;
-            });
-            
-            var churchExpenseData = churchesData.map(function(item) {
-                return item.expense;
-            });
-            
-            // Calcular espessura dinâmica das barras baseada no número de itens
-            var dynamicBarThickness = Math.max(15, Math.min(40, 400 / churchLabels.length));
-            
-            // Ajustar altura dinâmica do container baseada no número de itens
-            var dynamicHeight = Math.max(300, churchLabels.length * 35 + 100);
-            var chartContainer = document.getElementById('churchChartContainer');
-            if (chartContainer) {
-                chartContainer.style.height = dynamicHeight + 'px';
+
+    // Funções utilitárias
+    function toCurrencyBR(value) {
+        return Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function getCsrfToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : '';
+    }
+
+    function readFiltersFromForm() {
+        const val = id => (document.getElementById(id) || {}).value || '';
+        const start = val('startDateFilter') || val('startDateFilter_mobile');
+        const end = val('endDateFilter') || val('endDateFilter_mobile');
+        const category = val('categoryFilter') || val('categoryFilter_mobile');
+        const type = val('typeFilter') || val('typeFilter_mobile');
+        const field = val('fieldFilter') || val('fieldFilter_mobile');
+        const shepherd = val('shepherdFilter') || val('shepherdFilter_mobile');
+        const church = val('churchFilter') || val('churchFilter_mobile');
+        const user = val('userFilter') || val('userFilter_mobile');
+        // Enviar sinalizador para forçar a série mensal do ano atual quando usuário não aplicou filtro de data
+        const y = new Date().getFullYear();
+        const isAnnualRange = (s, e) => (s === `${y}-01-01` && e === `${y}-12-31`);
+        const monthly_use_current_year = (!start || !end || isAnnualRange(start, end));
+        return {
+            date_from: start,
+            date_to: end,
+            category: category,
+            type: type,
+            field: field,
+            shepherd: shepherd,
+            church: church,
+            user: user,
+            monthly_use_current_year: monthly_use_current_year,
+        };
+    }
+
+    async function fetchSummaryAndRender(payload) {
+        const resp = await fetch('/transactions/summary/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload || {})
+        });
+        if (!resp.ok) throw new Error('Erro ao carregar resumo do dashboard');
+        const data = await resp.json();
+        const totals = data.totals || {};
+        const elTx = document.getElementById('totalTransactionsValue');
+        const elIn = document.getElementById('totalIncomeValue');
+        const elEx = document.getElementById('totalExpenseValue');
+        const elBa = document.getElementById('balanceValue');
+        if (elTx) elTx.textContent = Number(totals.total_transactions || 0).toLocaleString('pt-BR');
+        if (elIn) elIn.textContent = toCurrencyBR(totals.total_income || 0);
+        if (elEx) elEx.textContent = toCurrencyBR(totals.total_expense || 0);
+        if (elBa) elBa.textContent = toCurrencyBR(totals.balance || 0);
+
+        const monthlyData = data.monthly_data || [];
+        const monthlyCtx = document.getElementById('monthlyChart');
+        if (!monthlyCtx) return;
+        if (window.monthlyChartInstance) window.monthlyChartInstance.destroy();
+        if (!monthlyData.length) {
+            const monthlyContainer = document.getElementById('monthlyChartContainer');
+            if (monthlyContainer) {
+                monthlyContainer.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center text-muted"><i class="bi bi-graph-up fs-1 mb-3"></i><p>Nenhum dado disponível para o período selecionado</p></div></div>';
             }
-            
-            new Chart(churchCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: churchLabels,
-                    datasets: [{
-                        label: 'Entradas',
-                        data: churchIncomeData,
-                        backgroundColor: '#28a745',
-                        borderColor: '#28a745',
-                        borderWidth: 1,
-                        barThickness: dynamicBarThickness,
-                        maxBarThickness: dynamicBarThickness + 5
-                    }, {
-                        label: 'Saídas',
-                        data: churchExpenseData,
-                        backgroundColor: '#ff6b6b',
-                        borderColor: '#ff6b6b',
-                        borderWidth: 1,
-                        barThickness: dynamicBarThickness,
-                        maxBarThickness: dynamicBarThickness + 5
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'R$ ' + value.toLocaleString('pt-BR', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    });
-                                }
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.x !== null) {
-                                        label += 'R$ ' + context.parsed.x.toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        });
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
+            return;
+        }
+        const labels = monthlyData.map(p => p.month);
+        const incomeSeries = monthlyData.map(p => p.income);
+        const expenseSeries = monthlyData.map(p => p.expense);
+        const balanceSeries = monthlyData.map((p, i) => (incomeSeries[i] - expenseSeries[i]));
+        window.monthlyChartInstance = new Chart(monthlyCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Entradas',
+                    data: incomeSeries,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#28a745',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }, {
+                    label: 'Saídas',
+                    data: expenseSeries,
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#ff6b6b',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }, {
+                    label: 'Saldo',
+                    data: balanceSeries,
+                    borderColor: '#673ab7',
+                    backgroundColor: 'rgba(103, 58, 183, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointBackgroundColor: '#673ab7',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                scales: {
+                    x: { display: true, title: { display: true, text: 'Meses' } },
+                    y: {
+                        display: true,
+                        title: { display: true, text: 'Valor (R$)' },
+                        beginAtZero: true,
+                        ticks: { callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
                     }
-                }
+                },
+                plugins: { legend: { display: true, position: 'top' } }
+            }
+        });
+    }
+
+    // Definir datas padrão (início e fim do ano atual)
+    function getCurrentYearBounds() {
+        const now = new Date();
+        const year = now.getFullYear();
+        return { start: `${year}-01-01`, end: `${year}-12-31` };
+    }
+
+    function applyDefaultDatesIfEmpty() {
+        const params = new URLSearchParams(window.location.search);
+        const hasStart = params.has('start_date');
+        const hasEnd = params.has('end_date');
+
+        const startDesktop = document.getElementById('startDateFilter');
+        const endDesktop = document.getElementById('endDateFilter');
+        const startMobile = document.getElementById('startDateFilter_mobile');
+        const endMobile = document.getElementById('endDateFilter_mobile');
+
+        // Apenas aplicar se não houver parâmetros na URL
+        if (!hasStart || !hasEnd) {
+            const { start, end } = getCurrentYearBounds();
+
+            // Preencher inputs se estiverem vazios
+            if (startDesktop && !startDesktop.value) startDesktop.value = start;
+            if (endDesktop && !endDesktop.value) endDesktop.value = end;
+            if (startMobile && !startMobile.value) startMobile.value = start;
+            if (endMobile && !endMobile.value) endMobile.value = end;
+
+            // Atualizar URL
+            if (!hasStart) params.set('start_date', start);
+            if (!hasEnd) params.set('end_date', end);
+            const newUrl = window.location.pathname + '?' + params.toString();
+            window.history.replaceState({}, '', newUrl);
+        }
+    }
+
+    const chartFilterForm = document.getElementById('chartFilterForm');
+    if (chartFilterForm) {
+        chartFilterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+        });
+    }
+
+    // Inicial: preencher com ano atual e buscar via resumo
+    (function init() {
+        const { start, end } = getCurrentYearBounds();
+        const startDesktop = document.getElementById('startDateFilter');
+        const endDesktop = document.getElementById('endDateFilter');
+        const startMobile = document.getElementById('startDateFilter_mobile');
+        const endMobile = document.getElementById('endDateFilter_mobile');
+
+        if (startDesktop && !startDesktop.value) startDesktop.value = start;
+        if (endDesktop && !endDesktop.value) endDesktop.value = end;
+        if (startMobile && !startMobile.value) startMobile.value = start;
+        if (endMobile && !endMobile.value) endMobile.value = end;
+
+        fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error('Erro ao carregar dados do dashboard:', err));
+    })();
+    
+    // Sincronizar filtros desktop e mobile
+    function syncDateFilters() {
+        const startDateDesktop = document.getElementById('startDateFilter');
+        const endDateDesktop = document.getElementById('endDateFilter');
+        const startDateMobile = document.getElementById('startDateFilter_mobile');
+        const endDateMobile = document.getElementById('endDateFilter_mobile');
+        
+        if (startDateDesktop && startDateMobile) {
+            startDateDesktop.addEventListener('change', function() {
+                startDateMobile.value = this.value;
+            });
+            startDateMobile.addEventListener('change', function() {
+                startDateDesktop.value = this.value;
+            });
+        }
+        
+        if (endDateDesktop && endDateMobile) {
+            endDateDesktop.addEventListener('change', function() {
+                endDateMobile.value = this.value;
+            });
+            endDateMobile.addEventListener('change', function() {
+                endDateDesktop.value = this.value;
             });
         }
     }
     
-    // Gráfico por Categoria
-    if (typeof categoriesData !== 'undefined' && categoriesData && categoriesData.length > 0) {
-        var categoryCtx = document.getElementById('categoryChart');
-        if (categoryCtx) {
-            var labels = categoriesData.map(function(item) {
-                return item.category;
-            });
-            
-            var incomeData = categoriesData.map(function(item) {
-                return item.income;
-            });
-            
-            var expenseData = categoriesData.map(function(item) {
-                return item.expense;
-            });
-            
-            // Calcular espessura dinâmica das barras baseada no número de itens
-            var dynamicBarThickness = Math.max(30, Math.min(50, 700 / labels.length));
-            
-            // Ajustar altura dinâmica do container baseada no número de itens
-            var dynamicHeight = Math.max(400, labels.length * 80 + 250);
-            var categoryChartContainer = document.getElementById('categoryChartContainer');
-            if (categoryChartContainer) {
-                categoryChartContainer.style.height = dynamicHeight + 'px';
-            }
-            
-            new Chart(categoryCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Entradas',
-                        data: incomeData,
-                        backgroundColor: '#28a745',
-                        borderColor: '#28a745',
-                        borderWidth: 1,
-                        barThickness: dynamicBarThickness,
-                        maxBarThickness: dynamicBarThickness + 5,
-                        categoryPercentage: 0.6,
-                        barPercentage: 0.5
-                    }, {
-                        label: 'Saídas',
-                        data: expenseData,
-                        backgroundColor: '#ff6b6b',
-                        borderColor: '#ff6b6b',
-                        borderWidth: 1,
-                        barThickness: dynamicBarThickness,
-                        maxBarThickness: dynamicBarThickness + 5,
-                        categoryPercentage: 0.6,
-                        barPercentage: 0.5
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'R$ ' + value.toLocaleString('pt-BR', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    });
-                                }
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                font: {
-                                    size: 12
-                                },
-                                padding: 15
-                            },
-                            grid: {
-                                display: false
-                            },
-                            offset: true
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.x !== null) {
-                                        label += 'R$ ' + context.parsed.x.toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        });
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+    // Inicializar sincronização
+    syncDateFilters();
+    
+    // Verificar se todos os gráficos foram criados
+    console.log('✅ Carregamento dos gráficos concluído!');
+    
+    // Verificar se há elementos de gráfico sem dados
+    const chartElements = [
+        'monthlyChart'
+    ];
+    
+    chartElements.forEach(elementId => {
+        const element = document.getElementById(elementId);
+        const container = document.getElementById(elementId + 'Container');
+        
+        if (element && container) {
+            console.log(`📊 ${elementId}: Elemento encontrado`);
+        } else {
+            console.log(`⚠️ ${elementId}: Elemento não encontrado`);
         }
-    }
-
-    // Gráfico de Entrada e Saída por Igreja Individual
-    if (typeof churchesIndividualData !== 'undefined' && churchesIndividualData && churchesIndividualData.length > 0) {
-        var churchesIndividualCtx = document.getElementById('churchesIndividualChart');
-        if (churchesIndividualCtx) {
-            var churchesIndividualLabels = churchesIndividualData.map(function(item) {
-                return item.name;
-            });
-            
-            var churchesIndividualIncomeData = churchesIndividualData.map(function(item) {
-                return item.income;
-            });
-            
-            var churchesIndividualExpenseData = churchesIndividualData.map(function(item) {
-                return item.expense;
-            });
-            
-            // Calcular espessura dinâmica das barras baseada no número de itens
-            var dynamicBarThickness = Math.max(15, Math.min(40, 400 / churchesIndividualLabels.length));
-            
-            // Ajustar altura dinâmica do container baseada no número de itens
-            var dynamicHeight = Math.max(300, churchesIndividualLabels.length * 35 + 100);
-            var churchesIndividualChartContainer = document.getElementById('churchesIndividualChartContainer');
-            if (churchesIndividualChartContainer) {
-                churchesIndividualChartContainer.style.height = dynamicHeight + 'px';
-            }
-            
-            new Chart(churchesIndividualCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: churchesIndividualLabels,
-                    datasets: [{
-                        label: 'Entradas',
-                        data: churchesIndividualIncomeData,
-                        backgroundColor: '#28a745',
-                        borderColor: '#28a745',
-                        borderWidth: 1,
-                        barThickness: dynamicBarThickness,
-                        maxBarThickness: dynamicBarThickness + 5
-                    }, {
-                        label: 'Saídas',
-                        data: churchesIndividualExpenseData,
-                        backgroundColor: '#ff6b6b',
-                        borderColor: '#ff6b6b',
-                        borderWidth: 1,
-                        barThickness: dynamicBarThickness,
-                        maxBarThickness: dynamicBarThickness + 5
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'R$ ' + value.toLocaleString('pt-BR', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    });
-                                }
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.x !== null) {
-                                        label += 'R$ ' + context.parsed.x.toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        });
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }
+    });
 });
 </script>
 

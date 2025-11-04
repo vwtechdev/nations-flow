@@ -16,8 +16,9 @@ RUN apt-get update && apt-get install -y \
 # Diretório do app
 WORKDIR /app
 
-# Copia requirements e instala
+# Copia requirements e instala os requerimentos
 COPY requirements.txt /app/
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia o restante do código

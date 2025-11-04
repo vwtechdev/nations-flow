@@ -11,6 +11,7 @@ urlpatterns = [
     # Transações
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/api/', views.transaction_list_api, name='transaction_list_api'),
+    path('transactions/summary/', views.transaction_summary_api, name='transaction_summary_api'),
     path('transactions/create/', views.transaction_create, name='transaction_create'),
     path('transactions/<int:pk>/view/', views.transaction_view, name='transaction_view'),
     path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
@@ -18,10 +19,12 @@ urlpatterns = [
     
     # API para buscar igrejas por campo
     path('api/churches-by-field/<int:field_id>/', views.churches_by_field_api, name='churches_by_field_api'),
+    # API para buscar pastores por campo
+    path('api/shepherds-by-field/<int:field_id>/', views.shepherds_by_field_api, name='shepherds_by_field_api'),
     # API para buscar informações da categoria
     path('api/category/<int:category_id>/', views.category_info_api, name='category_info_api'),
     path('transactions/export-pdf/', views.transaction_export_pdf, name='transaction_export_pdf'),
-    path('dashboard/export-pdf/', views.dashboard_export_pdf, name='dashboard_export_pdf'),
+    path('transactions/export-xlsx/', views.transaction_export_xlsx, name='transaction_export_xlsx'),
     
     # Categorias
     path('categories/', views.category_list, name='category_list'),

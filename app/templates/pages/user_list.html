@@ -21,6 +21,12 @@
         color: white !important;
     }
     
+    /* Destaque para supervisores */
+    .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+    }
+    
     /* Melhorar aparência da tabela */
     .table th {
         background-color: #f8f9fa;
@@ -95,7 +101,7 @@
                                         <td>{{ user.get_full_name }}</td>
                                         <td>{{ user.email }}</td>
                                         <td>
-                                            <span class="badge {% if user.role == 'admin' %}bg-info{% else %}bg-primary{% endif %}">
+                                            <span class="badge {% if user.role == 'admin' %}bg-info{% elif user.role == 'supervisor' %}bg-warning{% else %}bg-primary{% endif %}">
                                                 {{ user.get_role_display }}
                                             </span>
                                         </td>
@@ -171,7 +177,7 @@
                                     <div class="mobile-card-body">
                                         <div class="mobile-card-row">
                                             <span class="mobile-card-label">Função:</span>
-                                            <span class="mobile-card-badge {% if user.role == 'admin' %}info{% else %}primary{% endif %}">
+                                            <span class="mobile-card-badge {% if user.role == 'admin' %}info{% elif user.role == 'supervisor' %}warning{% else %}primary{% endif %}">
                                                 {{ user.get_role_display }}
                                             </span>
                                         </div>

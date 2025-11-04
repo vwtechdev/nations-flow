@@ -49,6 +49,7 @@ class User(AbstractUser):
     ROLE_CHOICES = [
         ('admin', 'Administrador'),
         ('treasurer', 'Tesoureiro'),
+        ('supervisor', 'Supervisor'),
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='treasurer', verbose_name="Função")
@@ -75,6 +76,9 @@ class User(AbstractUser):
     
     def is_treasurer(self):
         return self.role == 'treasurer'
+    
+    def is_supervisor(self):
+        return self.role == 'supervisor'
     
     def get_fields(self):
         """Retorna os campos do usuário"""

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
 from django.db.models import Sum, Q, Count
+from django.db import connection
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
@@ -26,13 +27,63 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 import os
+import json
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
+
+# Função helper para obter transações baseado no role do usuário
+def get_transactions_for_user(user):
+    """
+    Retorna QuerySet de transações baseado no role do usuário.
+    
+    - Admin: Todas as transações
+    - Tesoureiro: Apenas suas próprias transações
+    - Supervisor: Suas próprias transações + transações de tesoureiros que compartilham campos
+    """
+    if user.is_admin():
+        return Transaction.objects.all()
+    
+    elif user.is_treasurer():
+        return Transaction.objects.filter(user=user)
+    
+    elif user.is_supervisor():
+        # Obter campos do supervisor
+        supervisor_fields = user.fields.all()
+        
+        if not supervisor_fields.exists():
+            # Se não tem campos, retorna apenas suas próprias transações
+            return Transaction.objects.filter(user=user)
+        
+        # Obter igrejas dos campos do supervisor
+        supervisor_churches = Church.objects.filter(field__in=supervisor_fields)
+        
+        # Obter tesoureiros que compartilham pelo menos um campo com o supervisor
+        treasurer_ids = User.objects.filter(
+            role='treasurer',
+            fields__in=supervisor_fields
+        ).distinct().values_list('id', flat=True)
+        
+        # Retornar: transações próprias + transações de tesoureiros em igrejas dos campos do supervisor
+        # Nota: Q já está importado no início do arquivo
+        return Transaction.objects.filter(
+            Q(user=user) |  # Suas próprias transações
+            Q(
+                user_id__in=treasurer_ids,
+                church__in=supervisor_churches
+            )  # Transações de tesoureiros dos mesmos campos
+        ).distinct()
+    
+    else:
+        return Transaction.objects.none()
 
 # Views de Autenticação
 def login_view(request):
     if request.user.is_authenticated:
-        # Redirecionar tesoureiros para a lista de transações
+        # Redirecionar tesoureiros e supervisores para a lista de transações
         if not request.user.is_admin():
             return redirect('transaction_list')
+        # Admin vai para o dashboard
         return redirect('index')
     
     if request.method == 'POST':
@@ -62,9 +113,10 @@ def login_view(request):
                 next_url = request.GET.get('next')
                 if next_url and next_url != '/change-password/':
                     return redirect(next_url)
-                # Redirecionar tesoureiros para a lista de transações
+                # Redirecionar tesoureiros e supervisores para a lista de transações
                 if not user.is_admin():
                     return redirect('transaction_list')
+                # Admin vai para o dashboard
                 return redirect('index')
     else:
         form = EmailAuthenticationForm()
@@ -94,7 +146,7 @@ def logout_view(request):
 def change_password(request):
     """Força o usuário a trocar a senha no primeiro login"""
     if request.user.password_changed:
-        # Redirecionar tesoureiros para a lista de transações
+        # Redirecionar tesoureiros e supervisores para a lista de transações
         if not request.user.is_admin():
             return redirect('transaction_list')
         return redirect('index')
@@ -126,53 +178,54 @@ def change_password(request):
 @password_changed_required
 def index(request):
     """Dashboard principal - apenas para administradores"""
-    # Redirecionar tesoureiros para a lista de transações
+    # Redirecionar tesoureiros e supervisores para a lista de transações
     if not request.user.is_admin():
         return redirect('transaction_list')
     
-    from datetime import datetime, date
-    from calendar import monthrange
-    
     # Obter filtros da URL
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    selected_start_date = request.GET.get('start_date', '')
+    selected_end_date = request.GET.get('end_date', '')
     selected_category = request.GET.get('category', '')
     selected_type = request.GET.get('type', '')
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
     selected_shepherd = request.GET.get('shepherd', '')
+    selected_user = request.GET.get('user', '')
     
-    # Definir datas padrão se não fornecidas
+    # Definir datas padrão se não fornecidas (ano atual)
     today = date.today()
-    if not date_from:
-        # Primeiro dia do mês atual
-        first_day = date(today.year, today.month, 1)
-        date_from = first_day.strftime('%Y-%m-%d')
+    if not selected_start_date:
+        # Primeiro dia do ano atual
+        selected_start_date = date(today.year, 1, 1).strftime('%Y-%m-%d')
+    if not selected_end_date:
+        # Último dia do ano atual
+        selected_end_date = date(today.year, 12, 31).strftime('%Y-%m-%d')
     
-    if not date_to:
-        # Último dia do mês atual
-        last_day = date(today.year, today.month, monthrange(today.year, today.month)[1])
-        date_to = last_day.strftime('%Y-%m-%d')
+    # Converter para objetos date para cálculos
+    start_date = datetime.strptime(selected_start_date, '%Y-%m-%d').date()
+    end_date = datetime.strptime(selected_end_date, '%Y-%m-%d').date()
     
     context = {
         'title': 'Dashboard',
         'user': request.user,
-        'date_from': date_from,
-        'date_to': date_to,
+        'selected_start_date': selected_start_date,
+        'selected_end_date': selected_end_date,
         'selected_category': selected_category,
         'selected_type': selected_type,
         'selected_field': selected_field,
         'selected_church': selected_church,
         'selected_shepherd': selected_shepherd,
+        'selected_user': selected_user,
         'categories': Category.objects.all(),
-        'current_year': datetime.now().year
+        'current_year': today.year
     }
     
-    # Adicionar campos, igrejas e pastores ao contexto baseado no tipo de usuário
+    # Adicionar campos, igrejas, pastores e usuários ao contexto baseado no tipo de usuário
     if request.user.is_admin():
         context['fields'] = Field.objects.all()
         context['churches'] = Church.objects.all()
         context['shepherds'] = Shepherd.objects.all()
+        context['users'] = User.objects.exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
     else:
         # Tesoureiro vê seus campos e suas igrejas
         if request.user.fields.exists():
@@ -184,23 +237,21 @@ def index(request):
             context['fields'] = Field.objects.none()
             context['churches'] = Church.objects.none()
             context['shepherds'] = Shepherd.objects.none()
+        context['users'] = User.objects.none()
     
-    # Base de transações (todos para admin, apenas do usuário para tesoureiro)
+    # Base de transações
     if request.user.is_admin():
         base_transactions = Transaction.objects.all()
+    elif request.user.is_supervisor():
+        base_transactions = get_transactions_for_user(request.user)
     else:
         base_transactions = Transaction.objects.filter(user=request.user)
     
     # Aplicar filtros
     filtered_transactions = base_transactions
     
-    # Filtro por data inicial
-    if date_from:
-        filtered_transactions = filtered_transactions.filter(date__gte=date_from)
-    
-    # Filtro por data final
-    if date_to:
-        filtered_transactions = filtered_transactions.filter(date__lte=date_to)
+    # Filtro por período de datas
+    filtered_transactions = filtered_transactions.filter(date__gte=start_date, date__lte=end_date)
     
     # Filtro por categoria
     if selected_category:
@@ -218,9 +269,13 @@ def index(request):
     if selected_church:
         filtered_transactions = filtered_transactions.filter(church_id=selected_church)
     
-    # Filtro por pastor (apenas para administradores)
-    if selected_shepherd and request.user.is_admin():
+    # Filtro por pastor
+    if selected_shepherd:
         filtered_transactions = filtered_transactions.filter(church__shepherd_id=selected_shepherd)
+    
+    # Filtro por usuário (apenas para administradores)
+    if selected_user and request.user.is_admin():
+        filtered_transactions = filtered_transactions.filter(user_id=selected_user)
     
     # Calcular totais
     total_transactions = filtered_transactions.count()
@@ -263,12 +318,13 @@ def index(request):
         income = field_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         expense = field_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
         
-        # Mostrar todos os campos, mesmo com valores zero para melhor visibilidade
-        churches_data.append({
-            'name': field.name,
-            'income': float(income),
-            'expense': float(expense)
-        })
+        # Mostrar apenas campos com valores maiores que zero
+        if income > 0 or expense > 0:
+            churches_data.append({
+                'name': field.name,
+                'income': float(income),
+                'expense': float(expense)
+            })
     
     # Ordenar por nome do campo
     churches_data.sort(key=lambda x: x['name'])
@@ -290,16 +346,92 @@ def index(request):
         income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
         
-        # Mostrar todas as igrejas, mesmo sem transações
-        churches_individual_data.append({
-            'name': church.name,
-            'field': church.field.name if church.field else 'Sem Campo',
-            'income': float(income),
-            'expense': float(expense)
-        })
+        # Mostrar apenas igrejas com valores maiores que zero
+        if income > 0 or expense > 0:
+            churches_individual_data.append({
+                'name': church.name,
+                'field': church.field.name if church.field else 'Sem Campo',
+                'income': float(income),
+                'expense': float(expense)
+            })
     
     # Ordenar por nome da igreja
     churches_individual_data.sort(key=lambda x: x['name'])
+    
+    # Dados mensais para o gráfico: apenas meses entre start_date e end_date
+    monthly_data = []
+
+    # Nomes dos meses em português
+    month_names = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ]
+
+    # Construir lista de meses do intervalo
+    months_in_period = []
+    cursor = date(start_date.year, start_date.month, 1)
+    while cursor <= end_date:
+        month_start = date(cursor.year, cursor.month, 1)
+        # Último dia do mês
+        if cursor.month == 12:
+            month_end = date(cursor.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(cursor.year, cursor.month + 1, 1) - timedelta(days=1)
+        # Cortar para o intervalo selecionado
+        effective_start = max(month_start, start_date)
+        effective_end = min(month_end, end_date)
+        months_in_period.append({
+            'year': cursor.year,
+            'month': cursor.month,
+            'month_start': effective_start,
+            'month_end': effective_end
+        })
+        # Avançar para próximo mês
+        if cursor.month == 12:
+            cursor = date(cursor.year + 1, 1, 1)
+        else:
+            cursor = date(cursor.year, cursor.month + 1, 1)
+
+    # Calcular valores por mês
+    for month_info in months_in_period:
+        month_start = month_info['month_start']
+        month_end = month_info['month_end']
+
+        # Base de transações por perfil
+        if request.user.is_admin():
+            month_transactions = Transaction.objects.all()
+        else:
+            if request.user.fields.exists():
+                user_churches = Church.objects.filter(field__in=request.user.fields.all())
+                month_transactions = Transaction.objects.filter(church__in=user_churches)
+            else:
+                month_transactions = Transaction.objects.none()
+        # Filtros do mês e demais filtros
+        month_transactions = month_transactions.filter(date__gte=month_start, date__lte=month_end)
+        if selected_category:
+            month_transactions = month_transactions.filter(category_id=selected_category)
+        if selected_type:
+            month_transactions = month_transactions.filter(type=selected_type)
+        if selected_field:
+            month_transactions = month_transactions.filter(church__field_id=selected_field)
+        if selected_church:
+            month_transactions = month_transactions.filter(church_id=selected_church)
+        if selected_shepherd:
+            month_transactions = month_transactions.filter(church__shepherd_id=selected_shepherd)
+        if selected_user and request.user.is_admin():
+            month_transactions = month_transactions.filter(user_id=selected_user)
+        month_income = month_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        month_expense = month_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+
+        month_balance = float(month_income) - float(month_expense)
+        monthly_data.append({
+            'month': f"{month_names[month_info['month'] - 1]}/{month_info['year']}",
+            'month_number': month_info['month'],
+            'year': month_info['year'],
+            'income': float(month_income),
+            'expense': float(month_expense),
+            'balance': month_balance
+        })
     
     # Transações recentes (últimas 10)
     recent_transactions = filtered_transactions.order_by('-date')[:10]
@@ -322,7 +454,9 @@ def index(request):
         'balance': balance,
         'categories_data': categories_data,
         'churches_data': churches_data,
-        'churches_individual_data': churches_individual_data, # Adicionado
+        'churches_individual_data': churches_individual_data,
+        'monthly_data': monthly_data,  # Dados mensais para o gráfico de linhas
+        'monthly_data_json': json.dumps(monthly_data),
         'recent_transactions': recent_transactions,
         'access_logs': access_logs,
         'selected_category_name': Category.objects.get(id=selected_category).name if selected_category else None,
@@ -337,20 +471,14 @@ def index(request):
 @admin_or_treasurer_required
 def transaction_list(request):
     """Lista de transações"""
-    from datetime import date
-    from calendar import monthrange
     
     if request.user.is_admin():
         transactions = Transaction.objects.all()
+    elif request.user.is_supervisor():
+        transactions = get_transactions_for_user(request.user)
     else:
-        # Tesoureiros veem apenas transações de suas igrejas
-        if request.user.fields.exists():
-            user_churches = Church.objects.filter(field__in=request.user.fields.all())
-            transactions = Transaction.objects.filter(church__in=user_churches)
-        else:
-            # Se o usuário não tem campos, mostrar mensagem de erro
-            messages.error(request, 'Você não tem campos associados. Entre em contato com o administrador.')
-            return redirect('index')
+        # Tesoureiro: ver apenas transações criadas por ele
+        transactions = Transaction.objects.filter(user=request.user)
     
     # Filtros
     search = request.GET.get('search', '')
@@ -361,6 +489,7 @@ def transaction_list(request):
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
     selected_shepherd = request.GET.get('shepherd', '')
+    selected_user = request.GET.get('user', '')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -406,9 +535,13 @@ def transaction_list(request):
     if selected_church:
         transactions = transactions.filter(church_id=selected_church)
     
-    # Filtro por pastor (apenas para administradores)
-    if selected_shepherd and request.user.is_admin():
+    # Filtro por pastor
+    if selected_shepherd:
         transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+    
+    # Filtro por usuário (apenas para administradores)
+    if selected_user and request.user.is_admin():
+        transactions = transactions.filter(user_id=selected_user)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -421,6 +554,9 @@ def transaction_list(request):
         fields = Field.objects.all()
         churches = Church.objects.all()
         shepherds = Shepherd.objects.all()
+        users = User.objects.exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
+        print(f"DEBUG VIEW - Usuários carregados: {users.count()}")
+        print(f"DEBUG VIEW - Usuário atual é admin: {request.user.is_admin()}")
         if selected_field:
             churches = churches.filter(field_id=selected_field)
         if selected_shepherd:
@@ -431,6 +567,7 @@ def transaction_list(request):
             fields = request.user.fields.all()
             churches = Church.objects.filter(field__in=request.user.fields.all())
             shepherds = Shepherd.objects.filter(church__field__in=request.user.fields.all()).distinct()
+            users = User.objects.none()
             
             # Se o usuário tem múltiplos campos, permitir filtro por campo
             if request.user.fields.count() > 1 and selected_field:
@@ -452,6 +589,7 @@ def transaction_list(request):
         'fields': fields,
         'churches': churches,
         'shepherds': shepherds,
+        'users': users,
         'category_id': category_id,
         'selected_category': category_id,
         'transaction_type': transaction_type,
@@ -461,6 +599,7 @@ def transaction_list(request):
         'selected_field': selected_field,
         'selected_church': selected_church,
         'selected_shepherd': selected_shepherd,
+        'selected_user': selected_user,
         'selected_field_name': selected_field_name,
         'selected_church_name': selected_church_name,
         'total_transactions': total_transactions,
@@ -477,18 +616,17 @@ def transaction_list(request):
 @admin_or_treasurer_required
 def transaction_list_api(request):
     """API para listar transações com paginação AJAX"""
-    from datetime import date
-    from calendar import monthrange
     
     if request.user.is_admin():
         transactions = Transaction.objects.all()
+        print(f"DEBUG API - Usuário admin: {transactions.count()} transações totais")
+    elif request.user.is_supervisor():
+        transactions = get_transactions_for_user(request.user)
+        print(f"DEBUG API - Usuário supervisor: {transactions.count()} transações de tesoureiros")
     else:
-        # Tesoureiros veem apenas transações de suas igrejas
-        if request.user.fields.exists():
-            user_churches = Church.objects.filter(field__in=request.user.fields.all())
-            transactions = Transaction.objects.filter(church__in=user_churches)
-        else:
-            return JsonResponse({'error': 'Usuário sem campos associados'}, status=400)
+        # Tesoureiro: ver apenas transações criadas por ele
+        transactions = Transaction.objects.filter(user=request.user)
+        print(f"DEBUG API - Usuário tesoureiro: {transactions.count()} transações do próprio usuário")
     
     # Filtros
     category_id = request.GET.get('category', '')
@@ -498,6 +636,12 @@ def transaction_list_api(request):
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
     selected_shepherd = request.GET.get('shepherd', '')
+    selected_user = request.GET.get('user', '')
+    
+    # Debug para filtros
+    print(f"DEBUG API - shepherd: {selected_shepherd}")
+    print(f"DEBUG API - user: {selected_user}")
+    print(f"DEBUG API - request.GET: {dict(request.GET)}")
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -531,8 +675,26 @@ def transaction_list_api(request):
     if selected_church:
         transactions = transactions.filter(church_id=selected_church)
     
-    if selected_shepherd and request.user.is_admin():
+    if selected_shepherd:
+        print(f"DEBUG API - Aplicando filtro de pastor: {selected_shepherd}")
+        print(f"DEBUG API - Transações antes do filtro: {transactions.count()}")
+        
+        # Verificar se existem transações com esse pastor
+        shepherd_transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+        print(f"DEBUG API - Transações com pastor {selected_shepherd}: {shepherd_transactions.count()}")
+        
+        # Verificar se o pastor existe
+        try:
+            shepherd = Shepherd.objects.get(id=selected_shepherd)
+            print(f"DEBUG API - Pastor encontrado: {shepherd.name}")
+        except Shepherd.DoesNotExist:
+            print(f"DEBUG API - Pastor com ID {selected_shepherd} não existe!")
+        
         transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+        print(f"DEBUG API - Após filtro de pastor: {transactions.count()} transações")
+    
+    if selected_user and request.user.is_admin():
+        transactions = transactions.filter(user_id=selected_user)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -546,8 +708,8 @@ def transaction_list_api(request):
     start = (page - 1) * per_page
     end = start + per_page
     
-    # Obter transações da página atual
-    page_transactions = transactions.order_by('-date')[start:end]
+    # Obter transações da página atual (evitar N+1)
+    page_transactions = transactions.select_related('category', 'church', 'church__field', 'church__shepherd', 'user').order_by('-date')[start:end]
     
     # Preparar dados das transações
     transactions_data = []
@@ -560,10 +722,11 @@ def transaction_list_api(request):
             'category_name': transaction.category.name,
             'field_name': transaction.church.field.name,
             'church_name': transaction.church.name,
+            'shepherd_name': transaction.church.shepherd.name if transaction.church and transaction.church.shepherd else None,
             'desc': transaction.desc or '-',
             'value': float(transaction.value),
             'proof': transaction.proof.url if transaction.proof else None,
-            'user_name': transaction.user.get_full_name() if request.user.is_admin() else None,
+            'user_name': (transaction.user.get_full_name() or transaction.user.username) if transaction.user else None,
             'can_edit': request.user.is_admin(),
             'can_view': True,
         })
@@ -593,6 +756,210 @@ def transaction_list_api(request):
 
 @password_changed_required
 @admin_or_treasurer_required
+def transaction_summary_api(request):
+    """API de resumo para dashboard: retorna agregados e séries sem expor filtros na URL."""
+    if request.user.is_admin():
+        base_transactions = Transaction.objects.all()
+    elif request.user.is_supervisor():
+        base_transactions = get_transactions_for_user(request.user)
+        if not base_transactions.exists() and not request.user.fields.exists():
+            return JsonResponse({'error': 'Supervisor sem campos associados'}, status=400)
+    else:
+        if request.user.fields.exists():
+            user_churches = Church.objects.filter(field__in=request.user.fields.all())
+            base_transactions = Transaction.objects.filter(church__in=user_churches)
+        else:
+            return JsonResponse({'error': 'Usuário sem campos associados'}, status=400)
+
+    # Ler filtros do corpo JSON (POST) ou do GET como fallback, mas sem refletir na URL do front
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body or '{}')
+        except Exception:
+            payload = {}
+    else:
+        payload = {}
+
+    selected_category = str(payload.get('category', '')).strip()
+    selected_type = str(payload.get('type', '')).strip()
+    selected_field = str(payload.get('field', '')).strip()
+    selected_church = str(payload.get('church', '')).strip()
+    selected_shepherd = str(payload.get('shepherd', '')).strip()
+    selected_user = str(payload.get('user', '')).strip()
+    date_from = str(payload.get('date_from', '')).strip()
+    date_to = str(payload.get('date_to', '')).strip()
+    monthly_use_current_year = bool(payload.get('monthly_use_current_year', False))
+
+    # Datas padrão: mês atual
+    today = date.today()
+    if not date_from:
+        date_from = date(today.year, today.month, 1).strftime('%Y-%m-%d')
+    if not date_to:
+        last_day = monthrange(today.year, today.month)[1]
+        date_to = date(today.year, today.month, last_day).strftime('%Y-%m-%d')
+
+    filtered = base_transactions
+    if date_from:
+        filtered = filtered.filter(date__gte=date_from)
+    if date_to:
+        filtered = filtered.filter(date__lte=date_to)
+    if selected_category:
+        filtered = filtered.filter(category_id=selected_category)
+    if selected_type:
+        filtered = filtered.filter(type=selected_type)
+    if selected_field:
+        if request.user.is_admin():
+            filtered = filtered.filter(church__field_id=selected_field)
+        elif request.user.fields.count() > 1:
+            if request.user.fields.filter(id=selected_field).exists():
+                filtered = filtered.filter(church__field_id=selected_field)
+    if selected_church:
+        filtered = filtered.filter(church_id=selected_church)
+    if selected_shepherd:
+        filtered = filtered.filter(church__shepherd_id=selected_shepherd)
+    if selected_user and request.user.is_admin():
+        filtered = filtered.filter(user_id=selected_user)
+
+    # Totais
+    total_transactions = filtered.count()
+    total_income = filtered.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+    total_expense = filtered.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+    balance = float(total_income) - float(total_expense)
+
+    # Por categoria
+    categories_qs = Category.objects.all()
+    categories_data = []
+    for category in categories_qs:
+        cat_qs = filtered.filter(category=category)
+        income = cat_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = cat_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        if income > 0 or expense > 0:
+            categories_data.append({
+                'category': category.name,
+                'income': float(income),
+                'expense': float(expense)
+            })
+
+    # Por campo
+    if request.user.is_admin():
+        fields_qs = Field.objects.all()
+    else:
+        fields_qs = request.user.fields.all() if request.user.fields.exists() else Field.objects.none()
+    churches_data = []
+    for field in fields_qs:
+        field_qs = filtered.filter(church__field=field)
+        income = field_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = field_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        if income > 0 or expense > 0:
+            churches_data.append({
+                'name': field.name,
+                'income': float(income),
+                'expense': float(expense)
+            })
+    churches_data.sort(key=lambda x: x['name'])
+
+    # Por igreja
+    if request.user.is_admin():
+        churches_qs = Church.objects.all()
+    else:
+        churches_qs = Church.objects.filter(field__in=request.user.fields.all()) if request.user.fields.exists() else Church.objects.none()
+    churches_individual_data = []
+    for church in churches_qs:
+        ch_qs = filtered.filter(church=church)
+        income = ch_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = ch_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        if income > 0 or expense > 0:
+            churches_individual_data.append({
+                'name': church.name,
+                'field': church.field.name if church.field else 'Sem Campo',
+                'income': float(income),
+                'expense': float(expense)
+            })
+    churches_individual_data.sort(key=lambda x: x['name'])
+
+    # Série mensal entre intervalos
+    def _month_iter(start_date_str, end_date_str):
+        start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date_obj = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        cursor_date = date(start_date_obj.year, start_date_obj.month, 1)
+        months = []
+        while cursor_date <= end_date_obj:
+            if cursor_date.month == 12:
+                month_end = date(cursor_date.year, 12, 31)
+                next_first = date(cursor_date.year + 1, 1, 1)
+            else:
+                next_first = date(cursor_date.year, cursor_date.month + 1, 1)
+                month_end = next_first - timedelta(days=1)
+            eff_start = max(cursor_date, start_date_obj)
+            eff_end = min(month_end, end_date_obj)
+            months.append((cursor_date.year, cursor_date.month, eff_start, eff_end))
+            cursor_date = next_first
+        return months
+
+    month_names = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+    monthly_data = []
+    # Determinar intervalo da série mensal
+    if monthly_use_current_year:
+        current_year = today.year
+        series_start = date(current_year, 1, 1).strftime('%Y-%m-%d')
+        series_end = date(current_year, 12, 31).strftime('%Y-%m-%d')
+    else:
+        series_start = date_from
+        series_end = date_to
+    for year, month, m_start, m_end in _month_iter(series_start, series_end):
+        month_qs = base_transactions
+        month_qs = month_qs.filter(date__gte=m_start, date__lte=m_end)
+        if selected_category:
+            month_qs = month_qs.filter(category_id=selected_category)
+        if selected_type:
+            month_qs = month_qs.filter(type=selected_type)
+        if selected_field:
+            if request.user.is_admin():
+                month_qs = month_qs.filter(church__field_id=selected_field)
+            elif request.user.fields.count() > 1 and request.user.fields.filter(id=selected_field).exists():
+                month_qs = month_qs.filter(church__field_id=selected_field)
+        if selected_church:
+            month_qs = month_qs.filter(church_id=selected_church)
+        if selected_shepherd:
+            month_qs = month_qs.filter(church__shepherd_id=selected_shepherd)
+        if selected_user and request.user.is_admin():
+            month_qs = month_qs.filter(user_id=selected_user)
+        month_income = month_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        month_expense = month_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        monthly_data.append({
+            'month': f"{month_names[month-1]}/{year}",
+            'month_number': month,
+            'year': year,
+            'income': float(month_income),
+            'expense': float(month_expense),
+            'balance': float(month_income) - float(month_expense)
+        })
+
+    return JsonResponse({
+        'totals': {
+            'total_transactions': total_transactions,
+            'total_income': float(total_income),
+            'total_expense': float(total_expense),
+            'balance': balance,
+        },
+        'categories_data': categories_data,
+        'churches_data': churches_data,
+        'churches_individual_data': churches_individual_data,
+        'monthly_data': monthly_data,
+        'filters_applied': {
+            'date_from': date_from,
+            'date_to': date_to,
+            'category': selected_category or None,
+            'type': selected_type or None,
+            'field': selected_field or None,
+            'church': selected_church or None,
+            'shepherd': selected_shepherd or None,
+            'user': selected_user or None,
+        }
+    })
+
+@password_changed_required
+@admin_or_treasurer_required
 def transaction_create(request):
     """Criar nova transação"""
     if request.method == 'POST':
@@ -606,7 +973,6 @@ def transaction_create(request):
             if request.user.is_admin() and form.cleaned_data.get('create_reminder'):
                 try:
                     # Criar notificação de lembrete
-                    from datetime import datetime
                     reminder_date = datetime.combine(transaction.date, datetime.min.time())
                     
                     Notification.objects.create(
@@ -657,8 +1023,23 @@ def transaction_view(request, pk):
     
     # Verificar se o usuário tem acesso à transação
     if not request.user.is_admin():
-        # Tesoureiros só podem ver transações de suas igrejas
-        if not request.user.fields.filter(id=transaction.church.field.id).exists():
+        # Supervisor e Tesoureiro: verificar se têm acesso
+        if request.user.is_supervisor():
+            # Supervisor pode ver suas próprias transações ou de tesoureiros dos mesmos campos
+            supervisor_fields = request.user.fields.all()
+            can_view = (
+                transaction.user == request.user or  # Sua própria transação
+                (
+                    transaction.user.role == 'treasurer' and
+                    transaction.user.fields.filter(id__in=supervisor_fields.values_list('id', flat=True)).exists() and
+                    supervisor_fields.filter(id=transaction.church.field.id).exists()
+                )
+            )
+        else:
+            # Tesoureiro: apenas suas próprias transações
+            can_view = transaction.user == request.user
+        
+        if not can_view:
             messages.error(request, 'Você não tem permissão para visualizar esta transação.')
             return redirect('transaction_list')
     
@@ -707,7 +1088,6 @@ def transaction_edit(request, pk):
             if form.cleaned_data.get('create_reminder'):
                 try:
                     # Criar notificação de lembrete
-                    from datetime import datetime
                     reminder_date = datetime.combine(transaction.date, datetime.min.time())
                     
                     Notification.objects.create(
@@ -1115,7 +1495,6 @@ def user_activate(request, pk):
 @admin_required
 def field_list(request):
     """Lista de campos"""
-    from django.db.models import Count
     
     fields = Field.objects.annotate(
         church_count=Count('church', distinct=True)
@@ -1202,7 +1581,14 @@ def get_churches(request):
     field_id = request.GET.get('field')
     shepherd_id = request.GET.get('shepherd')
     
-    churches = Church.objects.all()
+    # Base segura conforme permissões
+    if request.user.is_admin():
+        churches = Church.objects.all()
+    else:
+        if request.user.fields.exists():
+            churches = Church.objects.filter(field__in=request.user.fields.all())
+        else:
+            churches = Church.objects.none()
     
     if field_id:
         churches = churches.filter(field_id=field_id)
@@ -1219,8 +1605,6 @@ def get_churches(request):
 @admin_or_treasurer_required
 def transaction_export_pdf(request):
     """Exporta transações filtradas para PDF"""
-    from datetime import date
-    from calendar import monthrange
     
     # Debug: Log dos parâmetros recebidos
     print(f"DEBUG - Parâmetros recebidos na exportação PDF:")
@@ -1235,15 +1619,11 @@ def transaction_export_pdf(request):
     # Obter os mesmos filtros da view transaction_list
     if request.user.is_admin():
         transactions = Transaction.objects.all()
+    elif request.user.is_supervisor():
+        transactions = get_transactions_for_user(request.user)
     else:
-        # Tesoureiros veem apenas transações de suas igrejas
-        if request.user.fields.exists():
-            user_churches = Church.objects.filter(field__in=request.user.fields.all())
-            transactions = Transaction.objects.filter(church__in=user_churches)
-        else:
-            # Se o usuário não tem campos, mostrar mensagem de erro
-            messages.error(request, 'Você não tem campos associados. Entre em contato com o administrador.')
-            return redirect('index')
+        # Tesoureiro: exportar apenas transações criadas por ele
+        transactions = Transaction.objects.filter(user=request.user)
     
     # Aplicar filtros
     search = request.GET.get('search', '')
@@ -1254,6 +1634,7 @@ def transaction_export_pdf(request):
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
     selected_shepherd = request.GET.get('shepherd', '')
+    selected_user = request.GET.get('user', '')
     
     # Debug: Log dos filtros aplicados
     print(f"DEBUG - Filtros aplicados:")
@@ -1305,9 +1686,13 @@ def transaction_export_pdf(request):
         transactions = transactions.filter(church_id=selected_church)
         print(f"DEBUG - Após filtro de igreja: {transactions.count()} transações")
     
-    if selected_shepherd and request.user.is_admin():
+    if selected_shepherd:
         transactions = transactions.filter(church__shepherd_id=selected_shepherd)
         print(f"DEBUG - Após filtro de pastor: {transactions.count()} transações")
+    
+    if selected_user and request.user.is_admin():
+        transactions = transactions.filter(user_id=selected_user)
+        print(f"DEBUG - Após filtro de usuário: {transactions.count()} transações")
     
     print(f"DEBUG - Total final de transações: {transactions.count()}")
     
@@ -1323,8 +1708,8 @@ def transaction_export_pdf(request):
     filename_date = date.today().strftime("%d-%m-%Y")
     response['Content-Disposition'] = f'attachment; filename="transacoes_{filename_date}.pdf"'
     
-    # Configurar o documento A4 em paisagem com margens mínimas (0.5cm)
-    doc = SimpleDocTemplate(response, pagesize=landscape(A4), 
+    # Configurar o documento A4 em retrato com margens de 0.5 polegadas
+    doc = SimpleDocTemplate(response, pagesize=A4, 
                            leftMargin=0.5*inch, rightMargin=0.5*inch, 
                            topMargin=0.5*inch, bottomMargin=0.5*inch)
     elements = []
@@ -1334,8 +1719,8 @@ def transaction_export_pdf(request):
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=16,
-        spaceAfter=30,
+        fontSize=18,
+        spaceAfter=20,
         alignment=TA_CENTER,
         textColor=colors.HexColor('#673ab7')
     )
@@ -1343,23 +1728,21 @@ def transaction_export_pdf(request):
     subtitle_style = ParagraphStyle(
         'CustomSubtitle',
         parent=styles['Heading2'],
-        fontSize=12,
-        spaceAfter=20,
+        fontSize=10,
+        spaceAfter=8,
         alignment=TA_LEFT,
         textColor=colors.HexColor('#495057')
     )
     
-    # Título com ícone
-    # Criar uma tabela para alinhar o título e o ícone lado a lado
+    # Título com logo
     title_data = []
     
-    # Verificar se o ícone existe
-    # Tentar diferentes caminhos para o ícone
+    # Verificar se o logo existe
     possible_paths = [
+        os.path.join(settings.STATIC_ROOT, 'img', 'icon.png'),
+        os.path.join(settings.BASE_DIR, 'static', 'img', 'icon.png'),
         os.path.join(os.path.dirname(__file__), 'static', 'img', 'icon.png'),
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', 'static', 'img', 'icon.png'),
         os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'img', 'icon.png'),
-        'app/static/img/icon.png',  # Caminho relativo
     ]
     
     icon_path = None
@@ -1373,36 +1756,31 @@ def transaction_export_pdf(request):
     
     if icon_exists:
         try:
-            # Carregar o ícone PNG com tamanho maior
-            icon = Image(icon_path, width=0.8*inch, height=0.8*inch)
+            # Carregar o logo PNG
+            icon = Image(icon_path, width=1.2*inch, height=1.2*inch)
             title_data = [[icon, Paragraph("Relatório de Transações", title_style)]]
         except Exception as e:
-            # Se não conseguir carregar PNG, usar um símbolo como ícone
-            print(f"Erro ao carregar ícone PNG: {e}")
-            # Criar um símbolo como ícone usando texto
-            icon_style = ParagraphStyle(
+            print(f"Erro ao carregar logo PNG: {e}")
+            icon_symbol = Paragraph("●", ParagraphStyle(
                 'IconStyle',
                 parent=styles['Normal'],
-                fontSize=32,
+                fontSize=40,
                 alignment=TA_CENTER,
                 textColor=colors.HexColor('#673ab7')
-            )
-            icon_symbol = Paragraph("●", icon_style)
+            ))
             title_data = [[icon_symbol, Paragraph("Relatório de Transações", title_style)]]
     else:
-        # Se o ícone não existir, usar um símbolo como ícone
-        icon_style = ParagraphStyle(
+        icon_symbol = Paragraph("●", ParagraphStyle(
             'IconStyle',
             parent=styles['Normal'],
-            fontSize=32,
+            fontSize=40,
             alignment=TA_CENTER,
             textColor=colors.HexColor('#673ab7')
-        )
-        icon_symbol = Paragraph("●", icon_style)
+        ))
         title_data = [[icon_symbol, Paragraph("Relatório de Transações", title_style)]]
     
     # Criar tabela do título
-    title_table = Table(title_data, colWidths=[1*inch, 5.5*inch] if len(title_data[0]) > 1 else [6.5*inch])
+    title_table = Table(title_data, colWidths=[1.5*inch, 5.5*inch])
     title_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1413,10 +1791,11 @@ def transaction_export_pdf(request):
     ]))
     
     elements.append(title_table)
+    elements.append(Spacer(1, 15))
     
-    elements.append(Spacer(1, 20))
+    # Mostrar filtros aplicados
+    filters_applied = []
     
-    # Informações do relatório
     # Formatar datas para o formato brasileiro
     try:
         date_from_formatted = datetime.strptime(date_from, '%Y-%m-%d').strftime('%d/%m/%Y')
@@ -1428,8 +1807,52 @@ def transaction_export_pdf(request):
     except (ValueError, TypeError):
         date_to_formatted = date_to
     
+    filters_applied.append(f"Período: {date_from_formatted} a {date_to_formatted}")
+    
+    if category_id:
+        try:
+            category_name = Category.objects.get(id=category_id).name
+            filters_applied.append(f"Categoria: {category_name}")
+        except Category.DoesNotExist:
+            pass
+    
+    if transaction_type:
+        type_name = "Entrada" if transaction_type == "income" else "Saída"
+        filters_applied.append(f"Tipo: {type_name}")
+    
+    if selected_field:
+        try:
+            field_name = Field.objects.get(id=selected_field).name
+            filters_applied.append(f"Campo: {field_name}")
+        except Field.DoesNotExist:
+            pass
+    
+    if selected_church:
+        try:
+            church_name = Church.objects.get(id=selected_church).name
+            filters_applied.append(f"Igreja: {church_name}")
+        except Church.DoesNotExist:
+            pass
+    
+    if selected_shepherd:
+        try:
+            shepherd_name = Shepherd.objects.get(id=selected_shepherd).name
+            filters_applied.append(f"Pastor: {shepherd_name}")
+        except Shepherd.DoesNotExist:
+            pass
+    
+    if search:
+        filters_applied.append(f"Busca: {search}")
+    
+    # Adicionar filtros aplicados
+    if filters_applied:
+        elements.append(Paragraph("Filtros Aplicados:", subtitle_style))
+        for filter_info in filters_applied:
+            elements.append(Paragraph(f"• {filter_info}", subtitle_style))
+        elements.append(Spacer(1, 10))
+    
+    # Informações do relatório
     report_info = [
-        f"Período: {date_from_formatted} a {date_to_formatted}",
         f"Total de Transações: {total_transactions}",
         f"Total de Entradas: R$ {total_income:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         f"Total de Saídas: R$ {total_expense:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
@@ -1439,69 +1862,64 @@ def transaction_export_pdf(request):
     for info in report_info:
         elements.append(Paragraph(info, subtitle_style))
     
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 15))
     
-    # Cabeçalho da tabela
-    headers = ['Data', 'Tipo', 'Categoria', 'Campo', 'Igreja', 'Descrição', 'Valor']
+    # Cabeçalho da tabela com todas as colunas solicitadas
+    headers = ['Data', 'Tipo', 'Categoria', 'Campo', 'Igreja', 'Descrição', 'Valor', 'Usuário', 'Pastor']
     data = [headers]
     
     # Dados das transações
-    for transaction in transactions.order_by('-date'):
+    for transaction in transactions.order_by('-date').select_related('category', 'church', 'church__field', 'church__shepherd', 'user'):
         # Formatar valor monetário
         formatted_value = f"{transaction.value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
         
-        # Usar Paragraph para permitir quebra de linha automática
-        
-        # Estilo para células com quebra de linha
+        # Estilos para células
         cell_style = ParagraphStyle(
             'CellStyle',
             parent=styles['Normal'],
-            fontSize=8,
-            leading=10,
+            fontSize=7,
+            leading=9,
             alignment=TA_LEFT,
-            leftIndent=2,
-            rightIndent=2,
-            spaceBefore=2,
-            spaceAfter=2
+            leftIndent=1,
+            rightIndent=1,
+            spaceBefore=1,
+            spaceAfter=1
         )
         
-        # Estilo para valores monetários (alinhados à direita)
         value_style = ParagraphStyle(
             'ValueStyle',
             parent=styles['Normal'],
-            fontSize=8,
-            leading=10,
+            fontSize=7,
+            leading=9,
             alignment=TA_RIGHT,
-            leftIndent=2,
-            rightIndent=2,
-            spaceBefore=2,
-            spaceAfter=2
+            leftIndent=1,
+            rightIndent=1,
+            spaceBefore=1,
+            spaceAfter=1
         )
         
-        # Estilo para data (centralizado)
         date_style = ParagraphStyle(
             'DateStyle',
             parent=styles['Normal'],
-            fontSize=8,
-            leading=10,
+            fontSize=7,
+            leading=9,
             alignment=TA_CENTER,
-            leftIndent=2,
-            rightIndent=2,
-            spaceBefore=2,
-            spaceAfter=2
+            leftIndent=1,
+            rightIndent=1,
+            spaceBefore=1,
+            spaceAfter=1
         )
         
-        # Estilo para tipo (centralizado)
         type_style = ParagraphStyle(
             'TypeStyle',
             parent=styles['Normal'],
-            fontSize=8,
-            leading=10,
+            fontSize=7,
+            leading=9,
             alignment=TA_CENTER,
-            leftIndent=2,
-            rightIndent=2,
-            spaceBefore=2,
-            spaceAfter=2
+            leftIndent=1,
+            rightIndent=1,
+            spaceBefore=1,
+            spaceAfter=1
         )
         
         row = [
@@ -1511,27 +1929,29 @@ def transaction_export_pdf(request):
             Paragraph(transaction.church.field.name, cell_style),
             Paragraph(transaction.church.name, cell_style),
             Paragraph(transaction.desc or '-', cell_style),
-            Paragraph(formatted_value, value_style)
+            Paragraph(formatted_value, value_style),
+            Paragraph(transaction.user.get_full_name() if transaction.user else '-', cell_style),
+            Paragraph(transaction.church.shepherd.name if transaction.church.shepherd else '-', cell_style)
         ]
         data.append(row)
     
-    # Criar tabela com larguras otimizadas para paisagem (7 colunas)
-    table = Table(data, colWidths=[1.0*inch, 0.8*inch, 1.2*inch, 1.2*inch, 1.5*inch, 2.0*inch, 1.0*inch])
+    # Criar tabela com larguras otimizadas para retrato (9 colunas)
+    table = Table(data, colWidths=[0.7*inch, 0.5*inch, 0.8*inch, 0.8*inch, 1.0*inch, 1.2*inch, 0.7*inch, 0.8*inch, 0.8*inch])
     
     # Estilo da tabela
     table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#673ab7')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alinhar verticalmente no topo
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ])
     
     # Alternar cores das linhas
@@ -1547,33 +1967,41 @@ def transaction_export_pdf(request):
     
     return response
 
+
 @password_changed_required
 @admin_or_treasurer_required
-def dashboard_export_pdf(request):
-    """Exporta os gráficos do dashboard para PDF usando barras horizontais customizadas"""
-    from datetime import date
-    from calendar import monthrange
+def transaction_export_xlsx(request):
+    """Exporta transações filtradas para XLSX"""
     
-    # Obter os mesmos filtros da view index (dashboard)
+    # Debug: Log dos parâmetros recebidos
+    print(f"DEBUG - Parâmetros recebidos na exportação XLSX:")
+    print(f"DEBUG - category: {request.GET.get('category', '')}")
+    print(f"DEBUG - type: {request.GET.get('type', '')}")
+    print(f"DEBUG - date_from: {request.GET.get('date_from', '')}")
+    print(f"DEBUG - date_to: {request.GET.get('date_to', '')}")
+    print(f"DEBUG - field: {request.GET.get('field', '')}")
+    print(f"DEBUG - church: {request.GET.get('church', '')}")
+    print(f"DEBUG - shepherd: {request.GET.get('shepherd', '')}")
+    
+    # Obter os mesmos filtros da view transaction_list
     if request.user.is_admin():
         base_transactions = Transaction.objects.all()
+    elif request.user.is_supervisor():
+        base_transactions = get_transactions_for_user(request.user)
     else:
-        # Tesoureiros veem apenas transações de suas igrejas
-        if request.user.fields.exists():
-            user_churches = Church.objects.filter(field__in=request.user.fields.all())
-            base_transactions = Transaction.objects.filter(church__in=user_churches)
-        else:
-            # Se o usuário não tem campos, mostrar mensagem de erro
-            messages.error(request, 'Você não tem campos associados. Entre em contato com o administrador.')
-            return redirect('index')
+        # Tesoureiro: exportar apenas transações criadas por ele
+        base_transactions = Transaction.objects.filter(user=request.user)
     
     # Aplicar filtros
+    search = request.GET.get('search', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     selected_category = request.GET.get('category', '')
     selected_type = request.GET.get('type', '')
     selected_field = request.GET.get('field', '')
     selected_church = request.GET.get('church', '')
+    selected_shepherd = request.GET.get('shepherd', '')
+    selected_user = request.GET.get('user', '')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -1585,634 +2013,103 @@ def dashboard_export_pdf(request):
         last_day = date(today.year, today.month, monthrange(today.year, today.month)[1])
         date_to = last_day.strftime('%Y-%m-%d')
     
+    # Debug: Log dos filtros aplicados
+    print(f"DEBUG - Total inicial de transações: {base_transactions.count()}")
+    
     # Aplicar filtros
     filtered_transactions = base_transactions
+    if search:
+        filtered_transactions = filtered_transactions.filter(
+            Q(desc__icontains=search) |
+            Q(category__name__icontains=search)
+        )
+        print(f"DEBUG - Após filtro de busca: {filtered_transactions.count()} transações")
+
     
     if date_from:
         filtered_transactions = filtered_transactions.filter(date__gte=date_from)
+        print(f"DEBUG - Após filtro de data inicial: {filtered_transactions.count()} transações")
     
     if date_to:
         filtered_transactions = filtered_transactions.filter(date__lte=date_to)
+        print(f"DEBUG - Após filtro de data final: {filtered_transactions.count()} transações")
     
     if selected_category:
         filtered_transactions = filtered_transactions.filter(category_id=selected_category)
+        print(f"DEBUG - Após filtro de categoria: {filtered_transactions.count()} transações")
     
     if selected_type:
         filtered_transactions = filtered_transactions.filter(type=selected_type)
+        print(f"DEBUG - Após filtro de tipo: {filtered_transactions.count()} transações")
     
     if selected_field:
         filtered_transactions = filtered_transactions.filter(church__field_id=selected_field)
+        print(f"DEBUG - Após filtro de campo: {filtered_transactions.count()} transações")
     
     if selected_church:
         filtered_transactions = filtered_transactions.filter(church_id=selected_church)
+        print(f"DEBUG - Após filtro de igreja: {filtered_transactions.count()} transações")
     
-    # Calcular totais
-    total_transactions = filtered_transactions.count()
-    total_income = filtered_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-    total_expense = filtered_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-    balance = total_income - total_expense
+    if selected_shepherd:
+        filtered_transactions = filtered_transactions.filter(church__shepherd_id=selected_shepherd)
+        print(f"DEBUG - Após filtro de pastor: {filtered_transactions.count()} transações")
     
-    # Dados para o gráfico por categoria
-    categories_data = []
-    categories = Category.objects.all()
+    if selected_user and request.user.is_admin():
+        filtered_transactions = filtered_transactions.filter(user_id=selected_user)
+        print(f"DEBUG - Após filtro de usuário: {filtered_transactions.count()} transações")
     
-    for category in categories:
-        category_transactions = filtered_transactions.filter(category=category)
-        income = category_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-        expense = category_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-        
-        if income > 0 or expense > 0:
-            categories_data.append({
-                'category': category.name,
-                'income': float(income),
-                'expense': float(expense)
-            })
+    print(f"DEBUG - Total final de transações: {filtered_transactions.count()}")
     
-    # Dados por campo - agrupar igrejas por campo
-    churches_data = []
-    if request.user.is_admin():
-        # Para administradores, mostrar todos os campos
-        all_fields = Field.objects.all()
-    else:
-        # Para tesoureiros, mostrar apenas seus campos
-        if request.user.fields.exists():
-            all_fields = request.user.fields.all()
-        else:
-            all_fields = Field.objects.none()
+    # Criar workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Transações"
     
-    for field in all_fields:
-        # Buscar todas as transações das igrejas deste campo
-        field_transactions = filtered_transactions.filter(church__field=field)
-        
-        income = field_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-        expense = field_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-        
-        # Mostrar todos os campos, mesmo com valores zero para melhor visibilidade
-        churches_data.append({
-            'name': field.name,
-            'income': float(income),
-            'expense': float(expense)
-        })
+    # Cabeçalho
+    colunas = [
+        "ID", "Data", "Categoria", "Tipo", "Valor", "Igreja", 
+        "Campo", "Pastor", "Descrição", "Usuário", "Data de Criação"
+    ]
+    ws.append(colunas)
     
-    # Ordenar por nome do campo
-    churches_data.sort(key=lambda x: x['name'])
+    # Estilizar cabeçalho
     
-    # Dados para o gráfico de Entrada e Saída por Igreja individual
-    churches_individual_data = []
-    if request.user.is_admin():
-        # Para administradores, mostrar todos os campos
-        all_churches = Church.objects.all()
-    else:
-        # Para tesoureiros, mostrar apenas igrejas dos seus campos
-        if request.user.fields.exists():
-            all_churches = Church.objects.filter(field__in=request.user.fields.all())
-        else:
-            all_churches = Church.objects.none()
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="673AB7", end_color="673AB7", fill_type="solid")
     
-    for church in all_churches:
-        church_transactions = filtered_transactions.filter(church=church)
-        income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-        expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-        
-        # Mostrar todas as igrejas, mesmo sem transações
-        churches_individual_data.append({
-            'name': church.name,
-            'field': church.field.name if church.field else 'Sem Campo',
-            'income': float(income),
-            'expense': float(expense)
-        })
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
     
-    # Ordenar por nome da igreja
-    churches_individual_data.sort(key=lambda x: x['name'])
+    # Dados do ORM
+    for transaction in filtered_transactions.select_related('category', 'church', 'church__field', 'church__shepherd', 'user'):
+        ws.append([
+            transaction.id,
+            transaction.date.strftime('%d/%m/%Y'),
+            transaction.category.name if transaction.category else '',
+            'Entrada' if transaction.type == 'income' else 'Saída',
+            f'R$ {transaction.value:.2f}',
+            transaction.church.name if transaction.church else '',
+            transaction.church.field.name if transaction.church and transaction.church.field else '',
+            transaction.church.shepherd.name if transaction.church and transaction.church.shepherd else '',
+            transaction.desc or '',
+            (transaction.user.get_full_name() or transaction.user.username) if transaction.user else '',
+            transaction.created_at.strftime('%d/%m/%Y %H:%M') if transaction.created_at else ''
+        ])
     
-    # Criar o PDF
-    response = HttpResponse(content_type='application/pdf')
+    # Ajustar largura das colunas
+    column_widths = [8, 12, 20, 10, 15, 25, 20, 20, 30, 20, 20]
+    for i, width in enumerate(column_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+    
+    # Resposta HTTP para download
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     filename_date = date.today().strftime("%d-%m-%Y")
-    response['Content-Disposition'] = f'attachment; filename="dashboard_graficos_{filename_date}.pdf"'
-    
-    # Configurar o documento A4 em paisagem com margens mínimas (0.5cm)
-    doc = SimpleDocTemplate(response, pagesize=landscape(A4), 
-                           leftMargin=0.5*inch, rightMargin=0.5*inch, 
-                           topMargin=0.5*inch, bottomMargin=0.5*inch)
-    elements = []
-    
-    # Estilos
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=16,
-        spaceAfter=30,
-        alignment=TA_CENTER,
-        textColor=colors.HexColor('#673ab7')
-    )
-    
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Heading2'],
-        fontSize=12,
-        spaceAfter=20,
-        alignment=TA_LEFT,
-        textColor=colors.HexColor('#495057')
-    )
-    
-    # Título
-    title_data = []
-    
-    # Verificar se o ícone existe
-    possible_paths = [
-        os.path.join(os.path.dirname(__file__), 'static', 'img', 'icon.png'),
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app', 'static', 'img', 'icon.png'),
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'img', 'icon.png'),
-        'app/static/img/icon.png',
-    ]
-    
-    icon_path = None
-    icon_exists = False
-    
-    for path in possible_paths:
-        if os.path.exists(path):
-            icon_path = path
-            icon_exists = True
-            break
-    
-    if icon_exists:
-        try:
-            icon = Image(icon_path, width=0.8*inch, height=0.8*inch)
-            title_data = [[icon, Paragraph("Relatório de Gráficos do Dashboard", title_style)]]
-        except Exception as e:
-            print(f"Erro ao carregar ícone PNG: {e}")
-            icon_style = ParagraphStyle(
-                'IconStyle',
-                parent=styles['Normal'],
-                fontSize=32,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor('#673ab7')
-            )
-            icon_symbol = Paragraph("●", icon_style)
-            title_data = [[icon_symbol, Paragraph("Relatório de Gráficos do Dashboard", title_style)]]
-    else:
-        icon_style = ParagraphStyle(
-            'IconStyle',
-            parent=styles['Normal'],
-            fontSize=32,
-            alignment=TA_CENTER,
-            textColor=colors.HexColor('#673ab7')
-        )
-        icon_symbol = Paragraph("●", icon_style)
-        title_data = [[icon_symbol, Paragraph("Relatório de Gráficos do Dashboard", title_style)]]
-    
-    # Criar tabela do título
-    title_table = Table(title_data, colWidths=[1*inch, 5.5*inch] if len(title_data[0]) > 1 else [6.5*inch])
-    title_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    
-    elements.append(title_table)
-    elements.append(Spacer(1, 20))
-    
-    # Informações do relatório
-    # Formatar datas para o formato brasileiro
-    try:
-        date_from_formatted = datetime.strptime(date_from, '%Y-%m-%d').strftime('%d/%m/%Y')
-    except (ValueError, TypeError):
-        date_from_formatted = date_from
-    
-    try:
-        date_to_formatted = datetime.strptime(date_to, '%Y-%m-%d').strftime('%d/%m/%Y')
-    except (ValueError, TypeError):
-        date_to_formatted = date_to
-    
-    report_info = [
-        f"Período: {date_from_formatted} a {date_to_formatted}",
-        f"Total de Transações: {total_transactions}",
-        f"Total de Entradas: R$ {total_income:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-        f"Total de Saídas: R$ {total_expense:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-        f"Saldo: R$ {balance:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-    ]
-    
-    # Adicionar filtros aplicados se houver
-    if selected_category:
-        category_name = Category.objects.get(id=selected_category).name
-        report_info.append(f"Categoria: {category_name}")
-    if selected_field:
-        field_name = Field.objects.get(id=selected_field).name
-        report_info.append(f"Campo: {field_name}")
-    if selected_church:
-        church_name = Church.objects.get(id=selected_church).name
-        report_info.append(f"Igreja: {church_name}")
-    
-    for info in report_info:
-        elements.append(Paragraph(info, subtitle_style))
-    
-    elements.append(Spacer(1, 20))
-    
-    
-    # Gráfico por Categoria usando barras horizontais customizadas
-    if categories_data:
-        elements.append(Paragraph("Gráfico por Categoria", subtitle_style))
-        
-        # Preparar dados para o gráfico
-        category_names = [item['category'] for item in categories_data]
-        income_values = [item['income'] for item in categories_data]
-        expense_values = [item['expense'] for item in categories_data]
-        
-        # Encontrar valor máximo para normalizar as barras
-        max_value = max(max(income_values), max(expense_values)) if income_values or expense_values else 1
-        
-        # Criar gráfico horizontal customizado
-        from reportlab.graphics.shapes import Drawing, Rect, String, Line
-        from reportlab.graphics.charts.legends import Legend
-        
-        # Ajustar altura baseada no número de categorias (limitado para PDF)
-        max_categories_for_pdf = 20
-        if len(category_names) > max_categories_for_pdf:
-            category_names = category_names[:max_categories_for_pdf]
-            income_values = income_values[:max_categories_for_pdf]
-            expense_values = expense_values[:max_categories_for_pdf]
-        
-        chart_height = max(150, min(300, len(category_names) * 20 + 40))
-        drawing = Drawing(400, chart_height)
-        
-        # Configurações do gráfico
-        chart_width = 250
-        chart_x = 120
-        chart_y = 20
-        bar_height = 12
-        bar_spacing = 20
-        
-        # Desenhar barras horizontais
-        for i, (name, income, expense) in enumerate(zip(category_names, income_values, expense_values)):
-            y_pos = chart_y + i * bar_spacing
-            
-            # Limitar nome da categoria (máximo 20 caracteres)
-            display_name = name[:20] + "..." if len(name) > 20 else name
-            
-            # Adicionar label da categoria
-            drawing.add(String(10, y_pos + 5, display_name, fontSize=8, fillColor=colors.black))
-            
-            # Barra de entradas (verde)
-            if income > 0:
-                bar_width = (income / max_value) * chart_width
-                drawing.add(Rect(chart_x, y_pos, bar_width, bar_height, 
-                               fillColor=colors.HexColor('#28a745'), 
-                               strokeColor=colors.HexColor('#28a745')))
-                # Valor da entrada
-                drawing.add(String(chart_x + bar_width + 5, y_pos + 5, 
-                                 f'R$ {income:.2f}', fontSize=8, fillColor=colors.black))
-            
-            # Barra de saídas (vermelho) - abaixo da barra de entradas
-            if expense > 0:
-                bar_width = (expense / max_value) * chart_width
-                drawing.add(Rect(chart_x, y_pos - 18, bar_width, bar_height, 
-                               fillColor=colors.HexColor('#ff6b6b'), 
-                               strokeColor=colors.HexColor('#ff6b6b')))
-                # Valor da saída
-                drawing.add(String(chart_x + bar_width + 5, y_pos - 13, 
-                                 f'R$ {expense:.2f}', fontSize=8, fillColor=colors.black))
-        
-        # Adicionar legendas
-        legend = Legend()
-        legend.x = 360
-        legend.y = chart_height - 40
-        legend.alignment = 'right'
-        legend.fontName = 'Helvetica'
-        legend.fontSize = 9
-        legend.colorNamePairs = [
-            (colors.HexColor('#28a745'), 'Entradas'),
-            (colors.HexColor('#ff6b6b'), 'Saídas')
-        ]
-        
-        drawing.add(legend)
-        
-        elements.append(drawing)
-        
-        # Adicionar nota se houver mais categorias do que o limite
-        if len(categories_data) > max_categories_for_pdf:
-            note_style = ParagraphStyle(
-                'Note',
-                parent=styles['Normal'],
-                fontSize=8,
-                alignment=TA_CENTER,
-                textColor=colors.grey
-            )
-            note_text = f"* Gráfico mostra apenas as primeiras {max_categories_for_pdf} categorias. Total de categorias: {len(categories_data)}"
-            note_paragraph = Paragraph(note_text, note_style)
-            elements.append(note_paragraph)
-        
-        elements.append(Spacer(1, 20))
-        
-        # Tabela com dados das categorias
-        category_table_data = [['Categoria', 'Entradas', 'Saídas']]
-        for item in categories_data:
-            # Limitar nome da categoria (máximo 35 caracteres)
-            category_name = item['category']
-            if len(category_name) > 35:
-                category_name = category_name[:32] + "..."
-            
-            category_table_data.append([
-                category_name,
-                f'R$ {item["income"]:.2f}',
-                f'R$ {item["expense"]:.2f}'
-            ])
-        
-        category_table = Table(category_table_data, colWidths=[4*inch, 2*inch, 2*inch])
-        category_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#28a745')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        
-        elements.append(category_table)
-        elements.append(Spacer(1, 20))
-        
-        # Adicionar quebra de página se houver mais gráficos
-        if churches_data or churches_individual_data:
-            elements.append(PageBreak())
-    
-    # Gráfico por Igreja/Campo usando barras horizontais customizadas
-    if churches_data:
-        elements.append(Paragraph("Gráfico por Igreja/Campo", subtitle_style))
-        
-        # Preparar dados para o gráfico
-        church_names = [item['name'] for item in churches_data]
-        church_income_values = [item['income'] for item in churches_data]
-        church_expense_values = [item['expense'] for item in churches_data]
-        
-        # Encontrar valor máximo para normalizar as barras
-        max_value = max(max(church_income_values), max(church_expense_values)) if church_income_values or church_expense_values else 1
-        
-        # Criar gráfico horizontal customizado
-        from reportlab.graphics.shapes import Drawing, Rect, String, Line
-        from reportlab.graphics.charts.legends import Legend
-        
-        # Limitar número de igrejas para o PDF (máximo 12 para evitar gráfico muito grande)
-        max_churches_for_pdf = 12
-        if len(church_names) > max_churches_for_pdf:
-            church_names = church_names[:max_churches_for_pdf]
-            church_income_values = church_income_values[:max_churches_for_pdf]
-            church_expense_values = church_expense_values[:max_churches_for_pdf]
-        
-        # Ajustar altura baseada no número de igrejas (limitado)
-        chart_height = max(150, min(300, len(church_names) * 20 + 40))
-        drawing2 = Drawing(400, chart_height)
-        
-        # Configurações do gráfico
-        chart_width = 250
-        chart_x = 120
-        chart_y = 20
-        bar_height = 12
-        bar_spacing = 20
-        
-        # Desenhar barras horizontais
-        for i, (name, income, expense) in enumerate(zip(church_names, church_income_values, church_expense_values)):
-            y_pos = chart_y + i * bar_spacing
-            
-            # Limitar nome da igreja/campo (máximo 20 caracteres)
-            display_name = name[:20] + "..." if len(name) > 20 else name
-            
-            # Adicionar label da igreja/campo
-            drawing2.add(String(10, y_pos + 5, display_name, fontSize=8, fillColor=colors.black))
-            
-            # Barra de entradas (verde)
-            if income > 0:
-                bar_width = (income / max_value) * chart_width
-                drawing2.add(Rect(chart_x, y_pos, bar_width, bar_height, 
-                                fillColor=colors.HexColor('#28a745'), 
-                                strokeColor=colors.HexColor('#28a745')))
-                # Valor da entrada
-                drawing2.add(String(chart_x + bar_width + 5, y_pos + 5, 
-                                  f'R$ {income:.2f}', fontSize=8, fillColor=colors.black))
-            
-            # Barra de saídas (vermelho) - abaixo da barra de entradas
-            if expense > 0:
-                bar_width = (expense / max_value) * chart_width
-                drawing2.add(Rect(chart_x, y_pos - 18, bar_width, bar_height, 
-                                fillColor=colors.HexColor('#ff6b6b'), 
-                                strokeColor=colors.HexColor('#ff6b6b')))
-                # Valor da saída
-                drawing2.add(String(chart_x + bar_width + 5, y_pos - 13, 
-                                  f'R$ {expense:.2f}', fontSize=8, fillColor=colors.black))
-        
-        # Adicionar legendas
-        legend2 = Legend()
-        legend2.x = 360
-        legend2.y = chart_height - 40
-        legend2.alignment = 'right'
-        legend2.fontName = 'Helvetica'
-        legend2.fontSize = 9
-        legend2.colorNamePairs = [
-            (colors.HexColor('#28a745'), 'Entradas'),
-            (colors.HexColor('#ff6b6b'), 'Saídas')
-        ]
-        
-        drawing2.add(legend2)
-        
-        elements.append(drawing2)
-        
-        # Adicionar nota se houver mais igrejas do que o limite
-        if len(churches_data) > max_churches_for_pdf:
-            note_style = ParagraphStyle(
-                'Note',
-                parent=styles['Normal'],
-                fontSize=8,
-                alignment=TA_CENTER,
-                textColor=colors.grey
-            )
-            note_text = f"* Gráfico mostra apenas as primeiras {max_churches_for_pdf} igrejas. Total de igrejas: {len(churches_data)}"
-            note_paragraph = Paragraph(note_text, note_style)
-            elements.append(note_paragraph)
-        
-        elements.append(Spacer(1, 20))
-        
-        # Tabela com dados das igrejas/campos
-        church_table_data = [['Nome', 'Entradas', 'Saídas']]
-        for item in churches_data:
-            # Limitar nome da igreja/campo (máximo 35 caracteres)
-            church_name = item['name']
-            if len(church_name) > 35:
-                church_name = church_name[:32] + "..."
-            
-            church_table_data.append([
-                church_name,
-                f'R$ {item["income"]:.2f}',
-                f'R$ {item["expense"]:.2f}'
-            ])
-        
-        church_table = Table(church_table_data, colWidths=[4*inch, 2*inch, 2*inch])
-        church_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff6b6b')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        
-        elements.append(church_table)
-        elements.append(Spacer(1, 20))
-        
-        # Adicionar quebra de página se houver mais gráficos
-        if churches_individual_data:
-            elements.append(PageBreak())
-    
-    # Gráfico de Entrada e Saída por Igreja Individual usando barras horizontais customizadas
-    if churches_individual_data:
-        elements.append(Paragraph("Gráfico de Entrada e Saída por Igreja", subtitle_style))
-        
-        # Preparar dados para o gráfico
-        individual_names = [item['name'] for item in churches_individual_data]
-        individual_income_values = [item['income'] for item in churches_individual_data]
-        individual_expense_values = [item['expense'] for item in churches_individual_data]
-        
-        # Encontrar valor máximo para normalizar as barras
-        max_value = max(max(individual_income_values), max(individual_expense_values)) if individual_income_values or individual_expense_values else 1
-        
-        # Criar gráfico horizontal customizado
-        from reportlab.graphics.shapes import Drawing, Rect, String, Line
-        from reportlab.graphics.charts.legends import Legend
-        
-        # Limitar número de igrejas para o PDF (máximo 12 para evitar gráfico muito grande)
-        max_churches_for_pdf = 12
-        if len(individual_names) > max_churches_for_pdf:
-            individual_names = individual_names[:max_churches_for_pdf]
-            individual_income_values = individual_income_values[:max_churches_for_pdf]
-            individual_expense_values = individual_expense_values[:max_churches_for_pdf]
-        
-        # Ajustar altura baseada no número de igrejas (limitado)
-        chart_height = max(150, min(300, len(individual_names) * 20 + 40))
-        drawing3 = Drawing(400, chart_height)
-        
-        # Configurações do gráfico
-        chart_width = 250
-        chart_x = 120
-        chart_y = 20
-        bar_height = 12
-        bar_spacing = 20
-        
-        # Desenhar barras horizontais
-        for i, (name, income, expense) in enumerate(zip(individual_names, individual_income_values, individual_expense_values)):
-            y_pos = chart_y + i * bar_spacing
-            
-            # Limitar nome da igreja (máximo 20 caracteres)
-            display_name = name[:20] + "..." if len(name) > 20 else name
-            
-            # Adicionar label da igreja
-            drawing3.add(String(10, y_pos + 5, display_name, fontSize=8, fillColor=colors.black))
-            
-            # Barra de entradas (verde)
-            if income > 0:
-                bar_width = (income / max_value) * chart_width
-                drawing3.add(Rect(chart_x, y_pos, bar_width, bar_height, 
-                                fillColor=colors.HexColor('#28a745'), 
-                                strokeColor=colors.HexColor('#28a745')))
-                # Valor da entrada
-                drawing3.add(String(chart_x + bar_width + 5, y_pos + 5, 
-                                  f'R$ {income:.2f}', fontSize=8, fillColor=colors.black))
-            
-            # Barra de saídas (vermelho) - abaixo da barra de entradas
-            if expense > 0:
-                bar_width = (expense / max_value) * chart_width
-                drawing3.add(Rect(chart_x, y_pos - 18, bar_width, bar_height, 
-                                fillColor=colors.HexColor('#ff6b6b'), 
-                                strokeColor=colors.HexColor('#ff6b6b')))
-                # Valor da saída
-                drawing3.add(String(chart_x + bar_width + 5, y_pos - 13, 
-                                  f'R$ {expense:.2f}', fontSize=8, fillColor=colors.black))
-        
-        # Adicionar legendas
-        legend3 = Legend()
-        legend3.x = 360
-        legend3.y = chart_height - 40
-        legend3.alignment = 'right'
-        legend3.fontName = 'Helvetica'
-        legend3.fontSize = 9
-        legend3.colorNamePairs = [
-            (colors.HexColor('#28a745'), 'Entradas'),
-            (colors.HexColor('#ff6b6b'), 'Saídas')
-        ]
-        
-        drawing3.add(legend3)
-        
-        elements.append(drawing3)
-        
-        # Adicionar nota se houver mais igrejas do que o limite
-        if len(churches_individual_data) > max_churches_for_pdf:
-            note_style = ParagraphStyle(
-                'Note',
-                parent=styles['Normal'],
-                fontSize=8,
-                alignment=TA_CENTER,
-                textColor=colors.grey
-            )
-            note_text = f"* Gráfico mostra apenas as primeiras {max_churches_for_pdf} igrejas. Total de igrejas: {len(churches_individual_data)}"
-            note_paragraph = Paragraph(note_text, note_style)
-            elements.append(note_paragraph)
-        
-        elements.append(Spacer(1, 20))
-        
-        # Tabela com dados das igrejas individuais
-        individual_table_data = [['Igreja', 'Campo', 'Entradas', 'Saídas']]
-        for item in churches_individual_data:
-            # Limitar nome da igreja (máximo 25 caracteres)
-            church_name = item['name']
-            if len(church_name) > 25:
-                church_name = church_name[:22] + "..."
-            
-            # Limitar nome do campo (máximo 25 caracteres)
-            field_name = item['field']
-            if len(field_name) > 25:
-                field_name = field_name[:22] + "..."
-            
-            individual_table_data.append([
-                church_name,
-                field_name,
-                f'R$ {item["income"]:.2f}',
-                f'R$ {item["expense"]:.2f}'
-            ])
-        
-        individual_table = Table(individual_table_data, colWidths=[2.5*inch, 2.5*inch, 1.5*inch, 1.5*inch])
-        individual_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#673ab7')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        
-        elements.append(individual_table)
-        elements.append(Spacer(1, 20))
-    
-    # Rodapé
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=8,
-        alignment=TA_CENTER,
-        textColor=colors.grey
-    )
-    
-    footer_text = f"Relatório gerado em {date.today().strftime('%d/%m/%Y')} às {datetime.now().strftime('%H:%M')}"
-    footer_paragraph = Paragraph(footer_text, footer_style)
-    elements.append(footer_paragraph)
-    
-    # Construir o PDF
-    doc.build(elements)
+    response["Content-Disposition"] = f'attachment; filename="transacoes_{filename_date}.xlsx"'
+    wb.save(response)
     
     return response
 
@@ -2220,14 +2117,21 @@ def dashboard_export_pdf(request):
 @password_changed_required
 def churches_by_field_api(request, field_id):
     """API para retornar igrejas de um campo específico"""
-    from django.http import JsonResponse
-    from .models import Field, Church
     
     try:
-        field = Field.objects.get(pk=field_id)
+        # Verificar permissão do campo para tesoureiros
+        if request.user.is_admin():
+            field = Field.objects.get(pk=field_id)
+        else:
+            field = Field.objects.get(pk=field_id)
+            if not request.user.fields.filter(pk=field.pk).exists():
+                return JsonResponse({'error': 'Sem permissão para este campo'}, status=403)
         
         # Buscar igrejas do campo
-        churches = Church.objects.filter(field=field).order_by('name')
+        if request.user.is_admin():
+            churches = Church.objects.filter(field=field).order_by('name')
+        else:
+            churches = Church.objects.filter(field=field).order_by('name')
         
         churches_data = []
         for church in churches:
@@ -2241,6 +2145,40 @@ def churches_by_field_api(request, field_id):
         return JsonResponse({
             'field': field.name,
             'churches': churches_data
+        })
+        
+    except Field.DoesNotExist:
+        return JsonResponse({'error': 'Campo não encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@password_changed_required
+def shepherds_by_field_api(request, field_id):
+    """API para retornar pastores de um campo específico"""
+    
+    try:
+        # Verificar permissão do campo para tesoureiros
+        if request.user.is_admin():
+            field = Field.objects.get(pk=field_id)
+        else:
+            field = Field.objects.get(pk=field_id)
+            if not request.user.fields.filter(pk=field.pk).exists():
+                return JsonResponse({'error': 'Sem permissão para este campo'}, status=403)
+        
+        # Buscar pastores do campo (distinct para evitar duplicatas)
+        shepherds = Shepherd.objects.filter(church__field=field).distinct().order_by('name')
+        
+        shepherds_data = []
+        for shepherd in shepherds:
+            shepherds_data.append({
+                'id': shepherd.id,
+                'name': shepherd.name
+            })
+        
+        return JsonResponse({
+            'field': field.name,
+            'shepherds': shepherds_data
         })
         
     except Field.DoesNotExist:
@@ -2360,9 +2298,21 @@ def shepherd_delete(request, pk):
 @password_changed_required
 @admin_required
 def access_log_list(request):
-    """Lista de logs de acesso"""
+    """Lista de logs de acesso - apenas do primeiro ao último dia do mês atual"""
+    from datetime import date
+    import calendar
+    
+    # Calcular primeiro e último dia do mês atual
+    today = date.today()
+    first_day_of_month = today.replace(day=1)
+    last_day_of_month = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+    
+    # Filtrar logs apenas do mês atual
     logs = AccessLog.objects.select_related('user').exclude(
         user__email='vwtechdev@gmail.com'
+    ).filter(
+        timestamp__date__gte=first_day_of_month,
+        timestamp__date__lte=last_day_of_month
     ).order_by('-timestamp')
     
     # Busca por nome ou email do usuário
@@ -2374,13 +2324,16 @@ def access_log_list(request):
             Q(user__email__icontains=search_query)
         )
     
-    # Filtro por data
+    # Filtro por data (opcional, mas limitado ao mês atual)
     date_from = request.GET.get('date_from', '').strip()
     date_to = request.GET.get('date_to', '').strip()
     
     if date_from:
         try:
             date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            # Garantir que não vá antes do primeiro dia do mês
+            if date_from_obj < first_day_of_month:
+                date_from_obj = first_day_of_month
             logs = logs.filter(timestamp__date__gte=date_from_obj)
         except ValueError:
             pass  # Ignora datas inválidas
@@ -2388,6 +2341,9 @@ def access_log_list(request):
     if date_to:
         try:
             date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            # Garantir que não vá depois do último dia do mês
+            if date_to_obj > last_day_of_month:
+                date_to_obj = last_day_of_month
             logs = logs.filter(timestamp__date__lte=date_to_obj)
         except ValueError:
             pass  # Ignora datas inválidas
@@ -2398,6 +2354,9 @@ def access_log_list(request):
         'search_query': search_query,
         'date_from': date_from,
         'date_to': date_to,
+        'first_day_of_month': first_day_of_month,
+        'last_day_of_month': last_day_of_month,
+        'current_month': today.strftime('%B de %Y'),
     }
     
     return render(request, 'pages/access_log_list.html', context)
@@ -2443,7 +2402,6 @@ def notification_create(request):
             related_transaction_id = request.POST.get('related_transaction')
             if related_transaction_id:
                 try:
-                    from .models import Transaction
                     transaction = Transaction.objects.get(pk=related_transaction_id)
                     notification.related_transaction = transaction
                     messages.success(request, f'Lembrete criado com sucesso para a transação de {transaction.church.name}!')
@@ -2535,7 +2493,6 @@ def notification_mark_read(request, pk):
     """Marcar notificação como lida/não lida via AJAX"""
     if request.method == 'POST':
         try:
-            import json
             data = json.loads(request.body)
             is_read = data.get('is_read', False)
             
@@ -2561,15 +2518,15 @@ def notification_mark_read(request, pk):
 
 @password_changed_required
 def get_today_notifications(request):
-    """Buscar notificações do dia atual via AJAX - apenas do usuário logado"""
+    """Buscar notificações do dia atual e vencidas via AJAX - apenas do usuário logado"""
     if request.method == 'GET':
         try:
-            from datetime import date
             today = date.today()
             
-            # Buscar notificações do dia atual do usuário logado
+            # Buscar notificações onde o dia da notificação é menor ou igual ao dia atual
+            # Isso inclui notificações vencidas que ainda não foram lidas
             notifications = Notification.objects.filter(
-                date__date=today,
+                date__date__lte=today,  # Mudança: date__date__lte em vez de date__date
                 is_read=False,
                 created_by=request.user
             ).select_related('created_by').order_by('-date')[:10]
@@ -2609,7 +2566,6 @@ def health_check(request):
     """Endpoint de health check para monitoramento"""
     try:
         # Verificar conexão com o banco de dados
-        from django.db import connection
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         

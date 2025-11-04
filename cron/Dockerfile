@@ -23,8 +23,8 @@ RUN echo '#!/bin/bash' > /app/start-cron.sh && \
     echo '# Iniciar cron daemon' >> /app/start-cron.sh && \
     echo 'service cron start' >> /app/start-cron.sh && \
     echo '' >> /app/start-cron.sh && \
-    echo '# Executar o comando de processamento de notificações repetitivas a cada minuto' >> /app/start-cron.sh && \
-    echo 'echo "* * * * * cd /app && /usr/local/bin/python3 manage.py process_repeat_notifications >> /var/log/cron.log 2>&1" | crontab -' >> /app/start-cron.sh && \
+    echo '# Executar o comando de processamento de notificações repetitivas a cada hora' >> /app/start-cron.sh && \
+    echo 'echo "0 * * * * cd /app && /usr/local/bin/python3 manage.py process_repeat_notifications >> /var/log/cron.log 2>&1" | crontab -' >> /app/start-cron.sh && \
     echo '' >> /app/start-cron.sh && \
     echo '# Manter o container rodando' >> /app/start-cron.sh && \
     echo 'tail -f /dev/null' >> /app/start-cron.sh && \
@@ -34,4 +34,4 @@ RUN echo '#!/bin/bash' > /app/start-cron.sh && \
 RUN mkdir -p /var/log /app/logs
 
 # Comando de inicialização
-CMD ["/bin/bash", "-c", "service cron start && echo '* * * * * cd /app && /usr/local/bin/python3 manage.py process_repeat_notifications >> /var/log/cron.log 2>&1' | crontab - && tail -f /dev/null"]
+CMD ["/bin/bash", "-c", "service cron start && echo '0 * * * * cd /app && /usr/local/bin/python3 manage.py process_repeat_notifications >> /var/log/cron.log 2>&1' | crontab - && tail -f /dev/null"]

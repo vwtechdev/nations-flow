@@ -24,7 +24,7 @@ def treasurer_required(view_func):
 def admin_or_treasurer_required(view_func):
     @login_required
     def _wrapped_view(request, *args, **kwargs):
-        if not (request.user.is_admin() or request.user.is_treasurer()):
+        if not (request.user.is_admin() or request.user.is_treasurer() or request.user.is_supervisor()):
             messages.error(request, 'Acesso negado. Você não tem permissão para acessar esta página.')
             return redirect('index')
         return view_func(request, *args, **kwargs)

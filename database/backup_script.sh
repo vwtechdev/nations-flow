@@ -9,7 +9,7 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
 # Diretório de backup
 BACKUP_DIR="/app/backups"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+TIMESTAMP=$(date +"%d_%m_%Y_%H%M%S")
 BACKUP_FILE="$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
 
 # Verificar se as variáveis de ambiente estão definidas

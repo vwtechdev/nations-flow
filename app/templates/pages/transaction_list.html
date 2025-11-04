@@ -84,7 +84,6 @@
                         </div>
                         {% endif %}
                         
-                        {% if user.is_admin %}
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="shepherd" id="shepherdFilter" class="form-control">
@@ -100,7 +99,6 @@
                                 </label>
                             </div>
                         </div>
-                        {% endif %}
                         
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
@@ -118,10 +116,31 @@
                             </div>
                         </div>
                         
+                        {% if user.is_admin %}
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <select name="user" id="userFilter" class="form-control">
+                                    <option value="">Todos os usuários</option>
+                                    {% for user_obj in users %}
+                                        <option value="{{ user_obj.id }}" {% if selected_user == user_obj.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ user_obj.get_full_name|default:user_obj.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="userFilter">
+                                    <i class="bi bi-person"></i> Usuário
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <div class="col-12 d-flex align-items-end">
                             <div class="d-flex gap-2 justify-content-end w-100">
-                                <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton" class="btn btn-success btn-sm" style="width: 120px;">
+                                <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton" class="btn btn-danger btn-sm" style="width: 120px; background-color: #ff6b6b; border-color: #ff6b6b;">
                                     <i class="bi bi-file-pdf-fill"></i> PDF
+                                </a>
+                                <a href="{% url 'transaction_export_xlsx' %}?{{ request.GET.urlencode }}" id="exportXlsxButton" class="btn btn-success btn-sm" style="width: 120px; background-color: #28a745; border-color: #28a745;">
+                                    <i class="bi bi-file-excel-fill"></i> EXCEL
                                 </a>
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
@@ -201,7 +220,6 @@
                                     </label>
                                 </div>
                             </div>
-                            {% if user.is_admin %}
                             <div class="col-6">
                                 <div class="form-floating mb-3">
                                     <select name="shepherd" id="shepherdFilter_mobile" class="form-control">
@@ -217,7 +235,6 @@
                                     </label>
                                 </div>
                             </div>
-                            {% endif %}
                         </div>
                         
                         <div class="row">
@@ -236,6 +253,21 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="user" id="userFilter_mobile" class="form-control">
+                                        <option value="">Todos os usuários</option>
+                                        {% for user_obj in users %}
+                                            <option value="{{ user_obj.id }}" {% if selected_user == user_obj.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ user_obj.get_full_name|default:user_obj.username }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="userFilter_mobile">
+                                        <i class="bi bi-person"></i> Usuário
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                         {% endif %}
                         
@@ -243,17 +275,10 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-search"></i> Filtrar
                             </button>
-                            <div class="row">
-                                <div class="col-6">
-                                    <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton_mobile" class="btn btn-success w-100">
-                                        <i class="bi bi-file-pdf-fill"></i> PDF
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a href="{% url 'transaction_list' %}" class="btn btn-secondary w-100">
-                                        <i class="bi bi-x-circle"></i> Limpar
-                                    </a>
-                                </div>
+                            <div class="d-grid gap-2 mt-2">
+                                <a href="{% url 'transaction_list' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -262,6 +287,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- Cards de Totais -->
 <div class="row">
@@ -511,6 +537,6 @@
 // Adicionar atributo data-is-admin ao body para o JavaScript
 document.body.setAttribute('data-is-admin', '{{ user.is_admin|yesno:"true,false" }}');
 </script>
-<script src="{% static 'js/transaction_list.js' %}"></script>
 <script src="{% static 'js/filters_form.js' %}"></script>
+<script src="{% static 'js/transaction_list.js' %}"></script>
 {% endblock %} 

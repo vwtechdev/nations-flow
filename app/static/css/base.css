@@ -825,6 +825,10 @@
     background-color: #ff6b6b;
 }
 
+.legend-balance {
+    background-color: #673ab7;
+}
+
 /* Table improvements */
 .table th {
     background-color: #f8f9fa;

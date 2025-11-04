@@ -3,9 +3,11 @@ let currentPage = 1;
 let currentFilters = {};
 
 document.addEventListener('DOMContentLoaded', function() {
-    const fieldSelect = document.getElementById('field');
-    const churchSelect = document.getElementById('church');
-    const shepherdSelect = document.getElementById('shepherd');
+    // Aguardar um pouco para garantir que o select2 seja inicializado
+    setTimeout(function() {
+    const fieldSelect = document.getElementById('fieldFilter');
+    const churchSelect = document.getElementById('churchFilter');
+    const shepherdSelect = document.getElementById('shepherdFilter');
     
     if (fieldSelect && churchSelect) {
         fieldSelect.addEventListener('change', function() {
@@ -33,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (selectedField || (selectedShepherd && shepherdSelect)) {
             // Fazer requisição AJAX para buscar igrejas filtradas
-            fetch(`/get_churches/?${params.toString()}`)
+            fetch(`/api/churches/?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
                     data.churches.forEach(church => {
@@ -139,6 +141,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadTransactions();
             });
         }
+        
+        // Adicionar listeners para mudanças nos campos de filtro (para atualizar export em tempo real)
+        const filterFields = filterForm.querySelectorAll('select, input[type="date"], input[type="text"]');
+        filterFields.forEach(field => {
+            field.addEventListener('change', function() {
+                console.log('🔄 Campo alterado:', field.name, '=', field.value);
+                updateExportButton();
+            });
+        });
     }
     
     // Adicionar listener para limpar filtros
@@ -151,10 +162,12 @@ document.addEventListener('DOMContentLoaded', function() {
             loadTransactions();
         });
     }
+    }, 500); // Aguardar 500ms para o select2 ser inicializado
 });
 
 // Função para carregar transações via AJAX
-function loadTransactions() {
+// Tornar a função global para ser chamada por outros scripts
+window.loadTransactions = function() {
     const transactionsTable = document.getElementById('transactionsTable');
     const paginationContainer = document.getElementById('paginationContainer');
     
@@ -168,17 +181,85 @@ function loadTransactions() {
         </div>
     `;
     
-    // Coletar filtros atuais
+    // Coletar filtros atuais (desktop e mobile)
+    // Para campos select2, usar jQuery.val(), para outros usar .value
     currentFilters = {
-        category: document.getElementById('categoryFilter')?.value || '',
-        type: document.getElementById('typeFilter')?.value || '',
-        date_from: document.getElementById('date_from')?.value || '',
-        date_to: document.getElementById('date_to')?.value || '',
-        field: document.getElementById('fieldFilter')?.value || '',
-        church: document.getElementById('churchFilter')?.value || '',
-        user: document.getElementById('userFilter')?.value || '',
+        category: $('#categoryFilter').val() || $('#categoryFilter_mobile').val() || '',
+        type: document.getElementById('typeFilter')?.value || document.getElementById('typeFilter_mobile')?.value || '',
+        date_from: document.getElementById('date_from')?.value || document.getElementById('date_from_mobile')?.value || '',
+        date_to: document.getElementById('date_to')?.value || document.getElementById('date_to_mobile')?.value || '',
+        field: $('#fieldFilter').val() || $('#fieldFilter_mobile').val() || '',
+        church: $('#churchFilter').val() || $('#churchFilter_mobile').val() || '',
+        shepherd: $('#shepherdFilter').val() || $('#shepherdFilter_mobile').val() || '',
+        user: $('#userFilter').val() || $('#userFilter_mobile').val() || '',
         page: currentPage
     };
+    
+    console.log('📋 Filtros coletados:', currentFilters);
+    
+    // Debug específico para shepherd
+    const shepherdDesktop = $('#shepherdFilter').val();
+    const shepherdMobile = $('#shepherdFilter_mobile').val();
+    console.log('🔍 Debug shepherd - Desktop:', shepherdDesktop, 'Mobile:', shepherdMobile);
+    
+    // Debug específico para usuário
+    const userDesktop = $('#userFilter').val();
+    const userMobile = $('#userFilter_mobile').val();
+    console.log('🔍 Debug user - Desktop:', userDesktop, 'Mobile:', userMobile);
+
+    console.log('🔍 Debug user - Elementos encontrados:', {
+        desktop: document.getElementById('userFilter'),
+        mobile: document.getElementById('userFilter_mobile')
+    });
+    
+    // Teste adicional para verificar se o elemento de usuário tem valor
+    const userElement = document.getElementById('userFilter');
+    if (userElement) {
+        console.log('🔍 Debug user - Element value (native):', userElement.value);
+        console.log('🔍 Debug user - jQuery value:', $('#userFilter').val());
+        console.log('🔍 Debug user - Element selectedIndex:', userElement.selectedIndex);
+        console.log('🔍 Debug user - Element options length:', userElement.options.length);
+        if (userElement.options.length > 0) {
+            console.log('🔍 Debug user - Selected option:', userElement.options[userElement.selectedIndex]);
+        }
+    } else {
+        console.log('❌ Debug user - Elemento userFilter não encontrado!');
+    }
+    console.log('🔍 Debug shepherd - Elementos encontrados:', {
+        desktop: document.getElementById('shepherdFilter'),
+        mobile: document.getElementById('shepherdFilter_mobile')
+    });
+    
+    // Teste adicional para verificar se o elemento tem valor
+    const shepherdElement = document.getElementById('shepherdFilter');
+    if (shepherdElement) {
+        console.log('🔍 Debug shepherd - Element value (native):', shepherdElement.value);
+        console.log('🔍 Debug shepherd - jQuery value:', $('#shepherdFilter').val());
+        console.log('🔍 Debug shepherd - Element selectedIndex:', shepherdElement.selectedIndex);
+        console.log('🔍 Debug shepherd - Element options length:', shepherdElement.options.length);
+        if (shepherdElement.options.length > 0) {
+            console.log('🔍 Debug shepherd - Selected option:', shepherdElement.options[shepherdElement.selectedIndex]);
+        }
+    }
+    
+    // Debug adicional para verificar se o select2 está funcionando
+    if (document.getElementById('shepherdFilter')) {
+        console.log('🔍 Debug shepherd - Select2 instance:', $('#shepherdFilter').data('select2'));
+        console.log('🔍 Debug shepherd - Options:', $('#shepherdFilter option').map(function() { return this.value; }).get());
+        console.log('🔍 Debug shepherd - Selected value:', $('#shepherdFilter').val());
+        console.log('🔍 Debug shepherd - Selected text:', $('#shepherdFilter option:selected').text());
+        console.log('🔍 Debug shepherd - Is select2 initialized:', $('#shepherdFilter').hasClass('select2-hidden-accessible'));
+        
+        // Teste específico para verificar se o valor está sendo capturado
+        const shepherdValue = $('#shepherdFilter').val();
+        console.log('🔍 Debug shepherd - Valor capturado pelo jQuery:', shepherdValue);
+        console.log('🔍 Debug shepherd - Tipo do valor:', typeof shepherdValue);
+        console.log('🔍 Debug shepherd - Valor é string vazia?', shepherdValue === '');
+        console.log('🔍 Debug shepherd - Valor é undefined?', shepherdValue === undefined);
+        console.log('🔍 Debug shepherd - Valor é null?', shepherdValue === null);
+    } else {
+        console.log('❌ Debug shepherd - Elemento shepherdFilter não encontrado!');
+    }
     
     // Atualizar botão de exportação PDF com os filtros atuais
     updateExportButton();
@@ -219,18 +300,42 @@ function loadTransactions() {
         });
 }
 
-// Função para atualizar o botão de exportação PDF com os filtros atuais
+// Função para atualizar os botões de exportação com os filtros atuais
 function updateExportButton() {
-    const exportButton = document.getElementById('exportPdfButton');
-    if (exportButton) {
-        // Construir query string com os filtros atuais
-        const queryString = Object.entries(currentFilters)
-            .filter(([key, value]) => value && key !== 'page')
-            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-            .join('&');
-        
-        // Atualizar o href do botão
-        exportButton.href = `/transactions/export-pdf/?${queryString}`;
+    const exportPdfButton = document.getElementById('exportPdfButton');
+    const exportPdfButtonMobile = document.getElementById('exportPdfButton_mobile');
+    const exportXlsxButton = document.getElementById('exportXlsxButton');
+    const exportXlsxButtonMobile = document.getElementById('exportXlsxButton_mobile');
+    
+    // Construir query string com os filtros atuais
+    const queryString = Object.entries(currentFilters)
+        .filter(([key, value]) => value && key !== 'page')
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&');
+    
+    const pdfExportUrl = `/transactions/export-pdf/?${queryString}`;
+    const xlsxExportUrl = `/transactions/export-xlsx/?${queryString}`;
+    
+    // Atualizar o href dos botões PDF
+    if (exportPdfButton) {
+        exportPdfButton.href = pdfExportUrl;
+        console.log('🔗 Botão PDF desktop atualizado:', pdfExportUrl);
+    }
+    
+    if (exportPdfButtonMobile) {
+        exportPdfButtonMobile.href = pdfExportUrl;
+        console.log('📱 Botão PDF mobile atualizado:', pdfExportUrl);
+    }
+    
+    // Atualizar o href dos botões XLSX
+    if (exportXlsxButton) {
+        exportXlsxButton.href = xlsxExportUrl;
+        console.log('🔗 Botão XLSX desktop atualizado:', xlsxExportUrl);
+    }
+    
+    if (exportXlsxButtonMobile) {
+        exportXlsxButtonMobile.href = xlsxExportUrl;
+        console.log('📱 Botão XLSX mobile atualizado:', xlsxExportUrl);
     }
 }
 
@@ -270,9 +375,10 @@ function renderTransactions(transactions) {
                         <th>Categoria</th>
                         <th>Campo</th>
                         <th>Igreja</th>
-                        <th>Descrição</th>
+                        <th>Pastor</th>
                         <th>Valor</th>
-                        ${isAdmin ? '<th>Usuário</th>' : ''}
+                        <th>Descrição</th>
+                        <th>Usuário</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -304,14 +410,15 @@ function renderTransactions(transactions) {
                     </span>
                 </td>
                 <td>${transaction.church_name}</td>
-                <td>${truncateText(transaction.desc)}</td>
+                <td>${transaction.shepherd_name || '-'}</td>
                 <td class="text-${valueClass}">
                     R$ ${transaction.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
-                ${isAdmin ? `<td>${transaction.user_name}</td>` : ''}
+                <td>${truncateText(transaction.desc)}</td>
+                <td>${transaction.user_name || '-'}</td>
                 <td>
                     ${transaction.proof ? 
-                        `                        <button type="button" class="btn btn-sm btn-outline-success me-1" 
+                        `<button type="button" class="btn btn-sm btn-outline-success me-1" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#proofModal"
                                 data-proof-url="${transaction.proof}"
@@ -565,6 +672,7 @@ function clearFilters() {
         date_to: '',
         field: '',
         church: '',
+        shepherd: '',
         page: 1
     };
 }
