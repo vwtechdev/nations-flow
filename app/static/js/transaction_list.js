@@ -363,6 +363,8 @@ function renderTransactions(transactions) {
     }
     
     const isAdmin = document.body.dataset.isAdmin === 'true';
+    const isSupervisor = document.body.dataset.isSupervisor === 'true';
+    const canSeeUser = isAdmin || isSupervisor;
     
     // Renderizar tabela desktop
     let tableHTML = `
@@ -494,6 +496,10 @@ function renderTransactions(transactions) {
                         <span class="mobile-card-value">${transaction.church_name}</span>
                     </div>
                     <div class="mobile-card-row">
+                        <span class="mobile-card-label">Pastor:</span>
+                        <span class="mobile-card-value">${transaction.shepherd_name || '-'}</span>
+                    </div>
+                    <div class="mobile-card-row">
                         <span class="mobile-card-label">Descrição:</span>
                         <span class="mobile-card-value description">${truncateText(transaction.desc)}</span>
                     </div>
@@ -503,7 +509,7 @@ function renderTransactions(transactions) {
                             R$ ${transaction.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                     </div>
-                    ${isAdmin ? `
+                    ${canSeeUser ? `
                         <div class="mobile-card-row">
                             <span class="mobile-card-label">Usuário:</span>
                             <span class="mobile-card-value">${transaction.user_name}</span>

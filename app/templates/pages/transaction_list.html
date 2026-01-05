@@ -116,7 +116,7 @@
                             </div>
                         </div>
                         
-                        {% if user.is_admin %}
+                        {% if user.is_admin or user.is_supervisor %}
                         <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="user" id="userFilter" class="form-control">
@@ -203,7 +203,7 @@
                             </div>
                         </div>
                         
-                        {% if user.is_admin or user.fields.count > 1 %}
+                        {% if user.is_admin or user.is_supervisor or user.fields.count > 1 %}
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
@@ -503,7 +503,7 @@
                             <div class="col-md-6">
                                 <p class="card-text mb-1"><strong>Valor:</strong> <span id="transactionValue"></span></p>
                                 <p class="card-text mb-1"><strong>Descrição:</strong> <span id="transactionDesc"></span></p>
-                                {% if user.is_admin %}
+                                {% if user.is_admin or user.is_supervisor %}
                                 <p class="card-text"><strong>Usuário:</strong> <span id="transactionUser"></span></p>
                                 {% endif %}
                             </div>
@@ -534,8 +534,9 @@
 
 {% block extra_js %}
 <script>
-// Adicionar atributo data-is-admin ao body para o JavaScript
+// Adicionar atributos ao body para o JavaScript
 document.body.setAttribute('data-is-admin', '{{ user.is_admin|yesno:"true,false" }}');
+document.body.setAttribute('data-is-supervisor', '{{ user.is_supervisor|yesno:"true,false" }}');
 </script>
 <script src="{% static 'js/filters_form.js' %}"></script>
 <script src="{% static 'js/transaction_list.js' %}"></script>

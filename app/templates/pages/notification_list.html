@@ -46,7 +46,6 @@
                                     <th>Data e Hora</th>
                                     <th>Status</th>
                                     <th>Repetir</th>
-                                    <th>Transação</th>
                                     <th>Criado por</th>
                                     <th>Data de Criação</th>
                                     <th>Ações</th>
@@ -82,17 +81,6 @@
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
-                                            {% if notification.related_transaction %}
-                                                <a href="{% url 'transaction_edit' notification.related_transaction.pk %}" class="text-decoration-none">
-                                                    <span class="badge bg-info">
-                                                        <i class="bi bi-link-45deg"></i> Ver Transação
-                                                    </span>
-                                                </a>
-                                            {% else %}
-                                                <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
                                         <td>{{ notification.created_by.get_full_name }}</td>
                                         <td>{{ notification.created_at|date:"d/m/Y H:i" }}</td>
                                         <td>
@@ -107,8 +95,7 @@
                                                     data-notification-status="{% if notification.is_read %}Lida{% else %}Não lida{% endif %}"
                                                     data-notification-repeat="{% if notification.repeat %}{{ notification.get_repeat_frequency_display }}{% else %}Não{% endif %}"
                                                     data-notification-created-by="{{ notification.created_by.get_full_name }}"
-                                                    data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}"
-                                                    data-notification-related-transaction="{% if notification.related_transaction %}{{ notification.related_transaction.church.name }} - R$ {{ notification.related_transaction.get_formatted_value }}{% else %}Nenhuma{% endif %}">
+                                                    data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}">
                                                 <i class="bi bi-eye"></i>
                                             </button>
                                             <a href="{% url 'notification_edit' notification.pk %}" class="btn btn-sm btn-outline-primary">
@@ -175,20 +162,6 @@
                                             <span class="mobile-card-value">{{ notification.created_by.get_full_name }}</span>
                                         </div>
                                         <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Transação:</span>
-                                            <span class="mobile-card-value">
-                                                {% if notification.related_transaction %}
-                                                    <a href="{% url 'transaction_edit' notification.related_transaction.pk %}" class="text-decoration-none">
-                                                        <span class="badge bg-info">
-                                                            <i class="bi bi-link-45deg"></i> Ver Transação
-                                                        </span>
-                                                    </a>
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="mobile-card-row">
                                             <span class="mobile-card-label">Data de Criação:</span>
                                             <span class="mobile-card-value">{{ notification.created_at|date:"d/m/Y H:i" }}</span>
                                         </div>
@@ -205,8 +178,7 @@
                                                 data-notification-status="{% if notification.is_read %}Lida{% else %}Não lida{% endif %}"
                                                 data-notification-repeat="{% if notification.repeat %}{{ notification.get_repeat_frequency_display }}{% else %}Não{% endif %}"
                                                 data-notification-created-by="{{ notification.created_by.get_full_name }}"
-                                                data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}"
-                                                data-notification-related-transaction="{% if notification.related_transaction %}{{ notification.related_transaction.church.name }} - R$ {{ notification.related_transaction.get_formatted_value }}{% else %}Nenhuma{% endif %}">
+                                                data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}">
                                             <i class="bi bi-eye"></i> Visualizar
                                         </button>
                                         <a href="{% url 'notification_edit' notification.pk %}" class="mobile-card-btn btn-outline-primary">
@@ -369,17 +341,6 @@
                                 <p class="text-muted" id="viewNotificationCreatedAt"></p>
                             </div>
                         </div>
-                        
-                        <div class="card border-warning mt-3">
-                            <div class="card-header bg-warning text-dark">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-link-45deg"></i> Transação Relacionada
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <p class="text-muted" id="viewNotificationRelatedTransaction"></p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -434,7 +395,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const notificationRepeat = button.getAttribute('data-notification-repeat');
             const notificationCreatedBy = button.getAttribute('data-notification-created-by');
             const notificationCreatedAt = button.getAttribute('data-notification-created-at');
-            const notificationRelatedTransaction = button.getAttribute('data-notification-related-transaction');
             
             // Preencher os dados no modal
             document.getElementById('viewNotificationTitle').textContent = notificationTitle;
@@ -443,7 +403,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             document.getElementById('viewNotificationCreatedBy').textContent = notificationCreatedBy;
             document.getElementById('viewNotificationCreatedAt').textContent = notificationCreatedAt;
-            document.getElementById('viewNotificationRelatedTransaction').textContent = notificationRelatedTransaction;
             
             // Configurar status com badge
             const statusElement = document.getElementById('viewNotificationStatus');

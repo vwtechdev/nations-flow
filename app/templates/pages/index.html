@@ -236,12 +236,12 @@
     </button>
 
     <!-- Floating Action Button -->
-    {% if user.is_treasurer %}
-        <!-- Para tesoureiros: botão direto para nova transação -->
+    {% if user.is_treasurer or user.is_supervisor %}
+        <!-- Para tesoureiros e supervisores: botão direto para nova transação -->
         <a href="{% url 'transaction_create' %}" class="floating-action-btn" title="Nova Transação">
             <i class="bi bi-plus"></i>
         </a>
-    {% else %}
+    {% elif user.is_admin %}
         <!-- Para administradores: bottom sheet estilo Android -->
         <button class="floating-action-btn" id="adminFab" title="Ações Rápidas">
             <i class="bi bi-plus"></i>

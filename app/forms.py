@@ -3,6 +3,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.html import format_html
+from datetime import date
 import re
 from .models import Church, User, Field, Shepherd, Category, Transaction, Notification
 
@@ -388,6 +389,12 @@ class TransactionForm(forms.ModelForm):
         if 'date' in self.fields:
             self.fields['date'].input_formats = ['%Y-%m-%d']
             
+            # Definir data máxima como hoje (apenas para novas transações)
+            if not self.instance or not self.instance.pk:
+                # Para novas transações, limitar a data máxima ao dia atual
+                today = date.today().strftime('%Y-%m-%d')
+                self.fields['date'].widget.attrs['max'] = today
+            
             # Se há uma instância (edição), formatar a data corretamente
             if self.instance and self.instance.pk and self.instance.date:
                 # Formatar a data para o formato YYYY-MM-DD esperado pelo input type="date"
@@ -420,6 +427,16 @@ class TransactionForm(forms.ModelForm):
         if value and value <= 0:
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return value
+    
+    def clean_date(self):
+        date_value = self.cleaned_data.get('date')
+        if date_value:
+            # Validar que a data não seja maior que a data atual (apenas para novas transações)
+            if not self.instance or not self.instance.pk:
+                today = date.today()
+                if date_value > today:
+                    raise forms.ValidationError("A data não pode ser maior que a data atual.")
+        return date_value
     
     def clean_proof(self):
         proof = self.cleaned_data.get('proof')

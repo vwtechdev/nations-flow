@@ -55,7 +55,7 @@ class FiltersForm {
             placeholder: 'Todas as igrejas'
         });
 
-        // Inicializar Select2 para usuário (apenas para administradores)
+        // Inicializar Select2 para usuário (para administradores e supervisores)
         this.initializeField('userFilter', {
             ...select2Config,
             placeholder: 'Todos os usuários'

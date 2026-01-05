@@ -539,9 +539,20 @@ def transaction_list(request):
     if selected_shepherd:
         transactions = transactions.filter(church__shepherd_id=selected_shepherd)
     
-    # Filtro por usuário (apenas para administradores)
-    if selected_user and request.user.is_admin():
-        transactions = transactions.filter(user_id=selected_user)
+    # Filtro por usuário (para administradores e supervisores)
+    if selected_user:
+        if request.user.is_admin():
+            transactions = transactions.filter(user_id=selected_user)
+        elif request.user.is_supervisor():
+            # Supervisor só pode filtrar por usuários que ele pode ver (ele mesmo ou tesoureiros dos mesmos campos)
+            supervisor_fields = request.user.fields.all()
+            if supervisor_fields.exists():
+                allowed_user_ids = User.objects.filter(
+                    Q(id=request.user.id) |  # O próprio supervisor
+                    Q(role='treasurer', fields__in=supervisor_fields)  # Tesoureiros dos mesmos campos
+                ).distinct().values_list('id', flat=True)
+                if int(selected_user) in allowed_user_ids:
+                    transactions = transactions.filter(user_id=selected_user)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -567,7 +578,16 @@ def transaction_list(request):
             fields = request.user.fields.all()
             churches = Church.objects.filter(field__in=request.user.fields.all())
             shepherds = Shepherd.objects.filter(church__field__in=request.user.fields.all()).distinct()
-            users = User.objects.none()
+            
+            # Para Supervisor, incluir usuários que ele pode ver (ele mesmo e tesoureiros dos mesmos campos)
+            if request.user.is_supervisor():
+                supervisor_fields = request.user.fields.all()
+                users = User.objects.filter(
+                    Q(id=request.user.id) |  # O próprio supervisor
+                    Q(role='treasurer', fields__in=supervisor_fields)  # Tesoureiros dos mesmos campos
+                ).distinct().exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
+            else:
+                users = User.objects.none()
             
             # Se o usuário tem múltiplos campos, permitir filtro por campo
             if request.user.fields.count() > 1 and selected_field:
@@ -972,13 +992,18 @@ def transaction_create(request):
             # Verificar se deve criar um lembrete (apenas para administradores)
             if request.user.is_admin() and form.cleaned_data.get('create_reminder'):
                 try:
-                    # Criar notificação de lembrete
-                    reminder_date = datetime.combine(transaction.date, datetime.min.time())
+                    # Criar notificação de lembrete (1 dia após a data da transação, às 9h)
+                    reminder_date = datetime.combine(transaction.date, datetime.min.time().replace(hour=9, minute=0))
+                    reminder_date += timedelta(days=1)
+                    reminder_date = timezone.make_aware(reminder_date)
                     
                     Notification.objects.create(
                         title=f"Lembrete: {transaction.category.name}",
-                        body=f"Lembrete sobre a transação de R$ {transaction.value} para {transaction.church.name}.",
+                        body=f"Lembrete sobre a transação de {transaction.get_type_display().lower()} de {transaction.get_formatted_value()} para {transaction.church.name}.",
                         date=reminder_date,
+                        is_read=False,
+                        repeat=False,
+                        repeat_frequency='none',
                         created_by=request.user
                     )
                     messages.success(request, 'Transação criada com sucesso e lembrete criado!')
@@ -1087,13 +1112,18 @@ def transaction_edit(request, pk):
             # Verificar se deve criar um lembrete
             if form.cleaned_data.get('create_reminder'):
                 try:
-                    # Criar notificação de lembrete
-                    reminder_date = datetime.combine(transaction.date, datetime.min.time())
+                    # Criar notificação de lembrete (1 dia após a data da transação, às 9h)
+                    reminder_date = datetime.combine(transaction.date, datetime.min.time().replace(hour=9, minute=0))
+                    reminder_date += timedelta(days=1)
+                    reminder_date = timezone.make_aware(reminder_date)
                     
                     Notification.objects.create(
                         title=f"Lembrete: {transaction.category.name}",
-                        body=f"Lembrete sobre a transação de R$ {transaction.value} para {transaction.church.name}.",
+                        body=f"Lembrete sobre a transação de {transaction.get_type_display().lower()} de {transaction.get_formatted_value()} para {transaction.church.name}.",
                         date=reminder_date,
+                        is_read=False,
+                        repeat=False,
+                        repeat_frequency='none',
                         created_by=request.user
                     )
                     messages.success(request, 'Transação atualizada com sucesso e lembrete criado!')
@@ -1374,8 +1404,6 @@ def user_create(request):
         form = UserForm(request.POST, user=request.user)
         if form.is_valid():
             user = form.save(commit=False)
-            # Administradores só podem criar tesoureiros
-            user.role = 'treasurer'
             user.save()
             
             # Salvar o formulário para processar campos many-to-many se houver
@@ -2397,30 +2425,10 @@ def notification_create(request):
         if form.is_valid():
             notification = form.save(commit=False)
             notification.created_by = request.user
-            
-            # Verificar se há uma transação relacionada
-            related_transaction_id = request.POST.get('related_transaction')
-            if related_transaction_id:
-                try:
-                    transaction = Transaction.objects.get(pk=related_transaction_id)
-                    notification.related_transaction = transaction
-                    messages.success(request, f'Lembrete criado com sucesso para a transação de {transaction.church.name}!')
-                except Transaction.DoesNotExist:
-                    messages.success(request, 'Notificação criada com sucesso!')
-            else:
-                messages.success(request, 'Notificação criada com sucesso!')
-            
-            # Configurar próxima data de repetição se necessário
-            if notification.repeat and notification.repeat_frequency != 'none':
-                notification.next_repeat_date = notification.calculate_next_repeat_date()
-            
             notification.save()
             
-            # Redirecionar de volta para a transação se foi criada a partir dela
-            if related_transaction_id:
-                return redirect('transaction_edit', pk=related_transaction_id)
-            else:
-                return redirect('notification_list')
+            messages.success(request, 'Notificação criada com sucesso!')
+            return redirect('notification_list')
     else:
         form = NotificationForm()
     
@@ -2442,23 +2450,11 @@ def notification_edit(request, pk):
         form = NotificationForm(request.POST, instance=notification)
         if form.is_valid():
             updated_notification = form.save(commit=False)
-            
-            # Atualizar próxima data de repetição se necessário
-            if updated_notification.repeat and updated_notification.repeat_frequency != 'none':
-                updated_notification.next_repeat_date = updated_notification.calculate_next_repeat_date()
-            else:
-                updated_notification.next_repeat_date = None
-            
             updated_notification.save()
             messages.success(request, 'Notificação atualizada com sucesso!')
             return redirect('notification_list')
     else:
         form = NotificationForm(instance=notification)
-    
-    # Debug: verificar valores
-    print(f"DEBUG - Notification date: {notification.date}")
-    print(f"DEBUG - Form date initial: {form.initial.get('date') if form.initial else 'No initial'}")
-    print(f"DEBUG - Form date field value: {form['date'].value()}")
     
     context = {
         'title': 'Editar Notificação',
@@ -2518,16 +2514,16 @@ def notification_mark_read(request, pk):
 
 @password_changed_required
 def get_today_notifications(request):
-    """Buscar notificações do dia atual e vencidas via AJAX - apenas do usuário logado"""
+    """Buscar notificações vencidas ou do dia atual que não foram lidas via AJAX - apenas do usuário logado"""
     if request.method == 'GET':
         try:
             today = date.today()
             
-            # Buscar notificações onde o dia da notificação é menor ou igual ao dia atual
-            # Isso inclui notificações vencidas que ainda não foram lidas
+            # Buscar notificações vencidas ou com data igual a atual e que não foram lidas
+            # Compara apenas a data, ignorando a hora
             notifications = Notification.objects.filter(
-                date__date__lte=today,  # Mudança: date__date__lte em vez de date__date
-                is_read=False,
+                date__date__lte=today,  # Data menor ou igual ao dia atual (vencidas ou hoje)
+                is_read=False,  # Apenas não lidas
                 created_by=request.user
             ).select_related('created_by').order_by('-date')[:10]
             
@@ -2541,7 +2537,6 @@ def get_today_notifications(request):
                     'created_by': notification.created_by.get_full_name() or notification.created_by.username,
                     'repeat': notification.repeat,
                     'repeat_frequency': notification.get_repeat_frequency_display() if notification.repeat else None,
-                    'is_original': notification.is_original()
                 })
             
             return JsonResponse({

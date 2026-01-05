@@ -356,91 +356,6 @@
     </div>
 </div>
 
-<!-- Modal de Criação de Lembrete -->
-<div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-info" id="reminderModalLabel">
-                    <i class="bi bi-bell"></i> Criar Lembrete para Transação
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="reminderForm" method="POST" action="{% url 'notification_create' %}">
-                    {% csrf_token %}
-                    
-                    <!-- Informações da Transação -->
-                    <div class="alert alert-info mb-4">
-                        <h6 class="alert-heading">
-                            <i class="bi bi-info-circle"></i> Transação Relacionada
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Data:</strong> <span id="reminderTransactionDate"></span></p>
-                                <p class="mb-1"><strong>Categoria:</strong> <span id="reminderTransactionCategory"></span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Igreja:</strong> <span id="reminderTransactionChurch"></span></p>
-                                <p class="mb-1"><strong>Valor:</strong> <span id="reminderTransactionValue"></span></p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Campos do Lembrete -->
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="form-floating mb-3">
-                                <input type="text" name="title" id="reminderTitle" class="form-control" required 
-                                       placeholder="Título do Lembrete">
-                                <label for="reminderTitle">
-                                    <i class="bi bi-pencil"></i> Título do Lembrete
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-floating mb-3">
-                                <input type="datetime-local" name="date" id="reminderDate" class="form-control" required>
-                                <label for="reminderDate">
-                                    <i class="bi bi-calendar"></i> Data e Hora
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-floating mb-3">
-                        <textarea name="body" id="reminderBody" class="form-control" rows="4" required 
-                                  placeholder="Mensagem do lembrete"></textarea>
-                        <label for="reminderBody">
-                            <i class="bi bi-chat-text"></i> Mensagem do Lembrete
-                        </label>
-                    </div>
-                    
-
-                    
-                    <div class="form-check mb-3">
-                        <input type="checkbox" name="is_read" id="reminderRead" class="form-check-input">
-                        <label class="form-check-label" for="reminderRead">
-                            <i class="bi bi-check-circle"></i> Marcar como Lida
-                        </label>
-                    </div>
-                    
-                    <!-- Campo oculto para relacionar com a transação -->
-                    <input type="hidden" name="related_transaction" id="reminderTransactionId" value="">
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <button type="submit" form="reminderForm" class="btn btn-info">
-                    <i class="bi bi-bell"></i> Criar Lembrete
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -821,6 +736,27 @@
         const fieldSelect = $('#fieldSelect');
         const churchSelect = $('#churchSelect');
         const categorySelect = $('#categorySelect');
+        const dateInput = document.querySelector('input[name="date"]');
+        
+        // Configurar data máxima para o campo de data (apenas para novas transações)
+        if (dateInput && !dateInput.hasAttribute('max')) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('max', today);
+            
+            // Adicionar validação adicional no frontend
+            dateInput.addEventListener('change', function() {
+                const selectedDate = new Date(this.value);
+                const todayDate = new Date();
+                todayDate.setHours(0, 0, 0, 0);
+                
+                if (selectedDate > todayDate) {
+                    this.setCustomValidity('A data não pode ser maior que a data atual.');
+                    this.reportValidity();
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        }
         
         // Configurar campo de comprovante
         if (proofInput) {
@@ -1062,89 +998,5 @@
         `;
     }
     
-    // Configuração do Modal de Lembretes
-    document.addEventListener('DOMContentLoaded', function() {
-        const reminderModal = document.getElementById('reminderModal');
-
-        
-        // Preencher informações da transação quando o modal abrir
-        reminderModal.addEventListener('show.bs.modal', function() {
-            // Preencher informações da transação
-            const transactionDate = document.querySelector('input[name="date"]').value;
-            const categorySelect = document.getElementById('categorySelect');
-            const fieldSelect = document.getElementById('fieldSelect');
-            const churchSelect = document.getElementById('churchSelect');
-            const amountInput = document.querySelector('input[name="amount"]');
-            
-            // Formatar data para exibição
-            let displayDate = '';
-            if (transactionDate) {
-                const date = new Date(transactionDate);
-                displayDate = date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-            }
-            
-            // Preencher campos do modal
-            document.getElementById('reminderTransactionDate').textContent = displayDate || 'Não definida';
-            document.getElementById('reminderTransactionCategory').textContent = categorySelect.options[categorySelect.selectedIndex]?.text || 'Não selecionada';
-            document.getElementById('reminderTransactionChurch').textContent = churchSelect.options[churchSelect.selectedIndex]?.text || 'Não selecionada';
-            document.getElementById('reminderTransactionValue').textContent = amountInput ? `R$ ${parseFloat(amountInput.value || 0).toFixed(2)}` : 'R$ 0,00';
-            
-            // Definir data padrão para o lembrete (1 dia após a transação)
-            if (transactionDate) {
-                const reminderDate = new Date(transactionDate);
-                reminderDate.setDate(reminderDate.getDate() + 1);
-                reminderDate.setHours(9, 0, 0, 0); // 9:00 da manhã
-                document.getElementById('reminderDate').value = reminderDate.toISOString().slice(0, 16);
-            } else {
-                // Se não há data da transação, usar amanhã às 9:00
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(9, 0, 0, 0);
-                document.getElementById('reminderDate').value = tomorrow.toISOString().slice(0, 16);
-            }
-            
-            // Preencher título padrão baseado na categoria
-            const categoryName = categorySelect.options[categorySelect.selectedIndex]?.text || 'Transação';
-            document.getElementById('reminderTitle').value = `Lembrete: ${categoryName}`;
-            
-            // Preencher mensagem padrão
-            const churchName = churchSelect.options[churchSelect.selectedIndex]?.text || 'igreja';
-            const amount = amountInput ? parseFloat(amountInput.value || 0).toFixed(2) : '0,00';
-            document.getElementById('reminderBody').value = `Lembrete sobre a transação de R$ ${amount} para ${churchName}.`;
-            
-            // Definir ID da transação relacionada
-            const transactionId = '{{ transaction.pk|default:"" }}';
-            if (transactionId) {
-                document.getElementById('reminderTransactionId').value = transactionId;
-            }
-        });
-        
-
-        
-        // Limpar formulário quando o modal fechar
-        reminderModal.addEventListener('hidden.bs.modal', function() {
-            document.getElementById('reminderForm').reset();
-        });
-        
-        // Configurar envio do formulário
-        document.getElementById('reminderForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Validar campos obrigatórios
-            const title = document.getElementById('reminderTitle').value.trim();
-            const date = document.getElementById('reminderDate').value;
-            const body = document.getElementById('reminderBody').value.trim();
-            
-            if (!title || !date || !body) {
-                alert('Por favor, preencha todos os campos obrigatórios.');
-                return;
-            }
-            
-
-            
-            // Enviar formulário
-            this.submit();
-        });
-    });
 </script>
 {% endblock %} 
