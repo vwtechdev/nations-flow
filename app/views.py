@@ -182,15 +182,15 @@ def index(request):
     if not request.user.is_admin():
         return redirect('transaction_list')
     
-    # Obter filtros da URL
+    # Obter filtros da URL (agora usando getlist para múltiplas seleções)
     selected_start_date = request.GET.get('start_date', '')
     selected_end_date = request.GET.get('end_date', '')
-    selected_category = request.GET.get('category', '')
+    selected_categories = request.GET.getlist('category')
     selected_type = request.GET.get('type', '')
-    selected_field = request.GET.get('field', '')
-    selected_church = request.GET.get('church', '')
-    selected_shepherd = request.GET.get('shepherd', '')
-    selected_user = request.GET.get('user', '')
+    selected_fields = request.GET.getlist('field')
+    selected_churches = request.GET.getlist('church')
+    selected_shepherds = request.GET.getlist('shepherd')
+    selected_users = request.GET.getlist('user')
     
     # Definir datas padrão se não fornecidas (ano atual)
     today = date.today()
@@ -210,12 +210,12 @@ def index(request):
         'user': request.user,
         'selected_start_date': selected_start_date,
         'selected_end_date': selected_end_date,
-        'selected_category': selected_category,
+        'selected_categories': selected_categories,
         'selected_type': selected_type,
-        'selected_field': selected_field,
-        'selected_church': selected_church,
-        'selected_shepherd': selected_shepherd,
-        'selected_user': selected_user,
+        'selected_fields': selected_fields,
+        'selected_churches': selected_churches,
+        'selected_shepherds': selected_shepherds,
+        'selected_users': selected_users,
         'categories': Category.objects.all(),
         'current_year': today.year
     }
@@ -239,6 +239,18 @@ def index(request):
             context['shepherds'] = Shepherd.objects.none()
         context['users'] = User.objects.none()
     
+    # Dados para o modal de filtros
+    context['filters_source_data'] = {
+        'category': [{'id': c.id, 'text': c.name} for c in context['categories']],
+        'field': [{'id': f.id, 'text': f.name} for f in context.get('fields', Field.objects.none())],
+        'shepherd': [{'id': s.id, 'text': s.name} for s in context.get('shepherds', Shepherd.objects.none())],
+        'church': [{'id': c.id, 'text': c.name} for c in context.get('churches', Church.objects.none())],
+        'user': [
+            {'id': u.id, 'text': (u.get_full_name() or u.username)}
+            for u in context.get('users', User.objects.none())
+        ],
+    }
+    
     # Base de transações
     if request.user.is_admin():
         base_transactions = Transaction.objects.all()
@@ -253,29 +265,35 @@ def index(request):
     # Filtro por período de datas
     filtered_transactions = filtered_transactions.filter(date__gte=start_date, date__lte=end_date)
     
-    # Filtro por categoria
-    if selected_category:
-        filtered_transactions = filtered_transactions.filter(category_id=selected_category)
+    # Filtro por categoria (múltiplas seleções)
+    if selected_categories:
+        filtered_transactions = filtered_transactions.filter(category_id__in=selected_categories)
     
     # Filtro por tipo
     if selected_type:
         filtered_transactions = filtered_transactions.filter(type=selected_type)
     
-    # Filtro por campo
-    if selected_field:
-        filtered_transactions = filtered_transactions.filter(church__field_id=selected_field)
+    # Filtro por campo (múltiplas seleções)
+    if selected_fields:
+        if request.user.is_admin():
+            filtered_transactions = filtered_transactions.filter(church__field_id__in=selected_fields)
+        elif request.user.fields.count() > 1:
+            # Validar que todos os campos selecionados pertencem ao usuário
+            valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+            if valid_fields:
+                filtered_transactions = filtered_transactions.filter(church__field_id__in=valid_fields)
     
-    # Filtro por igreja
-    if selected_church:
-        filtered_transactions = filtered_transactions.filter(church_id=selected_church)
+    # Filtro por igreja (múltiplas seleções)
+    if selected_churches:
+        filtered_transactions = filtered_transactions.filter(church_id__in=selected_churches)
     
-    # Filtro por pastor
-    if selected_shepherd:
-        filtered_transactions = filtered_transactions.filter(church__shepherd_id=selected_shepherd)
+    # Filtro por pastor (múltiplas seleções)
+    if selected_shepherds:
+        filtered_transactions = filtered_transactions.filter(church__shepherd_id__in=selected_shepherds)
     
-    # Filtro por usuário (apenas para administradores)
-    if selected_user and request.user.is_admin():
-        filtered_transactions = filtered_transactions.filter(user_id=selected_user)
+    # Filtro por usuário (múltiplas seleções, apenas para administradores)
+    if selected_users and request.user.is_admin():
+        filtered_transactions = filtered_transactions.filter(user_id__in=selected_users)
     
     # Calcular totais
     total_transactions = filtered_transactions.count()
@@ -408,18 +426,23 @@ def index(request):
                 month_transactions = Transaction.objects.none()
         # Filtros do mês e demais filtros
         month_transactions = month_transactions.filter(date__gte=month_start, date__lte=month_end)
-        if selected_category:
-            month_transactions = month_transactions.filter(category_id=selected_category)
+        if selected_categories:
+            month_transactions = month_transactions.filter(category_id__in=selected_categories)
         if selected_type:
             month_transactions = month_transactions.filter(type=selected_type)
-        if selected_field:
-            month_transactions = month_transactions.filter(church__field_id=selected_field)
-        if selected_church:
-            month_transactions = month_transactions.filter(church_id=selected_church)
-        if selected_shepherd:
-            month_transactions = month_transactions.filter(church__shepherd_id=selected_shepherd)
-        if selected_user and request.user.is_admin():
-            month_transactions = month_transactions.filter(user_id=selected_user)
+        if selected_fields:
+            if request.user.is_admin():
+                month_transactions = month_transactions.filter(church__field_id__in=selected_fields)
+            elif request.user.fields.count() > 1:
+                valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+                if valid_fields:
+                    month_transactions = month_transactions.filter(church__field_id__in=valid_fields)
+        if selected_churches:
+            month_transactions = month_transactions.filter(church_id__in=selected_churches)
+        if selected_shepherds:
+            month_transactions = month_transactions.filter(church__shepherd_id__in=selected_shepherds)
+        if selected_users and request.user.is_admin():
+            month_transactions = month_transactions.filter(user_id__in=selected_users)
         month_income = month_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         month_expense = month_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
 
@@ -459,9 +482,9 @@ def index(request):
         'monthly_data_json': json.dumps(monthly_data),
         'recent_transactions': recent_transactions,
         'access_logs': access_logs,
-        'selected_category_name': Category.objects.get(id=selected_category).name if selected_category else None,
-        'selected_field_name': Field.objects.get(id=selected_field).name if selected_field else None,
-        'selected_church_name': Church.objects.get(id=selected_church).name if selected_church else None,
+        'selected_category_names': [cat.name for cat in Category.objects.filter(id__in=selected_categories)] if selected_categories else [],
+        'selected_field_names': [field.name for field in Field.objects.filter(id__in=selected_fields)] if selected_fields else [],
+        'selected_church_names': [church.name for church in Church.objects.filter(id__in=selected_churches)] if selected_churches else [],
     })
     
     return render(request, 'pages/dashboard.html', context)
@@ -480,16 +503,16 @@ def transaction_list(request):
         # Tesoureiro: ver apenas transações criadas por ele
         transactions = Transaction.objects.filter(user=request.user)
     
-    # Filtros
+    # Filtros (usando getlist para múltiplas seleções)
     search = request.GET.get('search', '')
-    category_id = request.GET.get('category', '')
+    selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
-    selected_field = request.GET.get('field', '')
-    selected_church = request.GET.get('church', '')
-    selected_shepherd = request.GET.get('shepherd', '')
-    selected_user = request.GET.get('user', '')
+    selected_fields = request.GET.getlist('field')
+    selected_churches = request.GET.getlist('church')
+    selected_shepherds = request.GET.getlist('shepherd')
+    selected_users = request.GET.getlist('user')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -509,8 +532,8 @@ def transaction_list(request):
             Q(category__name__icontains=search)
         )
     
-    if category_id:
-        transactions = transactions.filter(category_id=category_id)
+    if selected_categories:
+        transactions = transactions.filter(category_id__in=selected_categories)
     
     if transaction_type:
         transactions = transactions.filter(type=transaction_type)
@@ -521,28 +544,29 @@ def transaction_list(request):
     if date_to:
         transactions = transactions.filter(date__lte=date_to)
     
-    # Filtro por campo (para administradores ou tesoureiros com múltiplos campos)
-    if selected_field:
+    # Filtro por campo (múltiplas seleções)
+    if selected_fields:
         if request.user.is_admin():
             # Administradores podem filtrar por qualquer campo
-            transactions = transactions.filter(church__field_id=selected_field)
+            transactions = transactions.filter(church__field_id__in=selected_fields)
         elif request.user.fields.count() > 1:
             # Tesoureiros com múltiplos campos podem filtrar por seus campos
-            if request.user.fields.filter(id=selected_field).exists():
-                transactions = transactions.filter(church__field_id=selected_field)
+            valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+            if valid_fields:
+                transactions = transactions.filter(church__field_id__in=valid_fields)
     
-    # Filtro por igreja
-    if selected_church:
-        transactions = transactions.filter(church_id=selected_church)
+    # Filtro por igreja (múltiplas seleções)
+    if selected_churches:
+        transactions = transactions.filter(church_id__in=selected_churches)
     
-    # Filtro por pastor
-    if selected_shepherd:
-        transactions = transactions.filter(church__shepherd_id=selected_shepherd)
+    # Filtro por pastor (múltiplas seleções)
+    if selected_shepherds:
+        transactions = transactions.filter(church__shepherd_id__in=selected_shepherds)
     
-    # Filtro por usuário (para administradores e supervisores)
-    if selected_user:
+    # Filtro por usuário (múltiplas seleções, para administradores e supervisores)
+    if selected_users:
         if request.user.is_admin():
-            transactions = transactions.filter(user_id=selected_user)
+            transactions = transactions.filter(user_id__in=selected_users)
         elif request.user.is_supervisor():
             # Supervisor só pode filtrar por usuários que ele pode ver (ele mesmo ou tesoureiros dos mesmos campos)
             supervisor_fields = request.user.fields.all()
@@ -551,8 +575,9 @@ def transaction_list(request):
                     Q(id=request.user.id) |  # O próprio supervisor
                     Q(role='treasurer', fields__in=supervisor_fields)  # Tesoureiros dos mesmos campos
                 ).distinct().values_list('id', flat=True)
-                if int(selected_user) in allowed_user_ids:
-                    transactions = transactions.filter(user_id=selected_user)
+                valid_users = [uid for uid in selected_users if int(uid) in allowed_user_ids]
+                if valid_users:
+                    transactions = transactions.filter(user_id__in=valid_users)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -568,10 +593,10 @@ def transaction_list(request):
         users = User.objects.exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
         print(f"DEBUG VIEW - Usuários carregados: {users.count()}")
         print(f"DEBUG VIEW - Usuário atual é admin: {request.user.is_admin()}")
-        if selected_field:
-            churches = churches.filter(field_id=selected_field)
-        if selected_shepherd:
-            churches = churches.filter(shepherd_id=selected_shepherd)
+        if selected_fields:
+            churches = churches.filter(field_id__in=selected_fields)
+        if selected_shepherds:
+            churches = churches.filter(shepherd_id__in=selected_shepherds)
     else:
         # Verificar se o usuário tem campos associados
         if request.user.fields.exists():
@@ -590,18 +615,27 @@ def transaction_list(request):
                 users = User.objects.none()
             
             # Se o usuário tem múltiplos campos, permitir filtro por campo
-            if request.user.fields.count() > 1 and selected_field:
-                churches = churches.filter(field_id=selected_field)
-            if selected_shepherd:
-                churches = churches.filter(shepherd_id=selected_shepherd)
+            if request.user.fields.count() > 1 and selected_fields:
+                valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+                if valid_fields:
+                    churches = churches.filter(field_id__in=valid_fields)
+            if selected_shepherds:
+                churches = churches.filter(shepherd_id__in=selected_shepherds)
         else:
             # Se o usuário não tem campos, mostrar mensagem de erro
             messages.error(request, 'Você não tem campos associados. Entre em contato com o administrador.')
             return redirect('index')
-    
-    # Nomes dos filtros selecionados
-    selected_field_name = fields.get(id=selected_field).name if selected_field and fields.filter(id=selected_field).exists() else None
-    selected_church_name = churches.get(id=selected_church).name if selected_church and churches.filter(id=selected_church).exists() else None
+
+    filters_source_data = {
+        'category': [{'id': c.id, 'text': c.name} for c in Category.objects.all()],
+        'field': [{'id': f.id, 'text': f.name} for f in fields],
+        'shepherd': [{'id': s.id, 'text': s.name} for s in shepherds],
+        'church': [{'id': c.id, 'text': c.name} for c in churches],
+        'user': [
+            {'id': u.id, 'text': (u.get_full_name() or u.username)}
+            for u in users
+        ],
+    }
     
     context = {
         'title': 'Transações',
@@ -610,18 +644,16 @@ def transaction_list(request):
         'churches': churches,
         'shepherds': shepherds,
         'users': users,
-        'category_id': category_id,
-        'selected_category': category_id,
+        'filters_source_data': filters_source_data,
+        'selected_categories': selected_categories,
         'transaction_type': transaction_type,
         'selected_type': transaction_type,
         'date_from': date_from,
         'date_to': date_to,
-        'selected_field': selected_field,
-        'selected_church': selected_church,
-        'selected_shepherd': selected_shepherd,
-        'selected_user': selected_user,
-        'selected_field_name': selected_field_name,
-        'selected_church_name': selected_church_name,
+        'selected_fields': selected_fields,
+        'selected_churches': selected_churches,
+        'selected_shepherds': selected_shepherds,
+        'selected_users': selected_users,
         'total_transactions': total_transactions,
         'total_income': total_income,
         'total_expense': total_expense,
@@ -648,19 +680,19 @@ def transaction_list_api(request):
         transactions = Transaction.objects.filter(user=request.user)
         print(f"DEBUG API - Usuário tesoureiro: {transactions.count()} transações do próprio usuário")
     
-    # Filtros
-    category_id = request.GET.get('category', '')
+    # Filtros (usando getlist para múltiplas seleções)
+    selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
-    selected_field = request.GET.get('field', '')
-    selected_church = request.GET.get('church', '')
-    selected_shepherd = request.GET.get('shepherd', '')
-    selected_user = request.GET.get('user', '')
+    selected_fields = request.GET.getlist('field')
+    selected_churches = request.GET.getlist('church')
+    selected_shepherds = request.GET.getlist('shepherd')
+    selected_users = request.GET.getlist('user')
     
     # Debug para filtros
-    print(f"DEBUG API - shepherd: {selected_shepherd}")
-    print(f"DEBUG API - user: {selected_user}")
+    print(f"DEBUG API - shepherds: {selected_shepherds}")
+    print(f"DEBUG API - users: {selected_users}")
     print(f"DEBUG API - request.GET: {dict(request.GET)}")
     
     # Definir datas padrão se não fornecidas
@@ -673,8 +705,8 @@ def transaction_list_api(request):
         last_day = date(today.year, today.month, monthrange(today.year, today.month)[1])
         date_to = last_day.strftime('%Y-%m-%d')
     
-    if category_id:
-        transactions = transactions.filter(category_id=category_id)
+    if selected_categories:
+        transactions = transactions.filter(category_id__in=selected_categories)
     
     if transaction_type:
         transactions = transactions.filter(type=transaction_type)
@@ -685,36 +717,25 @@ def transaction_list_api(request):
     if date_to:
         transactions = transactions.filter(date__lte=date_to)
     
-    if selected_field:
+    if selected_fields:
         if request.user.is_admin():
-            transactions = transactions.filter(church__field_id=selected_field)
+            transactions = transactions.filter(church__field_id__in=selected_fields)
         elif request.user.fields.count() > 1:
-            if request.user.fields.filter(id=selected_field).exists():
-                transactions = transactions.filter(church__field_id=selected_field)
+            valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+            if valid_fields:
+                transactions = transactions.filter(church__field_id__in=valid_fields)
     
-    if selected_church:
-        transactions = transactions.filter(church_id=selected_church)
+    if selected_churches:
+        transactions = transactions.filter(church_id__in=selected_churches)
     
-    if selected_shepherd:
-        print(f"DEBUG API - Aplicando filtro de pastor: {selected_shepherd}")
+    if selected_shepherds:
+        print(f"DEBUG API - Aplicando filtro de pastores: {selected_shepherds}")
         print(f"DEBUG API - Transações antes do filtro: {transactions.count()}")
-        
-        # Verificar se existem transações com esse pastor
-        shepherd_transactions = transactions.filter(church__shepherd_id=selected_shepherd)
-        print(f"DEBUG API - Transações com pastor {selected_shepherd}: {shepherd_transactions.count()}")
-        
-        # Verificar se o pastor existe
-        try:
-            shepherd = Shepherd.objects.get(id=selected_shepherd)
-            print(f"DEBUG API - Pastor encontrado: {shepherd.name}")
-        except Shepherd.DoesNotExist:
-            print(f"DEBUG API - Pastor com ID {selected_shepherd} não existe!")
-        
-        transactions = transactions.filter(church__shepherd_id=selected_shepherd)
-        print(f"DEBUG API - Após filtro de pastor: {transactions.count()} transações")
+        transactions = transactions.filter(church__shepherd_id__in=selected_shepherds)
+        print(f"DEBUG API - Após filtro de pastores: {transactions.count()} transações")
     
-    if selected_user and request.user.is_admin():
-        transactions = transactions.filter(user_id=selected_user)
+    if selected_users and request.user.is_admin():
+        transactions = transactions.filter(user_id__in=selected_users)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -800,12 +821,59 @@ def transaction_summary_api(request):
     else:
         payload = {}
 
-    selected_category = str(payload.get('category', '')).strip()
+    # Processar filtros - suportar arrays e valores únicos (compatibilidade)
+    try:
+        category_val = payload.get('category', [])
+        if category_val is None:
+            category_val = []
+        selected_categories = category_val if isinstance(category_val, list) else ([category_val] if category_val else [])
+        selected_categories = [str(c).strip() for c in selected_categories if str(c).strip() and str(c).strip() != 'None']
+        selected_categories = [int(c) for c in selected_categories if c.isdigit()]
+    except (ValueError, TypeError, AttributeError):
+        selected_categories = []
+    
     selected_type = str(payload.get('type', '')).strip()
-    selected_field = str(payload.get('field', '')).strip()
-    selected_church = str(payload.get('church', '')).strip()
-    selected_shepherd = str(payload.get('shepherd', '')).strip()
-    selected_user = str(payload.get('user', '')).strip()
+    
+    try:
+        field_val = payload.get('field', [])
+        if field_val is None:
+            field_val = []
+        selected_fields = field_val if isinstance(field_val, list) else ([field_val] if field_val else [])
+        selected_fields = [str(f).strip() for f in selected_fields if str(f).strip() and str(f).strip() != 'None']
+        selected_fields = [int(f) for f in selected_fields if f.isdigit()]
+    except (ValueError, TypeError, AttributeError):
+        selected_fields = []
+    
+    try:
+        church_val = payload.get('church', [])
+        if church_val is None:
+            church_val = []
+        selected_churches = church_val if isinstance(church_val, list) else ([church_val] if church_val else [])
+        selected_churches = [str(c).strip() for c in selected_churches if str(c).strip() and str(c).strip() != 'None']
+        selected_churches = [int(c) for c in selected_churches if c.isdigit()]
+    except (ValueError, TypeError, AttributeError):
+        selected_churches = []
+    
+    try:
+        shepherd_val = payload.get('shepherd', [])
+        if shepherd_val is None:
+            shepherd_val = []
+        selected_shepherds = shepherd_val if isinstance(shepherd_val, list) else ([shepherd_val] if shepherd_val else [])
+        selected_shepherds = [str(s).strip() for s in selected_shepherds if str(s).strip() and str(s).strip() != 'None']
+        selected_shepherds = [int(s) for s in selected_shepherds if s.isdigit()]
+    except (ValueError, TypeError, AttributeError):
+        selected_shepherds = []
+    
+    try:
+        user_val = payload.get('user', [])
+        if user_val is None:
+            user_val = []
+        selected_users = user_val if isinstance(user_val, list) else ([user_val] if user_val else [])
+        selected_users = [str(u).strip() for u in selected_users if str(u).strip() and str(u).strip() != 'None']
+        selected_users = [int(u) for u in selected_users if u.isdigit()]
+    except (ValueError, TypeError, AttributeError):
+        selected_users = []
+    
     date_from = str(payload.get('date_from', '')).strip()
     date_to = str(payload.get('date_to', '')).strip()
     monthly_use_current_year = bool(payload.get('monthly_use_current_year', False))
@@ -819,26 +887,35 @@ def transaction_summary_api(request):
         date_to = date(today.year, today.month, last_day).strftime('%Y-%m-%d')
 
     filtered = base_transactions
-    if date_from:
-        filtered = filtered.filter(date__gte=date_from)
-    if date_to:
-        filtered = filtered.filter(date__lte=date_to)
-    if selected_category:
-        filtered = filtered.filter(category_id=selected_category)
-    if selected_type:
-        filtered = filtered.filter(type=selected_type)
-    if selected_field:
-        if request.user.is_admin():
-            filtered = filtered.filter(church__field_id=selected_field)
-        elif request.user.fields.count() > 1:
-            if request.user.fields.filter(id=selected_field).exists():
-                filtered = filtered.filter(church__field_id=selected_field)
-    if selected_church:
-        filtered = filtered.filter(church_id=selected_church)
-    if selected_shepherd:
-        filtered = filtered.filter(church__shepherd_id=selected_shepherd)
-    if selected_user and request.user.is_admin():
-        filtered = filtered.filter(user_id=selected_user)
+    
+    try:
+        if date_from:
+            filtered = filtered.filter(date__gte=date_from)
+        if date_to:
+            filtered = filtered.filter(date__lte=date_to)
+        if selected_categories:
+            filtered = filtered.filter(category_id__in=selected_categories)
+        if selected_type:
+            filtered = filtered.filter(type=selected_type)
+        if selected_fields:
+            if request.user.is_admin():
+                filtered = filtered.filter(church__field_id__in=selected_fields)
+            elif request.user.fields.count() > 1:
+                valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+                if valid_fields:
+                    filtered = filtered.filter(church__field_id__in=valid_fields)
+        if selected_churches:
+            filtered = filtered.filter(church_id__in=selected_churches)
+        if selected_shepherds:
+            filtered = filtered.filter(church__shepherd_id__in=selected_shepherds)
+        if selected_users and request.user.is_admin():
+            filtered = filtered.filter(user_id__in=selected_users)
+    except Exception as e:
+        import traceback
+        print(f"Erro ao aplicar filtros na API de resumo: {e}")
+        print(traceback.format_exc())
+        # Retornar erro ao invés de quebrar
+        return JsonResponse({'error': f'Erro ao processar filtros: {str(e)}'}, status=500)
 
     # Totais
     total_transactions = filtered.count()
@@ -929,21 +1006,23 @@ def transaction_summary_api(request):
     for year, month, m_start, m_end in _month_iter(series_start, series_end):
         month_qs = base_transactions
         month_qs = month_qs.filter(date__gte=m_start, date__lte=m_end)
-        if selected_category:
-            month_qs = month_qs.filter(category_id=selected_category)
+        if selected_categories:
+            month_qs = month_qs.filter(category_id__in=selected_categories)
         if selected_type:
             month_qs = month_qs.filter(type=selected_type)
-        if selected_field:
+        if selected_fields:
             if request.user.is_admin():
-                month_qs = month_qs.filter(church__field_id=selected_field)
-            elif request.user.fields.count() > 1 and request.user.fields.filter(id=selected_field).exists():
-                month_qs = month_qs.filter(church__field_id=selected_field)
-        if selected_church:
-            month_qs = month_qs.filter(church_id=selected_church)
-        if selected_shepherd:
-            month_qs = month_qs.filter(church__shepherd_id=selected_shepherd)
-        if selected_user and request.user.is_admin():
-            month_qs = month_qs.filter(user_id=selected_user)
+                month_qs = month_qs.filter(church__field_id__in=selected_fields)
+            else:
+                valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+                if valid_fields:
+                    month_qs = month_qs.filter(church__field_id__in=valid_fields)
+        if selected_churches:
+            month_qs = month_qs.filter(church_id__in=selected_churches)
+        if selected_shepherds:
+            month_qs = month_qs.filter(church__shepherd_id__in=selected_shepherds)
+        if selected_users and request.user.is_admin():
+            month_qs = month_qs.filter(user_id__in=selected_users)
         month_income = month_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         month_expense = month_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
         monthly_data.append({
@@ -969,12 +1048,12 @@ def transaction_summary_api(request):
         'filters_applied': {
             'date_from': date_from,
             'date_to': date_to,
-            'category': selected_category or None,
+            'category': selected_categories or None,
             'type': selected_type or None,
-            'field': selected_field or None,
-            'church': selected_church or None,
-            'shepherd': selected_shepherd or None,
-            'user': selected_user or None,
+            'field': selected_fields or None,
+            'church': selected_churches or None,
+            'shepherd': selected_shepherds or None,
+            'user': selected_users or None,
         }
     })
 
@@ -1653,16 +1732,16 @@ def transaction_export_pdf(request):
         # Tesoureiro: exportar apenas transações criadas por ele
         transactions = Transaction.objects.filter(user=request.user)
     
-    # Aplicar filtros
+    # Aplicar filtros (usando getlist para múltiplas seleções)
     search = request.GET.get('search', '')
-    category_id = request.GET.get('category', '')
+    selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
-    selected_field = request.GET.get('field', '')
-    selected_church = request.GET.get('church', '')
-    selected_shepherd = request.GET.get('shepherd', '')
-    selected_user = request.GET.get('user', '')
+    selected_fields = request.GET.getlist('field')
+    selected_churches = request.GET.getlist('church')
+    selected_shepherds = request.GET.getlist('shepherd')
+    selected_users = request.GET.getlist('user')
     
     # Debug: Log dos filtros aplicados
     print(f"DEBUG - Filtros aplicados:")
@@ -1686,9 +1765,9 @@ def transaction_export_pdf(request):
         )
         print(f"DEBUG - Após filtro de busca: {transactions.count()} transações")
     
-    if category_id:
-        transactions = transactions.filter(category_id=category_id)
-        print(f"DEBUG - Após filtro de categoria: {transactions.count()} transações")
+    if selected_categories:
+        transactions = transactions.filter(category_id__in=selected_categories)
+        print(f"DEBUG - Após filtro de categorias: {transactions.count()} transações")
     
     if transaction_type:
         transactions = transactions.filter(type=transaction_type)
@@ -1702,25 +1781,26 @@ def transaction_export_pdf(request):
         transactions = transactions.filter(date__lte=date_to)
         print(f"DEBUG - Após filtro de data final: {transactions.count()} transações")
     
-    if selected_field:
+    if selected_fields:
         if request.user.is_admin():
-            transactions = transactions.filter(church__field_id=selected_field)
+            transactions = transactions.filter(church__field_id__in=selected_fields)
         elif request.user.fields.count() > 1:
-            if request.user.fields.filter(id=selected_field).exists():
-                transactions = transactions.filter(church__field_id=selected_field)
-        print(f"DEBUG - Após filtro de campo: {transactions.count()} transações")
+            valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+            if valid_fields:
+                transactions = transactions.filter(church__field_id__in=valid_fields)
+        print(f"DEBUG - Após filtro de campos: {transactions.count()} transações")
     
-    if selected_church:
-        transactions = transactions.filter(church_id=selected_church)
-        print(f"DEBUG - Após filtro de igreja: {transactions.count()} transações")
+    if selected_churches:
+        transactions = transactions.filter(church_id__in=selected_churches)
+        print(f"DEBUG - Após filtro de igrejas: {transactions.count()} transações")
     
-    if selected_shepherd:
-        transactions = transactions.filter(church__shepherd_id=selected_shepherd)
-        print(f"DEBUG - Após filtro de pastor: {transactions.count()} transações")
+    if selected_shepherds:
+        transactions = transactions.filter(church__shepherd_id__in=selected_shepherds)
+        print(f"DEBUG - Após filtro de pastores: {transactions.count()} transações")
     
-    if selected_user and request.user.is_admin():
-        transactions = transactions.filter(user_id=selected_user)
-        print(f"DEBUG - Após filtro de usuário: {transactions.count()} transações")
+    if selected_users and request.user.is_admin():
+        transactions = transactions.filter(user_id__in=selected_users)
+        print(f"DEBUG - Após filtro de usuários: {transactions.count()} transações")
     
     print(f"DEBUG - Total final de transações: {transactions.count()}")
     
@@ -2020,16 +2100,16 @@ def transaction_export_xlsx(request):
         # Tesoureiro: exportar apenas transações criadas por ele
         base_transactions = Transaction.objects.filter(user=request.user)
     
-    # Aplicar filtros
+    # Aplicar filtros (usando getlist para múltiplas seleções)
     search = request.GET.get('search', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
-    selected_category = request.GET.get('category', '')
+    selected_categories = request.GET.getlist('category')
     selected_type = request.GET.get('type', '')
-    selected_field = request.GET.get('field', '')
-    selected_church = request.GET.get('church', '')
-    selected_shepherd = request.GET.get('shepherd', '')
-    selected_user = request.GET.get('user', '')
+    selected_fields = request.GET.getlist('field')
+    selected_churches = request.GET.getlist('church')
+    selected_shepherds = request.GET.getlist('shepherd')
+    selected_users = request.GET.getlist('user')
     
     # Definir datas padrão se não fornecidas
     today = date.today()
@@ -2062,29 +2142,34 @@ def transaction_export_xlsx(request):
         filtered_transactions = filtered_transactions.filter(date__lte=date_to)
         print(f"DEBUG - Após filtro de data final: {filtered_transactions.count()} transações")
     
-    if selected_category:
-        filtered_transactions = filtered_transactions.filter(category_id=selected_category)
-        print(f"DEBUG - Após filtro de categoria: {filtered_transactions.count()} transações")
+    if selected_categories:
+        filtered_transactions = filtered_transactions.filter(category_id__in=selected_categories)
+        print(f"DEBUG - Após filtro de categorias: {filtered_transactions.count()} transações")
     
     if selected_type:
         filtered_transactions = filtered_transactions.filter(type=selected_type)
         print(f"DEBUG - Após filtro de tipo: {filtered_transactions.count()} transações")
     
-    if selected_field:
-        filtered_transactions = filtered_transactions.filter(church__field_id=selected_field)
-        print(f"DEBUG - Após filtro de campo: {filtered_transactions.count()} transações")
+    if selected_fields:
+        if request.user.is_admin():
+            filtered_transactions = filtered_transactions.filter(church__field_id__in=selected_fields)
+        elif request.user.fields.count() > 1:
+            valid_fields = request.user.fields.filter(id__in=selected_fields).values_list('id', flat=True)
+            if valid_fields:
+                filtered_transactions = filtered_transactions.filter(church__field_id__in=valid_fields)
+        print(f"DEBUG - Após filtro de campos: {filtered_transactions.count()} transações")
     
-    if selected_church:
-        filtered_transactions = filtered_transactions.filter(church_id=selected_church)
-        print(f"DEBUG - Após filtro de igreja: {filtered_transactions.count()} transações")
+    if selected_churches:
+        filtered_transactions = filtered_transactions.filter(church_id__in=selected_churches)
+        print(f"DEBUG - Após filtro de igrejas: {filtered_transactions.count()} transações")
     
-    if selected_shepherd:
-        filtered_transactions = filtered_transactions.filter(church__shepherd_id=selected_shepherd)
-        print(f"DEBUG - Após filtro de pastor: {filtered_transactions.count()} transações")
+    if selected_shepherds:
+        filtered_transactions = filtered_transactions.filter(church__shepherd_id__in=selected_shepherds)
+        print(f"DEBUG - Após filtro de pastores: {filtered_transactions.count()} transações")
     
-    if selected_user and request.user.is_admin():
-        filtered_transactions = filtered_transactions.filter(user_id=selected_user)
-        print(f"DEBUG - Após filtro de usuário: {filtered_transactions.count()} transações")
+    if selected_users and request.user.is_admin():
+        filtered_transactions = filtered_transactions.filter(user_id__in=selected_users)
+        print(f"DEBUG - Após filtro de usuários: {filtered_transactions.count()} transações")
     
     print(f"DEBUG - Total final de transações: {filtered_transactions.count()}")
     

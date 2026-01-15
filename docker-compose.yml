@@ -117,13 +117,15 @@ services:
       - .env
     depends_on:
       - db
-      - web
     networks:
       - nations-flow_net
     volumes:
       - .:/app
       - cron_logs:/var/log
+      - ./backups:/backups
     restart: always
+    environment:
+      - TZ=America/Sao_Paulo
     deploy:
       resources:
         limits:

@@ -138,6 +138,8 @@ db_data/
 
 # Backup files
 backups/*.sql
+/backups/*.sql
+/backups/*.sql.gz
 
 # Google Service Account credentials
 database/service_account.json
@@ -151,3 +153,7 @@ database/service_account.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Used only for developers.
+
+tasks/

@@ -103,8 +103,6 @@ desktop.ini
 # Arquivos de deploy e scripts locais
 deploy-nginx.sh
 nginx/
-cron/
-database/
 
 # Arquivos de configuração específicos do ambiente
 .env.local

@@ -3,35 +3,26 @@ FROM python:3.11-slim
 # Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
     cron \
-    gcc \
-    libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar requirements e instalar dependências Python
+# Instalar dependências Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código da aplicação
+# Copiar aplicação
 COPY . .
 
-# Criar e configurar script de inicialização
-RUN echo '#!/bin/bash' > /app/start-cron.sh && \
-    echo '' >> /app/start-cron.sh && \
-    echo '# Iniciar cron daemon' >> /app/start-cron.sh && \
-    echo 'service cron start' >> /app/start-cron.sh && \
-    echo '' >> /app/start-cron.sh && \
-    echo '# Executar o comando de processamento de notificações repetitivas a cada hora' >> /app/start-cron.sh && \
-    echo 'echo "0 * * * * cd /app && /usr/local/bin/python3 manage.py process_repeat_notifications >> /var/log/cron.log 2>&1" | crontab -' >> /app/start-cron.sh && \
-    echo '' >> /app/start-cron.sh && \
-    echo '# Manter o container rodando' >> /app/start-cron.sh && \
-    echo 'tail -f /dev/null' >> /app/start-cron.sh && \
-    chmod +x /app/start-cron.sh
+# Criar diretórios necessários
+RUN mkdir -p /var/log /backups
 
-# Criar diretórios para logs
-RUN mkdir -p /var/log /app/logs
+# Copiar scripts de inicialização e wrappers
+COPY cron/start-cron.sh /start-cron.sh
+COPY cron/run-notifications.sh /app/cron/run-notifications.sh
+COPY cron/run-backup.sh /app/cron/run-backup.sh
+RUN chmod +x /start-cron.sh /app/cron/run-notifications.sh /app/cron/run-backup.sh
 
 # Comando de inicialização
-CMD ["/bin/bash", "-c", "service cron start && echo '0 * * * * cd /app && /usr/local/bin/python3 manage.py process_repeat_notifications >> /var/log/cron.log 2>&1' | crontab - && tail -f /dev/null"]
+CMD ["/start-cron.sh"]

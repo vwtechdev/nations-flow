@@ -20,7 +20,7 @@
                 <form method="get" id="chartFilterForm">
                     <!-- Desktop Layout -->
                     <div class="row d-none d-md-flex">
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="form-floating mb-3">
                                 <input type="date" name="start_date" id="startDateFilter" class="form-control" 
                                        value="{{ selected_start_date|default:'' }}">
@@ -30,7 +30,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="form-floating mb-3">
                                 <input type="date" name="end_date" id="endDateFilter" class="form-control" 
                                        value="{{ selected_end_date|default:'' }}">
@@ -40,23 +40,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-2">
-                            <div class="form-floating mb-3">
-                                <select name="category" id="categoryFilter" class="form-control">
-                                    <option value="">Todas as categorias</option>
-                                    {% for category in categories %}
-                                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ category.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="categoryFilter">
-                                    <i class="bi bi-tag"></i> Categoria
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="form-floating mb-3">
                                 <select name="type" id="typeFilter" class="form-control">
                                     <option value="">Todos os tipos</option>
@@ -69,73 +53,16 @@
                             </div>
                         </div>
                         
-                        {% if user.is_admin %}
-                        <div class="col-md-2">
-                            <div class="form-floating mb-3">
-                                <select name="field" id="fieldFilter" class="form-control">
-                                    <option value="">Todos os campos</option>
-                                    {% for field in fields %}
-                                        <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ field.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="fieldFilter">
-                                    <i class="bi bi-geo-alt"></i> Campo
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">
+                                    <i class="bi bi-funnel"></i> Mais Filtros
                                 </label>
+                                <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#filtersModal">
+                                    <i class="bi bi-funnel"></i> Mais Filtros
+                                </button>
                             </div>
                         </div>
-                        {% endif %}
-                        
-                        <div class="col-md-2">
-                            <div class="form-floating mb-3">
-                                <select name="shepherd" id="shepherdFilter" class="form-control">
-                                    <option value="">Todos os pastores</option>
-                                    {% for shepherd in shepherds %}
-                                        <option value="{{ shepherd.id }}" {% if selected_shepherd == shepherd.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ shepherd.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="shepherdFilter">
-                                    <i class="bi bi-person-badge"></i> Pastor
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-2">
-                            <div class="form-floating mb-3">
-                                <select name="church" id="churchFilter" class="form-control">
-                                    <option value="">Todas as igrejas</option>
-                                    {% for church in churches %}
-                                        <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ church.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="churchFilter">
-                                    <i class="bi bi-building"></i> Igreja
-                                </label>
-                            </div>
-                        </div>
-                        
-                        {% if user.is_admin %}
-                        <div class="col-md-2">
-                            <div class="form-floating mb-3">
-                                <select name="user" id="userFilter" class="form-control">
-                                    <option value="">Todos os usuários</option>
-                                    {% for user_obj in users %}
-                                        <option value="{{ user_obj.id }}" {% if selected_user == user_obj.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ user_obj.get_full_name|default:user_obj.username }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="userFilter">
-                                    <i class="bi bi-person"></i> Usuário
-                                </label>
-                            </div>
-                        </div>
-                        {% endif %}
                         
                         <div class="col-12 d-flex align-items-end">
                             <div class="d-flex gap-2 justify-content-end w-100">
@@ -175,21 +102,6 @@
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <select name="category" id="categoryFilter_mobile" class="form-control">
-                                        <option value="">Todas as categorias</option>
-                                        {% for category in categories %}
-                                            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ category.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <label for="categoryFilter_mobile">
-                                        <i class="bi bi-tag"></i> Categoria
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-floating mb-3">
                                     <select name="type" id="typeFilter_mobile" class="form-control">
                                         <option value="">Todos os tipos</option>
                                         <option value="income" {% if selected_type == 'income' %}selected{% endif %}>Entrada</option>
@@ -200,75 +112,17 @@
                                     </label>
                                 </div>
                             </div>
-                        </div>
-                        
-                        {% if user.is_admin %}
-                        <div class="row">
                             <div class="col-6">
-                                <div class="form-floating mb-3">
-                                    <select name="field" id="fieldFilter_mobile" class="form-control">
-                                        <option value="">Todos os campos</option>
-                                        {% for field in fields %}
-                                            <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ field.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <label for="fieldFilter_mobile">
-                                        <i class="bi bi-geo-alt"></i> Campo
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small">
+                                        <i class="bi bi-funnel"></i> Mais Filtros
                                     </label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-floating mb-3">
-                                    <select name="shepherd" id="shepherdFilter_mobile" class="form-control">
-                                        <option value="">Todos os pastores</option>
-                                        {% for shepherd in shepherds %}
-                                            <option value="{{ shepherd.id }}" {% if selected_shepherd == shepherd.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ shepherd.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <label for="shepherdFilter_mobile">
-                                        <i class="bi bi-person-badge"></i> Pastor
-                                    </label>
+                                    <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#filtersModal">
+                                        <i class="bi bi-funnel"></i> Mais Filtros
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="form-floating mb-3">
-                                    <select name="church" id="churchFilter_mobile" class="form-control">
-                                        <option value="">Todas as igrejas</option>
-                                        {% for church in churches %}
-                                            <option value="{{ church.id }}" {% if selected_church == church.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ church.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <label for="churchFilter_mobile">
-                                        <i class="bi bi-building"></i> Igreja
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-floating mb-3">
-                                    <select name="user" id="userFilter_mobile" class="form-control">
-                                        <option value="">Todos os usuários</option>
-                                        {% for user_obj in users %}
-                                            <option value="{{ user_obj.id }}" {% if selected_user == user_obj.id|stringformat:"s" %}selected{% endif %}>
-                                                {{ user_obj.get_full_name|default:user_obj.username }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-                                    <label for="userFilter_mobile">
-                                        <i class="bi bi-person"></i> Usuário
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
@@ -281,7 +135,112 @@
                             </div>
                         </div>
                     </div>
+                    <div id="advancedFiltersHidden" class="d-none">
+                        {% for category_id in selected_categories %}
+                            <input type="hidden" name="category" value="{{ category_id }}" data-filter="category">
+                        {% endfor %}
+                        {% for field_id in selected_fields %}
+                            <input type="hidden" name="field" value="{{ field_id }}" data-filter="field">
+                        {% endfor %}
+                        {% for shepherd_id in selected_shepherds %}
+                            <input type="hidden" name="shepherd" value="{{ shepherd_id }}" data-filter="shepherd">
+                        {% endfor %}
+                        {% for church_id in selected_churches %}
+                            <input type="hidden" name="church" value="{{ church_id }}" data-filter="church">
+                        {% endfor %}
+                        {% for user_id in selected_users %}
+                            <input type="hidden" name="user" value="{{ user_id }}" data-filter="user">
+                        {% endfor %}
+                    </div>
+                    
+                    <div id="filtersSourceData" class="d-none">
+                        <select id="categoryFilterSource" data-filter-source="category" disabled>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if user.is_admin %}
+                        <select id="fieldFilterSource" data-filter-source="field" disabled>
+                            {% for field in fields %}
+                                <option value="{{ field.id }}">{{ field.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                        <select id="shepherdFilterSource" data-filter-source="shepherd" disabled>
+                            {% for shepherd in shepherds %}
+                                <option value="{{ shepherd.id }}">{{ shepherd.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select id="churchFilterSource" data-filter-source="church" disabled>
+                            {% for church in churches %}
+                                <option value="{{ church.id }}">{{ church.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if user.is_admin %}
+                        <select id="userFilterSource" data-filter-source="user" disabled>
+                            {% for user_obj in users %}
+                                <option value="{{ user_obj.id }}">{{ user_obj.get_full_name|default:user_obj.username }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </div>
+                    {{ filters_source_data|json_script:"filtersSourceJson" }}
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Filtros Avançados -->
+<div class="modal fade" id="filtersModal" tabindex="-1" aria-labelledby="filtersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-primary" id="filtersModalLabel">
+                    <i class="bi bi-funnel"></i> Mais Filtros
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 align-items-end filters-modal-controls">
+                    <div class="col-md-4">
+                        <label for="filtersModalType" class="form-label">Lista</label>
+                        <select id="filtersModalType" class="form-select">
+                            <option value="category">Categorias</option>
+                            {% if user.is_admin %}
+                            <option value="field">Campos</option>
+                            {% endif %}
+                            <option value="shepherd">Pastores</option>
+                            <option value="church">Igrejas</option>
+                            {% if user.is_admin %}
+                            <option value="user">Usuários</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filtersModalSearch" class="form-label">Pesquisar</label>
+                        <input type="text" id="filtersModalSearch" class="form-control" placeholder="Digite para buscar...">
+                    </div>
+                    <div class="col-md-4 d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" id="filtersModalClear">
+                            <i class="bi bi-x-circle"></i> Limpar
+                        </button>
+                        <button type="button" class="btn btn-primary" id="filtersModalApply">
+                            <i class="bi bi-check-circle"></i> Aplicar
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm table-hover align-middle filters-modal-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Item</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filtersModalTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -422,30 +381,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function readFiltersFromForm() {
+        // Função auxiliar para ler valores simples (datas, tipo)
         const val = id => (document.getElementById(id) || {}).value || '';
+        
+        // Função auxiliar para ler arrays dos inputs hidden
+        const readHiddenArray = name => {
+            const inputs = document.querySelectorAll(`input[name="${name}"]`);
+            return Array.from(inputs)
+                .map(input => input.value)
+                .filter(value => value !== null && value !== undefined && value !== '');
+        };
+        
         const start = val('startDateFilter') || val('startDateFilter_mobile');
         const end = val('endDateFilter') || val('endDateFilter_mobile');
-        const category = val('categoryFilter') || val('categoryFilter_mobile');
+        
+        const category = readHiddenArray('category');
         const type = val('typeFilter') || val('typeFilter_mobile');
-        const field = val('fieldFilter') || val('fieldFilter_mobile');
-        const shepherd = val('shepherdFilter') || val('shepherdFilter_mobile');
-        const church = val('churchFilter') || val('churchFilter_mobile');
-        const user = val('userFilter') || val('userFilter_mobile');
+        const field = readHiddenArray('field');
+        const shepherd = readHiddenArray('shepherd');
+        const church = readHiddenArray('church');
+        const user = readHiddenArray('user');
+        
         // Enviar sinalizador para forçar a série mensal do ano atual quando usuário não aplicou filtro de data
         const y = new Date().getFullYear();
         const isAnnualRange = (s, e) => (s === `${y}-01-01` && e === `${y}-12-31`);
         const monthly_use_current_year = (!start || !end || isAnnualRange(start, end));
-        return {
+        
+        // Construir payload apenas com valores não vazios
+        const payload = {
             date_from: start,
             date_to: end,
-            category: category,
-            type: type,
-            field: field,
-            shepherd: shepherd,
-            church: church,
-            user: user,
             monthly_use_current_year: monthly_use_current_year,
         };
+        
+        // Adicionar apenas filtros que têm valores
+        if (category.length > 0) payload.category = category;
+        if (type) payload.type = type;
+        if (field.length > 0) payload.field = field;
+        if (shepherd.length > 0) payload.shepherd = shepherd;
+        if (church.length > 0) payload.church = church;
+        if (user.length > 0) payload.user = user;
+        
+        return payload;
     }
 
     async function fetchSummaryAndRender(payload) {
@@ -584,6 +561,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (chartFilterForm) {
         chartFilterForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+        });
+        chartFilterForm.addEventListener('filters:applied', function() {
             fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
         });
     }
