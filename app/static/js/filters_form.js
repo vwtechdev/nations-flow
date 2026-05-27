@@ -20,6 +20,7 @@ class FiltersForm {
             return;
         }
 
+        this.sourceData = this.readSourceData();
         this.selected = this.readSelections();
         this.bindEvents();
         this.setupMobileSync();
@@ -66,7 +67,27 @@ class FiltersForm {
         keys.forEach(key => this.syncHiddenInputs(key));
     }
 
+    readSourceData() {
+        const jsonNode = document.getElementById('filtersSourceJson');
+        if (!jsonNode) return {};
+
+        try {
+            return JSON.parse(jsonNode.textContent || '{}') || {};
+        } catch (error) {
+            console.error('Erro ao ler filtersSourceJson:', error);
+            return {};
+        }
+    }
+
     getSourceOptions(key) {
+        const jsonOptions = Array.isArray(this.sourceData?.[key]) ? this.sourceData[key] : [];
+        if (jsonOptions.length > 0) {
+            return jsonOptions.map(item => ({
+                id: String(item.id),
+                text: item.text
+            }));
+        }
+
         let source = null;
 
         if (this.sourceContainer) {
@@ -77,29 +98,12 @@ class FiltersForm {
             source = document.getElementById(`${key}FilterSource`);
         }
 
-        if (source) {
-            const options = Array.from(source.options).map(option => ({
+        if (!source) return [];
+
+        return Array.from(source.options).map(option => ({
             id: String(option.value),
             text: option.textContent
         }));
-            if (options.length > 0) {
-                return options;
-            }
-        }
-
-        const jsonNode = document.getElementById('filtersSourceJson');
-        if (!jsonNode) return [];
-
-        try {
-            const data = JSON.parse(jsonNode.textContent || '{}');
-            return Array.isArray(data[key]) ? data[key].map(item => ({
-                id: String(item.id),
-                text: item.text
-            })) : [];
-        } catch (error) {
-            console.error('Erro ao ler filtersSourceJson:', error);
-            return [];
-        }
     }
 
     renderTable() {
@@ -206,6 +210,7 @@ class FiltersForm {
 
         if (this.modal) {
             this.modal.addEventListener('show.bs.modal', () => {
+                this.sourceData = this.readSourceData();
                 this.selected = this.readSelections();
                 this.searchInput.value = '';
                 this.renderTable();

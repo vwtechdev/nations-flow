@@ -1917,37 +1917,42 @@ def transaction_export_pdf(request):
     
     filters_applied.append(f"Período: {date_from_formatted} a {date_to_formatted}")
     
-    if category_id:
-        try:
-            category_name = Category.objects.get(id=category_id).name
-            filters_applied.append(f"Categoria: {category_name}")
-        except Category.DoesNotExist:
-            pass
+    if selected_categories:
+        category_names = list(
+            Category.objects.filter(id__in=selected_categories).values_list('name', flat=True)
+        )
+        if category_names:
+            filters_applied.append(f"Categoria: {', '.join(category_names)}")
     
     if transaction_type:
         type_name = "Entrada" if transaction_type == "income" else "Saída"
         filters_applied.append(f"Tipo: {type_name}")
     
-    if selected_field:
-        try:
-            field_name = Field.objects.get(id=selected_field).name
-            filters_applied.append(f"Campo: {field_name}")
-        except Field.DoesNotExist:
-            pass
+    if selected_fields:
+        field_names = list(
+            Field.objects.filter(id__in=selected_fields).values_list('name', flat=True)
+        )
+        if field_names:
+            filters_applied.append(f"Campo: {', '.join(field_names)}")
     
-    if selected_church:
-        try:
-            church_name = Church.objects.get(id=selected_church).name
-            filters_applied.append(f"Igreja: {church_name}")
-        except Church.DoesNotExist:
-            pass
+    if selected_churches:
+        church_names = list(
+            Church.objects.filter(id__in=selected_churches).values_list('name', flat=True)
+        )
+        if church_names:
+            filters_applied.append(f"Igreja: {', '.join(church_names)}")
     
-    if selected_shepherd:
-        try:
-            shepherd_name = Shepherd.objects.get(id=selected_shepherd).name
-            filters_applied.append(f"Pastor: {shepherd_name}")
-        except Shepherd.DoesNotExist:
-            pass
+    if selected_shepherds:
+        shepherd_names = list(
+            Shepherd.objects.filter(id__in=selected_shepherds).values_list('name', flat=True)
+        )
+        if shepherd_names:
+            filters_applied.append(f"Pastor: {', '.join(shepherd_names)}")
+
+    if selected_users and request.user.is_admin():
+        user_names = [str(user) for user in User.objects.filter(id__in=selected_users)]
+        if user_names:
+            filters_applied.append(f"Usuário: {', '.join(user_names)}")
     
     if search:
         filters_applied.append(f"Busca: {search}")
@@ -2202,7 +2207,7 @@ def transaction_export_xlsx(request):
             transaction.date.strftime('%d/%m/%Y'),
             transaction.category.name if transaction.category else '',
             'Entrada' if transaction.type == 'income' else 'Saída',
-            f'R$ {transaction.value:.2f}',
+            f'{transaction.value:.2f}',
             transaction.church.name if transaction.church else '',
             transaction.church.field.name if transaction.church and transaction.church.field else '',
             transaction.church.shepherd.name if transaction.church and transaction.church.shepherd else '',
