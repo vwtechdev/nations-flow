@@ -267,9 +267,6 @@ $(function() {
         }
     });
     
-    // Add responsive table wrapper
-    $('.table').wrap('<div class="table-responsive"></div>');
-    
     // Add form validation feedback
     $('.form-control').on('input', function() {
         if (this.checkValidity()) {
