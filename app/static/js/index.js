@@ -4,24 +4,18 @@ $(function() {
     
     // Função para verificar e exibir notificações do dia
     function checkTodayNotifications() {
-        console.log('🔔 Iniciando verificação de notificações do dia...');
         
         // Verificar se o modal existe na página
         const notificationsModal = $('#notificationsModal');
-        console.log('Modal encontrado:', notificationsModal.length > 0);
         
         if (notificationsModal.length === 0) {
-            console.log('❌ Modal de notificações não encontrado nesta página');
             return; // Modal não existe nesta página
         }
 
         // Não mostrar o modal se o usuário estiver na página de lista de notificações
         if (window.location.pathname.includes('/notifications/')) {
-            console.log('⚠️ Usuário está na página de notificações, não exibindo modal');
             return;
         }
-
-        console.log('📡 Fazendo requisição para /api/notifications/today/...');
         
         // Buscar notificações do dia via AJAX
         $.ajax({
@@ -29,50 +23,33 @@ $(function() {
             method: 'GET',
             dataType: 'json',
             success: function(response) {
-                console.log('✅ Resposta da API recebida:', response);
                 
                 if (response.success && response.count > 0) {
-                    console.log(`📋 Encontradas ${response.count} notificações para exibir`);
                     
                     // Exibir notificações no modal
                     displayNotifications(response.notifications);
                     
-                    // Mostrar o modal automaticamente usando Bootstrap 5
-                    console.log('🎭 Tentando abrir modal...');
-                    
                     // Verificar se Bootstrap está disponível
                     if (typeof bootstrap === 'undefined') {
-                        console.error('❌ Bootstrap não está disponível!');
                         // Fallback: tentar abrir o modal usando jQuery
                         notificationsModal.modal('show');
-                        console.log('⚠️ Usando fallback jQuery para abrir modal');
                     } else {
-                        console.log('✅ Bootstrap disponível, usando bootstrap.Modal');
                         const modal = new bootstrap.Modal(notificationsModal[0]);
                         modal.show();
-                        console.log('✅ Modal aberto com sucesso');
                     }
-                } else {
-                    console.log('ℹ️ Nenhuma notificação encontrada para hoje');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('❌ Erro ao buscar notificações:', error);
                 console.error('Status:', status);
-                console.error('XHR:', xhr);
             }
         });
     }
 
     // Função para exibir notificações no modal
-    function displayNotifications(notifications) {
-        console.log('📝 Exibindo notificações:', notifications);
-        
+    function displayNotifications(notifications) {        
         const content = $('#notificationsContent');
-        console.log('Conteúdo do modal encontrado:', content.length > 0);
         
         if (notifications.length === 0) {
-            console.log('ℹ️ Nenhuma notificação para exibir');
             content.html(`
                 <div class="text-center text-muted">
                     <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
@@ -104,10 +81,7 @@ $(function() {
                 </div>
             `;
         });
-
-        console.log('📄 HTML gerado para notificações:', notificationsHtml);
         content.html(notificationsHtml);
-        console.log('✅ HTML inserido no modal');
 
         // Adicionar evento para marcar como lida
         $('.mark-read-btn').on('click', function() {
@@ -152,14 +126,8 @@ $(function() {
             });
         });
     }
-
-    // Verificar notificações do dia quando a página carregar
-    // Aguardar um pouco para garantir que o DOM esteja completamente carregado
-    console.log('🚀 Iniciando script de notificações...');
-    console.log('📍 URL atual:', window.location.pathname);
     
     setTimeout(function() {
-        console.log('⏰ Executando verificação de notificações após delay...');
         checkTodayNotifications();
     }, 500);
 
@@ -253,9 +221,6 @@ $(function() {
         e.preventDefault();
         const href = this.getAttribute('href');
         
-        // Debug: log para identificar links problemáticos
-        console.log('Link clicado com href^="#":', href, 'Elemento:', this);
-        
         // Verificar se é um seletor CSS válido (começa com #)
         if (href && href.startsWith('#')) {
             const target = $(href);
@@ -296,9 +261,7 @@ $(function() {
     const navigationDrawerClose = $('#navigationDrawerClose');
     
     // Check if sidebar exists
-    if (sidebar.length > 0) {
-        console.log('Setting up sidebar functionality');
-        
+    if (sidebar.length > 0) {        
         // Function to toggle mobile navigation drawer
         function toggleNavigationDrawer() {
             navigationDrawer.toggleClass('show');
@@ -371,8 +334,6 @@ $(function() {
             } else {
                 toggleIcon.removeClass('bi-chevron-right').addClass('bi-list');
             }
-            
-            console.log('Sidebar toggled:', isCollapsed ? 'collapsed' : 'expanded');
         });
         
         // Load sidebar state from localStorage
@@ -393,7 +354,6 @@ $(function() {
             const savedLink = $(`.sidebar-link[href="${escapedHref}"]`);
             if (savedLink.length > 0) {
                 savedLink.addClass('active');
-                console.log('Active link loaded from localStorage:', savedActiveLink);
             }
         }
         
@@ -447,7 +407,6 @@ $(function() {
         
         // Set active link based on current URL
         const currentPath = window.location.pathname;
-        console.log('Current path:', currentPath);
         
         // Remove any existing active classes
         $('.sidebar-link, .navigation-drawer-link').removeClass('active');
@@ -475,12 +434,10 @@ $(function() {
                     if (activeSidebarLink.length > 0) {
                         activeSidebarLink.addClass('active');
                         activeFound = true;
-                        console.log('Active link set for dashboard (root) - sidebar');
                     }
                     if (activeDrawerLink.length > 0) {
                         activeDrawerLink.addClass('active');
                         activeFound = true;
-                        console.log('Active link set for dashboard (root) - drawer');
                     }
                     break;
                 }
@@ -493,12 +450,10 @@ $(function() {
                     if (activeSidebarLink.length > 0) {
                         activeSidebarLink.addClass('active');
                         activeFound = true;
-                        console.log('Active link set for:', section, 'pattern:', pattern, '- sidebar');
                     }
                     if (activeDrawerLink.length > 0) {
                         activeDrawerLink.addClass('active');
                         activeFound = true;
-                        console.log('Active link set for:', section, 'pattern:', pattern, '- drawer');
                     }
                     break;
                 }
@@ -518,7 +473,6 @@ $(function() {
                     if (linkSegments.length > 0 && currentSegments.length > 0) {
                         if (linkSegments[0] === currentSegments[0]) {
                             $(this).addClass('active');
-                            console.log('Active link set by segment match:', linkSegments[0]);
                             activeFound = true;
                             return false; // break the loop
                         }
@@ -532,7 +486,6 @@ $(function() {
             // Escape the root path to prevent jQuery selector syntax errors
             const escapedRoot = '\\/';
             $(`.sidebar-link[href="${escapedRoot}"], .navigation-drawer-link[href="${escapedRoot}"]`).addClass('active');
-            console.log('Active link set for dashboard (root) - fallback');
         }
         
         // Save active link to localStorage for persistence
@@ -540,18 +493,15 @@ $(function() {
         if (activeLink.length > 0) {
             const activeHref = activeLink.first().attr('href');
             localStorage.setItem('activeSidebarLink', activeHref);
-            console.log('Active link saved to localStorage:', activeHref);
         }
         
         // Ensure only one link is active at a time per navigation type
         const activeSidebarLinks = $('.sidebar-link.active');
         const activeDrawerLinks = $('.navigation-drawer-link.active');
         if (activeSidebarLinks.length > 1) {
-            console.warn('Multiple active sidebar links found, keeping only the first one');
             activeSidebarLinks.not(':first').removeClass('active');
         }
         if (activeDrawerLinks.length > 1) {
-            console.warn('Multiple active drawer links found, keeping only the first one');
             activeDrawerLinks.not(':first').removeClass('active');
         }
         
@@ -582,7 +532,6 @@ $(function() {
             // Save to localStorage
             const href = $(this).attr('href');
             localStorage.setItem('activeSidebarLink', href);
-            console.log('Active link updated on click:', href);
         });
     }
     
@@ -590,18 +539,11 @@ $(function() {
     const floatingBtn = $('.floating-action-btn');
     const floatingMenu = $('.floating-action-menu');
     
-    console.log('Floating button found:', floatingBtn.length);
-    console.log('Floating menu found:', floatingMenu.length);
-    
     if (floatingBtn.length > 0) {
-        console.log('Setting up floating button events');
         
-        floatingBtn.on('click', function(e) {
-            console.log('Floating button clicked');
-            
+        floatingBtn.on('click', function(e) {            
             // Se é um link (tesoureiro), não fazer nada - deixar o link funcionar
             if ($(this).is('a')) {
-                console.log('Floating button is a link - allowing navigation');
                 return;
             }
             
@@ -611,7 +553,6 @@ $(function() {
             // Verificar se é o botão de administrador
             if ($(this).attr('id') === 'adminFab') {
                 // A funcionalidade do bottom sheet será tratada separadamente
-                console.log('Admin FAB clicked - bottom sheet will be handled separately');
                 return;
             } else {
                 // Fallback para o menu flutuante antigo (se ainda existir)
@@ -621,10 +562,8 @@ $(function() {
                 const icon = $(this).find('i');
                 if (floatingMenu.hasClass('show')) {
                     icon.removeClass('bi-plus').addClass('bi-x');
-                    console.log('Menu opened');
                 } else {
                     icon.removeClass('bi-x').addClass('bi-plus');
-                    console.log('Menu closed');
                 }
             }
         });
@@ -636,20 +575,16 @@ $(function() {
         const adminFab = $('#adminFab');
         
         if (bottomSheet.length > 0) {
-            console.log('Setting up bottom sheet events');
             
             // Função para abrir o bottom sheet
             function openBottomSheet() {
-                console.log('Opening bottom sheet...');
                 bottomSheet.addClass('show');
                 const icon = adminFab.find('i');
                 icon.removeClass('bi-plus').addClass('bi-x');
-                console.log('Bottom sheet opened');
             }
             
             // Função para fechar o bottom sheet
             function closeBottomSheet() {
-                console.log('Closing bottom sheet...');
                 
                 // Primeiro, animar o fechamento
                 const content = bottomSheet.find('.bottom-sheet-content');
@@ -660,7 +595,6 @@ $(function() {
                     bottomSheet.removeClass('show');
                     const icon = adminFab.find('i');
                     icon.removeClass('bi-x').addClass('bi-plus');
-                    console.log('Bottom sheet closed');
                 }, 300);
             }
             
@@ -753,8 +687,6 @@ $(function() {
                 floatingBtn.find('i').removeClass('bi-x').addClass('bi-plus');
             }
         });
-    } else {
-        console.log('No floating button found on page');
     }
     
     // Controle do botão Top Page

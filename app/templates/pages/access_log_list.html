@@ -11,13 +11,7 @@
     <div class="col-12">
         <div class="card shadow">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-funnel"></i> Filtros dos Logs de Acesso
-                </h6>
-                <small class="text-muted">
-                    <i class="bi bi-calendar-range"></i> 
-                    Exibindo logs de {{ first_day_of_month|date:"d/m/Y" }} até {{ last_day_of_month|date:"d/m/Y" }} ({{ current_month }})
-                </small>
+                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
                 <form method="get" id="accessLogFilterForm">
@@ -34,7 +28,7 @@
                         
                         <div class="col-md-3">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="date" name="date_from" value="{{ date_from|default:'' }}" id="date_from">
+                                <input class="form-control" type="date" name="date_from" value="{{ first_day_of_month|date:'Y-m-d' }}" id="date_from">
                                 <label for="date_from">
                                     <i class="bi bi-calendar-date"></i> Data Inicial
                                 </label>
@@ -43,7 +37,7 @@
                         
                         <div class="col-md-3">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="date" name="date_to" value="{{ date_to|default:'' }}" id="date_to">
+                                <input class="form-control" type="date" name="date_to" value="{{ last_day_of_month|date:'Y-m-d' }}" id="date_to">
                                 <label for="date_to">
                                     <i class="bi bi-calendar-date"></i> Data Final
                                 </label>
@@ -78,7 +72,7 @@
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_from" value="{{ date_from|default:'' }}" id="date_from_mobile">
+                                    <input class="form-control" type="date" name="date_from" value="{{ first_day_of_month|date:'Y-m-d' }}" id="date_from_mobile">
                                     <label for="date_from_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Inicial
                                     </label>
@@ -86,7 +80,7 @@
                             </div>
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_to" value="{{ date_to|default:'' }}" id="date_to_mobile">
+                                    <input class="form-control" type="date" name="date_to" value="{{ last_day_of_month|date:'Y-m-d' }}" id="date_to_mobile">
                                     <label for="date_to_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Final
                                     </label>

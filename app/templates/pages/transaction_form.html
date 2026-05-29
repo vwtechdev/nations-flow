@@ -717,7 +717,6 @@
                     $('#churchSelect').trigger('change');
                 })
                 .catch(error => {
-                    console.error('Erro ao buscar igrejas:', error);
                     $('#churchSelect').empty().append(`<option value="">Erro: ${error.message}</option>`);
                     $('#churchSelect').trigger('change');
                 });

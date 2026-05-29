@@ -468,10 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Resposta da API:', data); // Debug
-                    if (data.success) {
-                        console.log('Status atualizado com sucesso, fechando modal...'); // Debug
-                        
+                    if (data.success) {                        
                         // Atualizar o status visual (com verificação de segurança)
                         const statusElement = document.getElementById('viewNotificationStatus');
                         if (statusElement) {
@@ -501,9 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             originalButton.setAttribute('data-notification-status', newStatus ? 'Lida' : 'Não lida');
                         }
                         
-                        // Fechar o modal após atualizar o status
-                        console.log('Tentando fechar modal...'); // Debug
-                        
                         // Método direto para fechar o modal
                         const modalElement = document.getElementById('viewModal');
                         if (modalElement) {
@@ -532,14 +526,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                         
-                        // Recarregar a página para atualizar a lista
-                        console.log('Agendando reload da página...'); // Debug
-                        
                         // Verificar se o modal foi fechado antes de recarregar
                         const checkModalClosed = setInterval(() => {
                             const modalElement = document.getElementById('viewModal');
                             if (modalElement && !modalElement.classList.contains('show')) {
-                                console.log('Modal fechado com sucesso, recarregando página...'); // Debug
                                 clearInterval(checkModalClosed);
                                 window.location.reload();
                             }
@@ -547,18 +537,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // Fallback: recarregar após 2 segundos se o modal não fechar
                         setTimeout(() => {
-                            console.log('Fallback: recarregando página...'); // Debug
                             window.location.reload();
                         }, 2000);
                         
-                    } else {
-                        // Silenciosamente falha sem mostrar alert
-                        console.error('Erro ao atualizar status:', data.error || 'Erro desconhecido');
                     }
                 })
                 .catch(error => {
                     console.error('Erro:', error);
-                    // Silenciosamente falha sem mostrar alert
                 })
                 .finally(() => {
                     // Restaurar botão

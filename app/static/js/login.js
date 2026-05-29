@@ -1,7 +1,6 @@
 'use strict'
 
 $(function() {
-    console.log('Login.js loaded successfully');
     
     // Add login-page class to html and body
     $('html, body').addClass('login-page');
@@ -50,47 +49,35 @@ $(function() {
     
     // Initialize password toggle functionality
     initPasswordToggle();
-    
-    console.log('Login.js initialization completed');
 });
 
 // Password toggle function
 function togglePassword() {
-    console.log('togglePassword function called');
     const passwordInput = document.getElementById('id_password');
     const passwordIcon = document.getElementById('password-icon');
     
     if (!passwordInput || !passwordIcon) {
-        console.error('Password input or icon not found');
-        console.log('passwordInput:', passwordInput);
-        console.log('passwordIcon:', passwordIcon);
         return;
     }
-    
-    console.log('Current password type:', passwordInput.type);
     
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         passwordIcon.className = 'bi bi-eye-slash';
         passwordIcon.style.color = 'var(--primary-color)';
         passwordIcon.title = 'Ocultar senha';
-        console.log('Password shown');
     } else {
         passwordInput.type = 'password';
         passwordIcon.className = 'bi bi-eye';
         passwordIcon.style.color = '#6c757d';
         passwordIcon.title = 'Mostrar senha';
-        console.log('Password hidden');
     }
 }
 
 // Initialize password toggle
 function initPasswordToggle() {
-    console.log('Initializing password toggle');
     
     // Add click event to password toggle button
     $(document).on('click', '.password-toggle', function(e) {
-        console.log('Password toggle button clicked');
         e.preventDefault();
         e.stopPropagation();
         togglePassword();
@@ -110,6 +97,4 @@ function initPasswordToggle() {
             togglePassword();
         }
     });
-    
-    console.log('Password toggle initialized');
 }

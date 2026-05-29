@@ -389,9 +389,6 @@ function confirmResetPassword() {
         }
     })
     .catch(error => {
-        console.error('Erro:', error);
-        
-        // Restaura o botão
         confirmBtn.innerHTML = originalText;
         confirmBtn.disabled = false;
         

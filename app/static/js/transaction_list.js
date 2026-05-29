@@ -95,8 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 URL.revokeObjectURL(objectUrl);
             } catch (error) {
-                console.error('Erro ao baixar comprovante:', error);
-
                 const temporaryLink = document.createElement('a');
                 temporaryLink.href = fileUrl;
                 temporaryLink.download = fileName;
@@ -252,7 +250,6 @@ window.loadTransactions = function() {
             }
         })
         .catch(error => {
-            console.error('Erro ao carregar transações:', error);
             transactionsTable.innerHTML = `
                 <div class="alert alert-danger" role="alert">
                     <i class="bi bi-exclamation-triangle"></i>
@@ -294,23 +291,19 @@ function updateExportButton() {
     // Atualizar o href dos botões PDF
     if (exportPdfButton) {
         exportPdfButton.href = pdfExportUrl;
-        console.log('🔗 Botão PDF desktop atualizado:', pdfExportUrl);
     }
     
     if (exportPdfButtonMobile) {
         exportPdfButtonMobile.href = pdfExportUrl;
-        console.log('📱 Botão PDF mobile atualizado:', pdfExportUrl);
     }
     
     // Atualizar o href dos botões XLSX
     if (exportXlsxButton) {
         exportXlsxButton.href = xlsxExportUrl;
-        console.log('🔗 Botão XLSX desktop atualizado:', xlsxExportUrl);
     }
     
     if (exportXlsxButtonMobile) {
         exportXlsxButtonMobile.href = xlsxExportUrl;
-        console.log('📱 Botão XLSX mobile atualizado:', xlsxExportUrl);
     }
 }
 

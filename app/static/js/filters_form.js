@@ -74,7 +74,6 @@ class FiltersForm {
         try {
             return JSON.parse(jsonNode.textContent || '{}') || {};
         } catch (error) {
-            console.error('Erro ao ler filtersSourceJson:', error);
             return {};
         }
     }
@@ -294,7 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const hasFilters = document.querySelector('#chartFilterForm');
     if (hasFilters) {
         window.filtersForm = new FiltersForm();
-        console.log('Filtros inicializados com modal');
     }
 });
 

@@ -234,7 +234,7 @@
                     <table class="table table-sm table-hover align-middle filters-modal-table">
                         <thead>
                             <tr>
-                                <th style="width: 40px;"></th>
+                                <th style="width: 30px;"></th>
                                 <th>Item</th>
                             </tr>
                         </thead>
@@ -360,16 +360,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📊 Iniciando carregamento dos gráficos da dashboard...');
     
     // Verificar se Chart.js está carregado
     if (typeof Chart === 'undefined') {
-        console.error('❌ Chart.js não está carregado!');
         return;
     }
-    console.log('✅ Chart.js carregado com sucesso');
-
-
     // Funções utilitárias
     function toCurrencyBR(value) {
         return Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -613,9 +608,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar sincronização
     syncDateFilters();
     
-    // Verificar se todos os gráficos foram criados
-    console.log('✅ Carregamento dos gráficos concluído!');
-    
     // Verificar se há elementos de gráfico sem dados
     const chartElements = [
         'monthlyChart'
@@ -624,12 +616,6 @@ document.addEventListener('DOMContentLoaded', function() {
     chartElements.forEach(elementId => {
         const element = document.getElementById(elementId);
         const container = document.getElementById(elementId + 'Container');
-        
-        if (element && container) {
-            console.log(`📊 ${elementId}: Elemento encontrado`);
-        } else {
-            console.log(`⚠️ ${elementId}: Elemento não encontrado`);
-        }
     });
 });
 </script>

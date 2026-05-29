@@ -618,7 +618,7 @@
 }
 
 .modal-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #eef1f5 100%);
+    background: linear-gradient(135deg, #bd8ef1 0%, #d2c7df 100%);
     border-bottom: 1px solid #e6e9ee;
 }
 
@@ -628,7 +628,7 @@
 }
 
 .filters-modal-table-wrapper {
-    max-height: 55vh;
+    max-height: 50vh;
     overflow-y: auto;
 }
 

@@ -377,14 +377,11 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Verificar se Bootstrap está disponível
         if (typeof bootstrap !== 'undefined') {
-            console.log('✅ Bootstrap carregado, carregando script customizado...');
             // Carregar script customizado após Bootstrap estar disponível
             const script = document.createElement('script');
             script.src = '{% static "js/index.js" %}';
             document.head.appendChild(script);
-        } else {
-            console.error('❌ Bootstrap não está disponível');
-        }
+        } 
     });
     </script>
 
