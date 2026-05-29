@@ -153,7 +153,3 @@ database/service_account.json
 # OS
 .DS_Store
 Thumbs.db
-
-# Used only for developers.
-
-tasks/
