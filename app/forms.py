@@ -1,3 +1,4 @@
+from django.conf import settings
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
@@ -175,7 +176,7 @@ class UserForm(forms.ModelForm):
         
         # Define a senha padrão apenas para novos usuários
         if not user.pk:
-            user.password = make_password('nations123456')
+            user.password = make_password(settings.DEFAULT_USER_PASSWORD)
             user.password_changed = False  # Força troca de senha no primeiro login
             
             # Garantir que o username seja definido para novos usuários
@@ -239,7 +240,7 @@ class ChangePasswordForm(forms.Form):
                 raise ValidationError("Esta senha é muito simples. Escolha uma senha mais segura.")
             
             # Verificar se a senha não é a senha padrão
-            if password == 'nations123456':
+            if password == settings.DEFAULT_USER_PASSWORD:
                 raise ValidationError("Não é possível usar a senha padrão. Escolha uma nova senha.")
             
             # Verificar se a senha não contém apenas números

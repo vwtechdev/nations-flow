@@ -627,6 +627,11 @@
     letter-spacing: 0.2px;
 }
 
+.filters-modal-table-wrapper {
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
 .filters-modal-table thead th {
     background-color: #f7f9fc;
     color: #495057;

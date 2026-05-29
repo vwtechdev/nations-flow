@@ -225,7 +225,7 @@ def index(request):
         context['fields'] = Field.objects.all()
         context['churches'] = Church.objects.all()
         context['shepherds'] = Shepherd.objects.all()
-        context['users'] = User.objects.exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
+        context['users'] = User.objects.exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('first_name', 'last_name')
     else:
         # Tesoureiro vê seus campos e suas igrejas
         if request.user.fields.exists():
@@ -462,7 +462,7 @@ def index(request):
     # Logs de acesso recentes (apenas para administradores)
     if request.user.is_admin():
         access_logs = AccessLog.objects.select_related('user').exclude(
-            user__email='vwtechdev@gmail.com'
+            user__email=settings.SYSTEM_HIDDEN_EMAIL
         ).order_by('-timestamp')[:20]
     else:
         access_logs = AccessLog.objects.none()
@@ -590,7 +590,7 @@ def transaction_list(request):
         fields = Field.objects.all()
         churches = Church.objects.all()
         shepherds = Shepherd.objects.all()
-        users = User.objects.exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
+        users = User.objects.exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('first_name', 'last_name')
         print(f"DEBUG VIEW - Usuários carregados: {users.count()}")
         print(f"DEBUG VIEW - Usuário atual é admin: {request.user.is_admin()}")
         if selected_fields:
@@ -610,7 +610,7 @@ def transaction_list(request):
                 users = User.objects.filter(
                     Q(id=request.user.id) |  # O próprio supervisor
                     Q(role='treasurer', fields__in=supervisor_fields)  # Tesoureiros dos mesmos campos
-                ).distinct().exclude(email='vwtechdev@gmail.com').order_by('first_name', 'last_name')
+                ).distinct().exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('first_name', 'last_name')
             else:
                 users = User.objects.none()
             
@@ -1454,8 +1454,7 @@ def user_list(request):
     """Lista de usuários"""
     users = User.objects.all()
     
-    # Excluir o usuário vwtechdev@gmail.com da lista
-    users = users.exclude(email='vwtechdev@gmail.com')
+    users = users.exclude(email=settings.SYSTEM_HIDDEN_EMAIL)
     
     # Busca por nome, email ou função
     search_query = request.GET.get('search', '').strip()
@@ -1506,8 +1505,7 @@ def user_edit(request, pk):
     """Editar usuário"""
     user = get_object_or_404(User, pk=pk)
     
-    # Impedir edição do usuário vwtechdev@gmail.com
-    if user.email == 'vwtechdev@gmail.com':
+    if user.email == settings.SYSTEM_HIDDEN_EMAIL:
         messages.error(request, 'Este usuário não pode ser editado.')
         return redirect('user_list')
     
@@ -1534,8 +1532,7 @@ def user_delete(request, pk):
     """Desativar usuário"""
     user = get_object_or_404(User, pk=pk)
     
-    # Impedir desativação do usuário vwtechdev@gmail.com
-    if user.email == 'vwtechdev@gmail.com':
+    if user.email == settings.SYSTEM_HIDDEN_EMAIL:
         messages.error(request, 'Este usuário não pode ser desativado.')
         return redirect('user_list')
     
@@ -1558,12 +1555,11 @@ def user_reset_password(request, pk):
     if request.method == 'POST':
         user = get_object_or_404(User, pk=pk)
         
-        # Impedir reset de senha do usuário vwtechdev@gmail.com
-        if user.email == 'vwtechdev@gmail.com':
+        if user.email == settings.SYSTEM_HIDDEN_EMAIL:
             return JsonResponse({'success': False, 'error': 'Este usuário não pode ter a senha resetada.'})
         
         try:
-            user.password = make_password('nations123456')
+            user.password = make_password(settings.DEFAULT_USER_PASSWORD)
             user.password_changed = False  # Força o usuário a trocar a senha novamente
             user.save()
             return JsonResponse({'success': True})
@@ -1579,8 +1575,7 @@ def user_activate(request, pk):
     """Reativar usuário"""
     user = get_object_or_404(User, pk=pk)
     
-    # Impedir ativação do usuário vwtechdev@gmail.com
-    if user.email == 'vwtechdev@gmail.com':
+    if user.email == settings.SYSTEM_HIDDEN_EMAIL:
         messages.error(request, 'Este usuário não pode ser reativado.')
         return redirect('user_list')
     
@@ -2427,7 +2422,7 @@ def access_log_list(request):
     
     # Filtrar logs apenas do mês atual
     logs = AccessLog.objects.select_related('user').exclude(
-        user__email='vwtechdev@gmail.com'
+        user__email=settings.SYSTEM_HIDDEN_EMAIL
     ).filter(
         timestamp__date__gte=first_day_of_month,
         timestamp__date__lte=last_day_of_month

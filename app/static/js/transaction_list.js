@@ -25,8 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('proofTransactionDesc').textContent = transactionDesc || '-';
         document.getElementById('proofTransactionValue').textContent = transactionValue;
         
-        // Atualiza o link de download
-        document.getElementById('downloadProofLink').href = proofUrl;
+        // Atualiza o link de download com o nome real do arquivo
+        const downloadProofLink = document.getElementById('downloadProofLink');
+        const fileName = getProofFileName(proofUrl);
+
+        downloadProofLink.href = proofUrl;
+        downloadProofLink.download = fileName;
         
         // Carregar e exibir o comprovante
         loadProofContent(proofUrl);
@@ -60,6 +64,48 @@ document.addEventListener('DOMContentLoaded', function() {
         // Atualiza a action do formulário
         document.getElementById('deleteForm').action = `/transactions/${transactionId}/delete/`;
     });
+    
+    // Força download do comprovante usando Blob para evitar abrir PDF/imagem no navegador
+    const downloadProofLink = document.getElementById('downloadProofLink');
+    if (downloadProofLink) {
+        downloadProofLink.addEventListener('click', async function(event) {
+            event.preventDefault();
+
+            const fileUrl = this.href;
+            const fileName = this.download || getProofFileName(fileUrl);
+
+            try {
+                const response = await fetch(fileUrl, {
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao baixar arquivo');
+                }
+
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+
+                const temporaryLink = document.createElement('a');
+                temporaryLink.href = objectUrl;
+                temporaryLink.download = fileName;
+                document.body.appendChild(temporaryLink);
+                temporaryLink.click();
+                temporaryLink.remove();
+
+                URL.revokeObjectURL(objectUrl);
+            } catch (error) {
+                console.error('Erro ao baixar comprovante:', error);
+
+                const temporaryLink = document.createElement('a');
+                temporaryLink.href = fileUrl;
+                temporaryLink.download = fileName;
+                document.body.appendChild(temporaryLink);
+                temporaryLink.click();
+                temporaryLink.remove();
+            }
+        });
+    }
     
     // Carregar transações iniciais
     loadTransactions();
@@ -121,6 +167,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function getProofFileName(fileUrl) {
+    const url = new URL(fileUrl, window.location.origin);
+    const parts = url.pathname.split('/');
+    return decodeURIComponent(parts[parts.length - 1]);
+}
 
 // Função para carregar transações via AJAX
 // Tornar a função global para ser chamada por outros scripts
@@ -626,7 +678,7 @@ function loadProofContent(proofUrl) {
     `;
     
     // Extrair informações do arquivo da URL
-    const fileName = proofUrl.split('/').pop();
+    const fileName = getProofFileName(proofUrl);
     const fileExtension = fileName.split('.').pop().toLowerCase();
     
     // Preencher informações do arquivo

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
@@ -177,17 +178,9 @@ class AccessLog(models.Model):
         return f"{self.user.get_full_name()} - {self.get_action_display()} - {self.timestamp.strftime('%d/%m/%Y %H:%M:%S')}"
     
     def save(self, *args, **kwargs):
-        """
-        Sobrescreve o método save para não salvar logs do superuser 'vwtechdev@gmail.com'
-        """
-        # Verificar se o usuário é o superuser que não deve ter logs salvos
-        if self.user and self.user.email == 'vwtechdev@gmail.com':
-            # Não salvar o log para este usuário específico
+        if self.user and self.user.is_superuser:
             return
-        
-        # Para todos os outros usuários, salvar normalmente
         super().save(*args, **kwargs)
-
 
 class Notification(models.Model):
     REPEAT_CHOICES = [
