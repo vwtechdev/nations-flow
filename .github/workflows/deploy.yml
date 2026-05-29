@@ -19,8 +19,17 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
 
           script: |
+            set -e
+
             cd ~/projects/nations-flow
 
+            echo "Atualizando repositório..."
             git pull origin main
 
-            docker compose up -d --build
+            echo "Subindo nova versão..."
+            docker compose up -d --build --remove-orphans
+
+            echo "Limpando imagens antigas..."
+            docker image prune -f
+
+            echo "Deploy finalizado!"
