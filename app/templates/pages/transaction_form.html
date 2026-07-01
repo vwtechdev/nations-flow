@@ -199,8 +199,6 @@
                                     <i class="bi bi-file-earmark-check"></i> {{ form.proof.label }}
                                 </label>
                                 
-
-                                
                                 <!-- Campo de upload -->
                                 <div class="input-group">
                                     {{ form.proof }}
@@ -232,10 +230,6 @@
                                     {% endif %}
                                 </div>
                                 
-
-                                
-
-                                
                                 {% if form.proof.errors %}
                                     <div class="invalid-feedback d-block">
                                         {% for error in form.proof.errors %}
@@ -244,29 +238,28 @@
                                     </div>
                                 {% endif %}
                                 
-
-                                
-
                             </div>
                         </div>
                         
                         <!-- Campo para criar lembrete -->
                         {% if not readonly %}
-                        <div class="col-12">
-                            <div class="form-group mb-3">
-                                <div class="form-check">
-                                    {{ form.create_reminder }}
-                                    <label class="form-check-label" for="{{ form.create_reminder.id_for_label }}">
-                                        <i class="bi bi-bell"></i> {{ form.create_reminder.label }}
-                                    </label>
-                                    {% if form.create_reminder.help_text %}
-                                        <div class="form-text">
-                                            <i class="bi bi-info-circle"></i> {{ form.create_reminder.help_text }}
+                            {% if user.is_admin %}
+                                <div class="col-12">
+                                    <div class="form-group mb-3">
+                                        <div class="form-check">
+                                            {{ form.create_reminder }}
+                                            <label class="form-check-label" for="{{ form.create_reminder.id_for_label }}">
+                                                <i class="bi bi-bell"></i> {{ form.create_reminder.label }}
+                                            </label>
+                                            {% if form.create_reminder.help_text %}
+                                                <div class="form-text">
+                                                    <i class="bi bi-info-circle"></i> {{ form.create_reminder.help_text }}
+                                                </div>
+                                            {% endif %}
                                         </div>
-                                    {% endif %}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                     
