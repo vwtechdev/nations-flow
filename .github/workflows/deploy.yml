@@ -26,6 +26,9 @@ jobs:
             echo "Atualizando repositório..."
             git pull origin main
 
+            echo "Aplicando migrations..."
+            docker compose run --rm web python manage.py migrate --noinput
+
             echo "Subindo nova versão..."
             docker compose up -d --build --remove-orphans
 
