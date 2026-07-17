@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Criar diretórios necessários
-RUN mkdir -p /var/log /backups
+RUN mkdir -p /var/log /backups /app/logs
 
 # Copiar scripts de inicialização e wrappers
 COPY cron/start-cron.sh /start-cron.sh
