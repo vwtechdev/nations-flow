@@ -1844,7 +1844,6 @@ def transaction_export_pdf(request):
     possible_paths = [
         os.path.join(settings.STATIC_ROOT, 'img', 'icon.png'),
         os.path.join(settings.BASE_DIR, 'static', 'img', 'icon.png'),
-        os.path.join(os.path.dirname(__file__), 'static', 'img', 'icon.png'),
         os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'img', 'icon.png'),
     ]
     

@@ -7,7 +7,7 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - ./static:/app/static:ro
+      - ./staticfiles:/app/staticfiles:ro
       - ./media:/app/media:ro
       - nginx_logs:/var/log/nginx
     depends_on:
@@ -50,7 +50,7 @@ services:
     command: ["sh", "-c", "./wait-for-database.sh && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --workers 3 --worker-class sync --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --preload"]
     volumes:
       - ./media:/app/media   
-      - ./static:/app/static
+      - ./staticfiles:/app/staticfiles
     env_file:
       - .env
     depends_on:

@@ -125,22 +125,16 @@ docker-compose exec web python manage.py shell
 nations-flow/
 ├── app/                    # Aplicação principal
 │   ├── models.py          # Modelos do banco
-│   ├── views.py           # Views do sistema
-│   ├── templates/         # Templates HTML
-│   └── static/           # Arquivos estáticos
+│   └── views.py           # Views do sistema
 ├── core/                  # Configurações Django
-│   ├── settings.py        # Configurações principais
-│   ├── settings_local.py  # Configurações para desenvolvimento local
-│   └── settings_pythonanywhere.py  # Configurações para PythonAnywhere
+│   └── settings.py        # Configurações principais
+├── static/                # Arquivos estáticos (fonte)
+├── templates/             # Templates HTML
+├── staticfiles/           # Arquivos estáticos coletados (gerado em runtime)
+├── media/                 # Uploads (gerado em runtime)
 ├── docker-compose.yml     # Configuração Docker
 ├── Dockerfile            # Imagem Docker
-├── init-db.sh           # Script de inicialização Docker
-├── pythonanywhere_setup.py  # Script para PythonAnywhere
-├── pythonanywhere_wsgi.py   # WSGI para PythonAnywhere
-├── run_local.py          # Script para desenvolvimento local
-├── migrate_to_sqlite.py  # Script de migração para SQLite
-├── env_example.txt       # Exemplo de variáveis de ambiente
-├── README_PYTHONANYWHERE.md # Guia PythonAnywhere
+├── deploy-nginx.sh       # Script de deploy manual
 └── README.md            # Este arquivo
 ```
 

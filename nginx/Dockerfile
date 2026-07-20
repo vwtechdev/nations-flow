@@ -14,7 +14,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Create directories for static and media files
-RUN mkdir -p /app/static /app/media /var/log/nginx
+RUN mkdir -p /app/staticfiles /app/media /var/log/nginx
 
 # Set proper permissions
 RUN chown -R nginx:nginx /app /var/log/nginx

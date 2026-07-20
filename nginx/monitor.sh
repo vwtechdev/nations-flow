@@ -41,7 +41,7 @@ echo
 # Verificar arquivos estáticos
 echo "7. Verificação de Arquivos Estáticos:"
 echo "   - Arquivos em /static:"
-docker exec nations-flow_nginx sh -c "find /app/static -type f | wc -l" 2>/dev/null || echo "   Não disponível"
+docker exec nations-flow_nginx sh -c "find /app/staticfiles -type f | wc -l" 2>/dev/null || echo "   Não disponível"
 echo "   - Arquivos em /media:"
 docker exec nations-flow_nginx sh -c "find /app/media -type f | wc -l" 2>/dev/null || echo "   Não disponível"
 echo

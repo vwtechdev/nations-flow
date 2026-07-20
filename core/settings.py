@@ -46,13 +46,14 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'app.context_processors.global_settings',
             ],
         },
     },
@@ -111,17 +112,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-
-# Para desenvolvimento local
-STATIC_ROOT = BASE_DIR / 'static'
-
-# Arquivos estáticos adicionais
-STATICFILES_DIRS = [
-    BASE_DIR / "app" / "static",
-]
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Whitenoise para produção - Desabilitado pois o Nginx serve estáticos
@@ -269,3 +263,6 @@ SESSION_COOKIE_AGE = 3600  # 1 hora
 # Default user settings and password
 DEFAULT_USER_PASSWORD = os.getenv("DEFAULT_USER_PASSWORD", "change-me")
 SYSTEM_HIDDEN_EMAIL = os.getenv("SYSTEM_HIDDEN_EMAIL", "")
+
+# WhatsApp group URL (exposta em templates via context processor)
+WHATSAPP_GROUP_URL = os.getenv("WHATSAPP_GROUP_URL", "")

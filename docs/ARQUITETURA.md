@@ -13,8 +13,8 @@ O Nations Flow segue uma arquitetura **MVC (Model-View-Controller)** adaptada ao
 
 ### 1. Camada de Apresentação (Frontend)
 
-- **Templates HTML**: Localizados em `app/templates/`
-- **Arquivos Estáticos**: CSS, JavaScript e imagens em `app/static/`
+- **Templates HTML**: Localizados em `templates/`
+- **Arquivos Estáticos**: CSS, JavaScript e imagens em `static/`
 - **Framework CSS**: Bootstrap para responsividade
 - **JavaScript**: Vanilla JS para interações AJAX
 

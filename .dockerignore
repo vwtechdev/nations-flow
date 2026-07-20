@@ -30,7 +30,6 @@ backups/
 
 # Arquivos de mídia e estáticos (gerados em runtime)
 media/
-static/
 staticfiles/
 collectstatic/
 
