@@ -8,6 +8,7 @@ from django.db import connection
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date
@@ -78,6 +79,7 @@ def get_transactions_for_user(user):
         return Transaction.objects.none()
 
 # Views de Autenticação
+@never_cache
 def login_view(request):
     if request.user.is_authenticated:
         # Redirecionar tesoureiros e supervisores para a lista de transações
