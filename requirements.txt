@@ -1,19 +1,11 @@
-# Dependências essenciais para produção
-Django==5.2.4
-psycopg2-binary==2.9.10
-gunicorn==23.0.0
-python-dotenv==1.1.1
-django-redis==5.4.0
-reportlab==4.1.0
-Pillow==11.3.0
-
-# Dependências do Django (instaladas automaticamente)
 asgiref==3.9.0
-sqlparse==0.5.3
-whitenoise==6.9.0
-
-# Dependências do openpyxl
+Django==5.2.4
+django-redis==5.4.0
+gunicorn==23.0.0
 openpyxl==3.1.0
-
-# Dependências para notificações
+Pillow==11.3.0
+psycopg2-binary==2.9.10
 python-dateutil==2.9.0
+python-dotenv==1.1.1
+reportlab==4.1.0
+sqlparse==0.5.3

@@ -21,7 +21,7 @@ jobs:
           script: |
             set -e
 
-            cd ~/projects/nations-flow
+            cd ~/projects/${{ github.event.repository.name }}
 
             echo "Atualizando repositório..."
             git pull origin main

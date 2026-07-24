@@ -94,7 +94,7 @@ O script `monitor.sh` verifica:
 1. **Arquivos estáticos não carregam**
    ```bash
    # Verificar permissões
-   docker exec nations-flow_nginx ls -la /app/staticfiles/
+   docker exec nations-flow-nginx-1 ls -la /app/staticfiles/
    
    # Recoletar arquivos estáticos
    docker-compose run --rm web python manage.py collectstatic --noinput
@@ -112,7 +112,7 @@ O script `monitor.sh` verifica:
    docker volume ls | grep nginx_logs
    
    # Verificar permissões
-   docker exec nations-flow_nginx ls -la /var/log/nginx/
+   docker exec nations-flow-nginx-1 ls -la /var/log/nginx/
    ```
 
 ## 📝 Configurações Avançadas

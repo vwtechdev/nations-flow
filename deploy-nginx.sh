@@ -60,7 +60,7 @@ echo
 # Verificar logs
 echo "9. Verificando logs iniciais..."
 echo "   - Nginx (últimas 5 linhas):"
-docker logs nations-flow_nginx --tail 5
+docker compose logs nginx --tail 5
 echo
 
 # Executar monitoramento

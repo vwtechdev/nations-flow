@@ -173,8 +173,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
-    'https://nationsflow.com.br',
-    'https://www.nationsflow.com.br',
+    f'https://{os.getenv("DOMAIN", "localhost")}',
+    f'https://www.{os.getenv("DOMAIN", "localhost")}',
 ]
 
 # Headers de segurança
