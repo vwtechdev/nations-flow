@@ -1680,6 +1680,7 @@ def field_delete(request, pk):
 
 # API Views para AJAX
 @password_changed_required
+@admin_or_treasurer_required
 def get_churches(request):
     """Retorna igrejas de um campo e/ou pastor via AJAX"""
     field_id = request.GET.get('field')
@@ -2229,6 +2230,7 @@ def transaction_export_xlsx(request):
 
 
 @password_changed_required
+@admin_or_treasurer_required
 def churches_by_field_api(request, field_id):
     """API para retornar igrejas de um campo específico"""
     
@@ -2268,6 +2270,7 @@ def churches_by_field_api(request, field_id):
 
 
 @password_changed_required
+@admin_or_treasurer_required
 def shepherds_by_field_api(request, field_id):
     """API para retornar pastores de um campo específico"""
     
@@ -2302,6 +2305,7 @@ def shepherds_by_field_api(request, field_id):
 
 
 @password_changed_required
+@admin_or_treasurer_required
 def category_info_api(request, category_id):
     """API para retornar informações de uma categoria específica"""
     try:
@@ -2599,6 +2603,7 @@ def notification_mark_read(request, pk):
     }, status=405)
 
 @password_changed_required
+@admin_or_treasurer_required
 def get_today_notifications(request):
     """Buscar notificações vencidas ou do dia atual que não foram lidas via AJAX - apenas do usuário logado"""
     if request.method == 'GET':
@@ -2642,6 +2647,20 @@ def get_today_notifications(request):
     }, status=405)
 
 # Health Check para monitoramento
+@require_http_methods(["GET"])
+@login_required
+@password_changed_required
+def serve_protected_media(request, file_path):
+    """Serve arquivos de mídia protegidos via X-Accel-Redirect (nginx)"""
+    safe_path = os.path.normpath(file_path)
+    if safe_path.startswith('..') or safe_path.startswith('/'):
+        return HttpResponse(status=404)
+    response = HttpResponse()
+    response['X-Accel-Redirect'] = f'/media-internal/{safe_path}'
+    response['Content-Type'] = ''
+    return response
+
+
 @require_http_methods(["GET"])
 def health_check(request):
     """Endpoint de health check para monitoramento"""

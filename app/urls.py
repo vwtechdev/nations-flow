@@ -1,4 +1,5 @@
 from django.urls import path
+from django.conf import settings
 from . import views
 
 urlpatterns = [
@@ -74,6 +75,10 @@ urlpatterns = [
     
     # Health Check
     path('health/', views.health_check, name='health_check'),
-    
-
 ]
+
+# Mídia protegida — apenas em produção (nginx X-Accel-Redirect)
+if not settings.DEBUG:
+    urlpatterns.append(
+        path('media/<path:file_path>', views.serve_protected_media, name='serve_protected_media'),
+    )
