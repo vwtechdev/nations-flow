@@ -8,7 +8,7 @@ services:
     volumes:
       - ./staticfiles:/app/staticfiles:ro
       - ./media:/app/media:ro
-      - nginx_logs:/var/log/nginx
+      - $HOME/logs/${COMPOSE_PROJECT_NAME}/nginx:/var/log/nginx
     depends_on:
       - web
     networks:
@@ -49,6 +49,7 @@ services:
     volumes:
       - ./media:/app/media   
       - ./staticfiles:/app/staticfiles
+      - $HOME/logs/${COMPOSE_PROJECT_NAME}/django:/app/logs
     env_file:
       - .env
     depends_on:
@@ -75,7 +76,7 @@ services:
   db:
     image: postgres:15
     volumes:
-      - ./db_data:/var/lib/postgresql/data
+      - $HOME/data/${COMPOSE_PROJECT_NAME}/postgres:/var/lib/postgresql/data
     env_file:
       - .env
     networks:
@@ -94,17 +95,17 @@ services:
     image: redis:7-alpine
     command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
     volumes:
-      - redis_data:/data
+      - $HOME/data/${COMPOSE_PROJECT_NAME}/redis:/data
     networks:
       - app_net
     restart: always
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.25'
+          memory: 64M
+          cpus: '0.2'
         reservations:
-          memory: 128M
+          memory: 32M
           cpus: '0.1'
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -123,8 +124,8 @@ services:
     networks:
       - app_net
     volumes:
-      - cron_logs:/var/log
-      - ./backups:/backups
+      - $HOME/logs/${COMPOSE_PROJECT_NAME}/cron:/var/log
+      - $HOME/data/${COMPOSE_PROJECT_NAME}/backups:/backups
     restart: always
     environment:
       - TZ=America/Sao_Paulo
@@ -137,13 +138,7 @@ services:
           memory: 32M
           cpus: '0.1'
 
-volumes:
-  nginx_logs:
-    driver: local
-  cron_logs:
-    driver: local
-  redis_data:
-    driver: local
+volumes: {}
 
 networks:
   app_net:
