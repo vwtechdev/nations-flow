@@ -11,6 +11,7 @@ build/
 
 # Dados e backups
 db_data/
+db_data_backup/
 backups/
 *.sql
 *.dump
