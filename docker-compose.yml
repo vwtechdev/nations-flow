@@ -7,7 +7,7 @@ services:
       - "8081:80"
     volumes:
       - ./staticfiles:/app/staticfiles:ro
-      - ./media:/app/media:ro
+      - $HOME/data/${COMPOSE_PROJECT_NAME}/media:/app/media:ro
       - $HOME/logs/${COMPOSE_PROJECT_NAME}/nginx:/var/log/nginx
     depends_on:
       - web
@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile
     command: ["sh", "-c", "./wait-for-database.sh && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --workers 2 --worker-class sync --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --preload"]
     volumes:
-      - ./media:/app/media   
+      - $HOME/data/${COMPOSE_PROJECT_NAME}/media:/app/media   
       - ./staticfiles:/app/staticfiles
       - $HOME/logs/${COMPOSE_PROJECT_NAME}/django:/app/logs
     env_file:
