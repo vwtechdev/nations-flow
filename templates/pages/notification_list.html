@@ -84,7 +84,7 @@
                                         <td>{{ notification.created_by.get_full_name }}</td>
                                         <td>{{ notification.created_at|date:"d/m/Y H:i" }}</td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                            <button type="button" class="btn btn-sm btn-outline-info" title="Visualizar"
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#viewModal" 
                                                     data-notification-id="{{ notification.pk }}"
@@ -98,10 +98,10 @@
                                                     data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}">
                                                 <i class="bi bi-eye"></i>
                                             </button>
-                                            <a href="{% url 'notification_edit' notification.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <a href="{% url 'notification_edit' notification.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir"
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#deleteModal" 
                                                     data-notification-id="{{ notification.pk }}"
@@ -167,7 +167,7 @@
                                         </div>
                                     </div>
                                     <div class="mobile-card-footer">
-                                        <button type="button" class="mobile-card-btn btn-outline-info" 
+                                        <button type="button" class="mobile-card-btn btn-outline-info" title="Visualizar"
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#viewModal" 
                                                 data-notification-id="{{ notification.pk }}"
@@ -181,10 +181,10 @@
                                                 data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}">
                                             <i class="bi bi-eye"></i> Visualizar
                                         </button>
-                                        <a href="{% url 'notification_edit' notification.pk %}" class="mobile-card-btn btn-outline-primary">
+                                        <a href="{% url 'notification_edit' notification.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>
-                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
+                                        <button type="button" class="mobile-card-btn btn-outline-danger" title="Excluir"
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteModal" 
                                                 data-notification-id="{{ notification.pk }}"

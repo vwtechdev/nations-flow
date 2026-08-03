@@ -188,3 +188,110 @@
     box-shadow: none !important;
     border-color: #dee2e6 !important;
 }
+
+/* Drag & Drop zone */
+.proof-dropzone {
+    border: 2px dashed #c9d4dd;
+    border-radius: 0.5rem;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f8f9fc 0%, #f1f4f8 100%);
+}
+.proof-dropzone:hover {
+    border-color: #6ea8fe;
+    background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.08);
+}
+.proof-dropzone.drag-over {
+    border-color: #0d6efd;
+    border-style: solid;
+    background: linear-gradient(135deg, #e8f0fe 0%, #dce8ff 100%);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    transform: scale(1.01);
+}
+.dropzone-empty {
+    text-align: center;
+    padding: 24px;
+    pointer-events: none;
+    color: #6c757d;
+}
+.dropzone-empty .bi {
+    color: #adb5bd;
+    margin-bottom: 8px;
+}
+.dropzone-empty p {
+    color: #6c757d;
+}
+.dropzone-empty .badge {
+    font-weight: 500;
+    padding: 6px 12px;
+}
+.dropzone-preview {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: #fff;
+}
+.dropzone-preview .btn-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+    padding: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.preview-img {
+    max-width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.preview-iframe {
+    width: 100%;
+    height: 240px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.file-info {
+    margin-top: 8px;
+}
+.file-info small {
+    display: block;
+    color: #6c757d;
+}
+@media (max-width: 767px) {
+    .proof-dropzone {
+        min-height: 220px;
+        margin-bottom: 1rem;
+    }
+    .preview-img, .preview-iframe {
+        max-height: 180px;
+    }
+}
+
+/* Select2 desabilitado no modo somente leitura */
+.readonly-form .select2-container--bootstrap-5 .select2-selection--single {
+    background-color: #f8f9fa !important;
+    opacity: 0.7 !important;
+    pointer-events: none;
+}
+.readonly-form .select2-container--bootstrap-5 .select2-selection__arrow {
+    display: none;
+}
+.readonly-form .select2-container--bootstrap-5 .select2-selection__clear {
+    display: none;
+}

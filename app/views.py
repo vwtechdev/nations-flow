@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date
-from .models import Church, User, Field, Shepherd, Category, Transaction, AccessLog, Notification
+from .models import Church, User, Field, Shepherd, Category, Transaction, AccessLog, Notification, ShepherdHistory
 from .forms import (
     ChurchForm, UserForm, FieldForm, ShepherdForm,
     CategoryForm, TransactionForm, ChangePasswordForm, EmailAuthenticationForm, NotificationForm
@@ -218,15 +218,15 @@ def index(request):
         'selected_churches': selected_churches,
         'selected_shepherds': selected_shepherds,
         'selected_users': selected_users,
-        'categories': Category.objects.all(),
+        'categories': Category.objects.filter(is_active=True),
         'current_year': today.year
     }
     
     # Adicionar campos, igrejas, pastores e usuários ao contexto baseado no tipo de usuário
     if request.user.is_admin():
-        context['fields'] = Field.objects.all()
-        context['churches'] = Church.objects.all()
-        context['shepherds'] = Shepherd.objects.all()
+        context['fields'] = Field.objects.filter(is_active=True)
+        context['churches'] = Church.objects.filter(is_active=True)
+        context['shepherds'] = Shepherd.objects.filter(is_active=True)
         context['users'] = User.objects.exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('first_name', 'last_name')
     else:
         # Tesoureiro vê seus campos e suas igrejas
@@ -255,11 +255,24 @@ def index(request):
     
     # Base de transações
     if request.user.is_admin():
-        base_transactions = Transaction.objects.all()
+        base_transactions = Transaction.objects.filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     elif request.user.is_supervisor():
-        base_transactions = get_transactions_for_user(request.user)
+        base_transactions = get_transactions_for_user(request.user).filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     else:
-        base_transactions = Transaction.objects.filter(user=request.user)
+        base_transactions = Transaction.objects.filter(
+            user=request.user,
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     
     # Aplicar filtros
     filtered_transactions = base_transactions
@@ -305,7 +318,7 @@ def index(request):
     
     # Dados para o gráfico por categoria
     categories_data = []
-    categories = Category.objects.all()
+    categories = Category.objects.filter(is_active=True)
     
     for category in categories:
         category_transactions = filtered_transactions.filter(category=category)
@@ -323,7 +336,7 @@ def index(request):
     churches_data = []
     if request.user.is_admin():
         # Para administradores, mostrar todos os campos
-        all_fields = Field.objects.all()
+        all_fields = Field.objects.filter(is_active=True)
     else:
         # Para tesoureiros, mostrar apenas seus campos
         if request.user.fields.exists():
@@ -353,7 +366,7 @@ def index(request):
     churches_individual_data = []
     if request.user.is_admin():
         # Para administradores, mostrar todos os campos
-        all_churches = Church.objects.all()
+        all_churches = Church.objects.filter(is_active=True)
     else:
         # Para tesoureiros, mostrar apenas igrejas dos seus campos
         if request.user.fields.exists():
@@ -465,7 +478,7 @@ def index(request):
     if request.user.is_admin():
         access_logs = AccessLog.objects.select_related('user').exclude(
             user__email=settings.SYSTEM_HIDDEN_EMAIL
-        ).order_by('-timestamp')[:20]
+        ).order_by('-created_at')[:20]
     else:
         access_logs = AccessLog.objects.none()
     
@@ -498,12 +511,25 @@ def transaction_list(request):
     """Lista de transações"""
     
     if request.user.is_admin():
-        transactions = Transaction.objects.all()
+        transactions = Transaction.objects.filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     elif request.user.is_supervisor():
-        transactions = get_transactions_for_user(request.user)
+        transactions = get_transactions_for_user(request.user).filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     else:
         # Tesoureiro: ver apenas transações criadas por ele
-        transactions = Transaction.objects.filter(user=request.user)
+        transactions = Transaction.objects.filter(
+            user=request.user,
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     
     # Filtros (usando getlist para múltiplas seleções)
     search = request.GET.get('search', '')
@@ -589,9 +615,9 @@ def transaction_list(request):
     
     # Preparar dados para os filtros
     if request.user.is_admin():
-        fields = Field.objects.all()
-        churches = Church.objects.all()
-        shepherds = Shepherd.objects.all()
+        fields = Field.objects.filter(is_active=True)
+        churches = Church.objects.filter(is_active=True)
+        shepherds = Shepherd.objects.filter(is_active=True)
         users = User.objects.exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('first_name', 'last_name')
         print(f"DEBUG VIEW - Usuários carregados: {users.count()}")
         print(f"DEBUG VIEW - Usuário atual é admin: {request.user.is_admin()}")
@@ -603,8 +629,8 @@ def transaction_list(request):
         # Verificar se o usuário tem campos associados
         if request.user.fields.exists():
             fields = request.user.fields.all()
-            churches = Church.objects.filter(field__in=request.user.fields.all())
-            shepherds = Shepherd.objects.filter(church__field__in=request.user.fields.all()).distinct()
+            churches = Church.objects.filter(is_active=True, field__in=request.user.fields.all())
+            shepherds = Shepherd.objects.filter(is_active=True, church__field__in=request.user.fields.all()).distinct()
             
             # Para Supervisor, incluir usuários que ele pode ver (ele mesmo e tesoureiros dos mesmos campos)
             if request.user.is_supervisor():
@@ -629,7 +655,7 @@ def transaction_list(request):
             return redirect('index')
 
     filters_source_data = {
-        'category': [{'id': c.id, 'text': c.name} for c in Category.objects.all()],
+        'category': [{'id': c.id, 'text': c.name} for c in Category.objects.filter(is_active=True)],
         'field': [{'id': f.id, 'text': f.name} for f in fields],
         'shepherd': [{'id': s.id, 'text': s.name} for s in shepherds],
         'church': [{'id': c.id, 'text': c.name} for c in churches],
@@ -641,7 +667,7 @@ def transaction_list(request):
     
     context = {
         'title': 'Transações',
-        'categories': Category.objects.all(),
+        'categories': Category.objects.filter(is_active=True),
         'fields': fields,
         'churches': churches,
         'shepherds': shepherds,
@@ -672,14 +698,27 @@ def transaction_list_api(request):
     """API para listar transações com paginação AJAX"""
     
     if request.user.is_admin():
-        transactions = Transaction.objects.all()
+        transactions = Transaction.objects.filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
         print(f"DEBUG API - Usuário admin: {transactions.count()} transações totais")
     elif request.user.is_supervisor():
-        transactions = get_transactions_for_user(request.user)
+        transactions = get_transactions_for_user(request.user).filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
         print(f"DEBUG API - Usuário supervisor: {transactions.count()} transações de tesoureiros")
     else:
         # Tesoureiro: ver apenas transações criadas por ele
-        transactions = Transaction.objects.filter(user=request.user)
+        transactions = Transaction.objects.filter(
+            user=request.user,
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
         print(f"DEBUG API - Usuário tesoureiro: {transactions.count()} transações do próprio usuário")
     
     # Filtros (usando getlist para múltiplas seleções)
@@ -1328,16 +1367,18 @@ def category_edit(request, pk):
 @password_changed_required
 @admin_required
 def category_delete(request, pk):
-    """Excluir categoria"""
+    """Ativar/Inativar categoria"""
     category = get_object_or_404(Category, pk=pk)
     
     if request.method == 'POST':
-        category.delete()
-        messages.success(request, 'Categoria excluída com sucesso!')
+        category.is_active = not category.is_active
+        category.save()
+        status = 'ativada' if category.is_active else 'inativada'
+        messages.success(request, f'Categoria {status} com sucesso!')
         return redirect('category_list')
     
     context = {
-        'title': 'Excluir Categoria',
+        'title': 'Inativar Categoria' if category.is_active else 'Ativar Categoria',
         'category': category,
     }
     
@@ -1389,9 +1430,14 @@ def church_list(request):
 def church_create(request):
     """Criar nova igreja"""
     if request.method == 'POST':
-        form = ChurchForm(request.POST)
+        form = ChurchForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            church = form.save()
+            ShepherdHistory.objects.create(
+                church=church,
+                shepherd=church.shepherd,
+                start_date=date.today(),
+            )
             messages.success(request, 'Igreja criada com sucesso!')
             return redirect('church_list')
     else:
@@ -1411,11 +1457,19 @@ def church_create(request):
 def church_edit(request, pk):
     """Editar igreja"""
     church = get_object_or_404(Church, pk=pk)
+    old_shepherd = church.shepherd
     
     if request.method == 'POST':
-        form = ChurchForm(request.POST, instance=church)
+        form = ChurchForm(request.POST, request.FILES, instance=church)
         if form.is_valid():
-            form.save()
+            church = form.save()
+            if old_shepherd != church.shepherd:
+                ShepherdHistory.objects.filter(church=church, end_date__isnull=True).update(end_date=date.today())
+                ShepherdHistory.objects.create(
+                    church=church,
+                    shepherd=church.shepherd,
+                    start_date=date.today(),
+                )
             messages.success(request, 'Igreja atualizada com sucesso!')
             return redirect('church_list')
     else:
@@ -1434,16 +1488,18 @@ def church_edit(request, pk):
 @password_changed_required
 @admin_required
 def church_delete(request, pk):
-    """Excluir igreja"""
+    """Ativar/Inativar igreja"""
     church = get_object_or_404(Church, pk=pk)
     
     if request.method == 'POST':
-        church.delete()
-        messages.success(request, 'Igreja excluída com sucesso!')
+        church.is_active = not church.is_active
+        church.save()
+        status = 'ativada' if church.is_active else 'inativada'
+        messages.success(request, f'Igreja {status} com sucesso!')
         return redirect('church_list')
     
     context = {
-        'title': 'Excluir Igreja',
+        'title': 'Inativar Igreja' if church.is_active else 'Ativar Igreja',
         'church': church,
     }
     
@@ -1531,21 +1587,22 @@ def user_edit(request, pk):
 @password_changed_required
 @admin_required
 def user_delete(request, pk):
-    """Desativar usuário"""
+    """Ativar/Desativar usuário"""
     user = get_object_or_404(User, pk=pk)
     
     if user.email == settings.SYSTEM_HIDDEN_EMAIL:
-        messages.error(request, 'Este usuário não pode ser desativado.')
+        messages.error(request, 'Este usuário não pode ser alterado.')
         return redirect('user_list')
     
     if request.method == 'POST':
-        user.is_active = False
+        user.is_active = not user.is_active
         user.save()
-        messages.success(request, 'Usuário desativado com sucesso!')
+        status = 'ativado' if user.is_active else 'desativado'
+        messages.success(request, f'Usuário {status} com sucesso!')
         return redirect('user_list')
     
     context = {
-        'title': 'Desativar Usuário',
+        'title': 'Desativar Usuário' if user.is_active else 'Ativar Usuário',
         'user_obj': user,
     }
     
@@ -1663,16 +1720,18 @@ def field_edit(request, pk):
 @password_changed_required
 @admin_required
 def field_delete(request, pk):
-    """Excluir campo"""
+    """Ativar/Inativar campo"""
     field = get_object_or_404(Field, pk=pk)
     
     if request.method == 'POST':
-        field.delete()
-        messages.success(request, 'Campo excluído com sucesso!')
+        field.is_active = not field.is_active
+        field.save()
+        status = 'ativado' if field.is_active else 'inativado'
+        messages.success(request, f'Campo {status} com sucesso!')
         return redirect('field_list')
     
     context = {
-        'title': 'Excluir Campo',
+        'title': 'Inativar Campo' if field.is_active else 'Ativar Campo',
         'field': field,
     }
     
@@ -1688,10 +1747,10 @@ def get_churches(request):
     
     # Base segura conforme permissões
     if request.user.is_admin():
-        churches = Church.objects.all()
+        churches = Church.objects.filter(is_active=True)
     else:
         if request.user.fields.exists():
-            churches = Church.objects.filter(field__in=request.user.fields.all())
+            churches = Church.objects.filter(is_active=True, field__in=request.user.fields.all())
         else:
             churches = Church.objects.none()
     
@@ -1723,12 +1782,25 @@ def transaction_export_pdf(request):
     
     # Obter os mesmos filtros da view transaction_list
     if request.user.is_admin():
-        transactions = Transaction.objects.all()
+        transactions = Transaction.objects.filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     elif request.user.is_supervisor():
-        transactions = get_transactions_for_user(request.user)
+        transactions = get_transactions_for_user(request.user).filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     else:
         # Tesoureiro: exportar apenas transações criadas por ele
-        transactions = Transaction.objects.filter(user=request.user)
+        transactions = Transaction.objects.filter(
+            user=request.user,
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     
     # Aplicar filtros (usando getlist para múltiplas seleções)
     search = request.GET.get('search', '')
@@ -2095,12 +2167,25 @@ def transaction_export_xlsx(request):
     
     # Obter os mesmos filtros da view transaction_list
     if request.user.is_admin():
-        base_transactions = Transaction.objects.all()
+        base_transactions = Transaction.objects.filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     elif request.user.is_supervisor():
-        base_transactions = get_transactions_for_user(request.user)
+        base_transactions = get_transactions_for_user(request.user).filter(
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     else:
         # Tesoureiro: exportar apenas transações criadas por ele
-        base_transactions = Transaction.objects.filter(user=request.user)
+        base_transactions = Transaction.objects.filter(
+            user=request.user,
+            category__is_active=True,
+            church__is_active=True,
+            church__field__is_active=True,
+        )
     
     # Aplicar filtros (usando getlist para múltiplas seleções)
     search = request.GET.get('search', '')
@@ -2245,9 +2330,9 @@ def churches_by_field_api(request, field_id):
         
         # Buscar igrejas do campo
         if request.user.is_admin():
-            churches = Church.objects.filter(field=field).order_by('name')
+            churches = Church.objects.filter(is_active=True, field=field).order_by('name')
         else:
-            churches = Church.objects.filter(field=field).order_by('name')
+            churches = Church.objects.filter(is_active=True, field=field).order_by('name')
         
         churches_data = []
         for church in churches:
@@ -2284,7 +2369,7 @@ def shepherds_by_field_api(request, field_id):
                 return JsonResponse({'error': 'Sem permissão para este campo'}, status=403)
         
         # Buscar pastores do campo (distinct para evitar duplicatas)
-        shepherds = Shepherd.objects.filter(church__field=field).distinct().order_by('name')
+        shepherds = Shepherd.objects.filter(is_active=True, church__field=field).distinct().order_by('name')
         
         shepherds_data = []
         for shepherd in shepherds:
@@ -2309,7 +2394,7 @@ def shepherds_by_field_api(request, field_id):
 def category_info_api(request, category_id):
     """API para retornar informações de uma categoria específica"""
     try:
-        category = get_object_or_404(Category, pk=category_id)
+        category = get_object_or_404(Category, pk=category_id, is_active=True)
         
         return JsonResponse({
             'id': category.id,
@@ -2327,15 +2412,18 @@ def category_info_api(request, category_id):
 @admin_required
 def shepherd_list(request):
     """Lista de pastores"""
-    shepherds = Shepherd.objects.all().order_by('name')
+    from django.db.models import Count, Min, Max, Q, OuterRef, Subquery
+    
+    shepherds = Shepherd.objects.annotate(
+        church_count=Count('shepherdhistory__church', distinct=True),
+        first_start_date=Min('shepherdhistory__start_date'),
+        last_end_date=Max('shepherdhistory__end_date'),
+    ).order_by('name')
     
     # Busca por nome
     search_query = request.GET.get('search', '').strip()
     if search_query:
         shepherds = shepherds.filter(name__icontains=search_query)
-    
-    # Incluir igrejas vinculadas para cada pastor
-    shepherds = shepherds.prefetch_related('church_set')
     
     context = {
         'title': 'Pastores',
@@ -2350,7 +2438,7 @@ def shepherd_list(request):
 def shepherd_create(request):
     """Criar novo pastor"""
     if request.method == 'POST':
-        form = ShepherdForm(request.POST)
+        form = ShepherdForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             messages.success(request, 'Pastor criado com sucesso!')
@@ -2372,7 +2460,7 @@ def shepherd_edit(request, pk):
     shepherd = get_object_or_404(Shepherd, pk=pk)
     
     if request.method == 'POST':
-        form = ShepherdForm(request.POST, instance=shepherd)
+        form = ShepherdForm(request.POST, request.FILES, instance=shepherd)
         if form.is_valid():
             form.save()
             messages.success(request, 'Pastor atualizado com sucesso!')
@@ -2384,12 +2472,35 @@ def shepherd_edit(request, pk):
     churches = shepherd.church_set.all()
     unique_fields = churches.values('field').distinct().count()
     
+    # Histórico do pastor
+    history = ShepherdHistory.objects.filter(shepherd=shepherd).select_related('church').order_by('-start_date')
+    history_data = []
+    for record in history:
+        end = record.end_date or date.today()
+        church_transactions = Transaction.objects.filter(
+            church=record.church,
+            date__gte=record.start_date,
+            date__lte=end,
+        )
+        income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        history_data.append({
+            'church_name': record.church.name,
+            'start_date': record.start_date,
+            'end_date': record.end_date,
+            'transactions_count': church_transactions.count(),
+            'income': income,
+            'expense': expense,
+            'balance': income - expense,
+        })
+    
     context = {
         'title': 'Editar Pastor',
         'form': form,
         'shepherd': shepherd,
         'church_count': churches.count(),
         'unique_fields_count': unique_fields,
+        'history_data': history_data,
     }
     
     return render(request, 'pages/shepherd_form.html', context)
@@ -2397,16 +2508,18 @@ def shepherd_edit(request, pk):
 @password_changed_required
 @admin_required
 def shepherd_delete(request, pk):
-    """Excluir pastor"""
+    """Ativar/Inativar pastor"""
     shepherd = get_object_or_404(Shepherd, pk=pk)
     
     if request.method == 'POST':
-        shepherd.delete()
-        messages.success(request, f'Pastor {shepherd.name} excluído com sucesso!')
+        shepherd.is_active = not shepherd.is_active
+        shepherd.save()
+        status = 'ativado' if shepherd.is_active else 'inativado'
+        messages.success(request, f'Pastor {shepherd.name} {status} com sucesso!')
         return redirect('shepherd_list')
     
     context = {
-        'title': 'Excluir Pastor',
+        'title': 'Inativar Pastor' if shepherd.is_active else 'Ativar Pastor',
         'shepherd': shepherd,
     }
     
@@ -2429,9 +2542,9 @@ def access_log_list(request):
     logs = AccessLog.objects.select_related('user').exclude(
         user__email=settings.SYSTEM_HIDDEN_EMAIL
     ).filter(
-        timestamp__date__gte=first_day_of_month,
-        timestamp__date__lte=last_day_of_month
-    ).order_by('-timestamp')
+        created_at__date__gte=first_day_of_month,
+        created_at__date__lte=last_day_of_month
+    ).order_by('-created_at')
     
     # Busca por nome ou email do usuário
     search_query = request.GET.get('search', '').strip()
@@ -2452,7 +2565,7 @@ def access_log_list(request):
             # Garantir que não vá antes do primeiro dia do mês
             if date_from_obj < first_day_of_month:
                 date_from_obj = first_day_of_month
-            logs = logs.filter(timestamp__date__gte=date_from_obj)
+            logs = logs.filter(created_at__date__gte=date_from_obj)
         except ValueError:
             pass  # Ignora datas inválidas
     
@@ -2462,7 +2575,7 @@ def access_log_list(request):
             # Garantir que não vá depois do último dia do mês
             if date_to_obj > last_day_of_month:
                 date_to_obj = last_day_of_month
-            logs = logs.filter(timestamp__date__lte=date_to_obj)
+            logs = logs.filter(created_at__date__lte=date_to_obj)
         except ValueError:
             pass  # Ignora datas inválidas
     

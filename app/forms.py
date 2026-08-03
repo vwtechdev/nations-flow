@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils.html import format_html
 from datetime import date
 import re
-from .models import Church, User, Field, Shepherd, Category, Transaction, Notification
+from .models import Church, User, Field, Shepherd, Category, Transaction, Notification, ShepherdHistory
 
 class CheckboxTableWidget(forms.Widget):
     """Widget personalizado para exibir campos como uma tabela com checkboxes"""
@@ -97,7 +97,7 @@ class FieldForm(forms.ModelForm):
 class ChurchForm(forms.ModelForm):
     class Meta:
         model = Church
-        fields = ['name', 'address', 'shepherd', 'field']
+        fields = ['name', 'address', 'shepherd', 'field', 'contract']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.TextInput(attrs={'class': 'form-control'}),
@@ -547,7 +547,7 @@ class ShepherdForm(forms.ModelForm):
     
     class Meta:
         model = Shepherd
-        fields = ['name']
+        fields = ['name', 'contract']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
         }

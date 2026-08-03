@@ -30,7 +30,7 @@
                         <i class="bi bi-search"></i>
                         <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
                         <a href="{% url 'field_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-x-circle"></i> Limpar busca
+                            <i class="bi bi-file-earmark-x"></i> Limpar busca
                         </a>
                     </div>
                 {% endif %}
@@ -45,6 +45,7 @@
                                     <th>Igrejas</th>
                                     <th>Data de Criação</th>
                                     <th>Última Atualização</th>
+                                    <th>Status</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -66,19 +67,41 @@
                                         <td>{{ field.created_at|date:"d/m/Y H:i" }}</td>
                                         <td>{{ field.updated_at|date:"d/m/Y H:i" }}</td>
                                         <td>
-                                            <a href="{% url 'field_edit' field.pk %}" class="btn btn-sm btn-outline-primary">
+                                            {% if field.is_active %}
+                                                <span class="badge bg-success">Ativo</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inativo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'field_edit' field.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            {% if field.is_active %}
+                                            <button type="button" class="btn btn-sm btn-outline-warning" title="Inativar"
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#deleteModal" 
                                                     data-field-id="{{ field.pk }}"
                                                     data-field-name="{{ field.name }}"
                                                     data-field-churches="{{ field.church_count }}"
                                                     data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
-                                                    data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
-                                                <i class="bi bi-trash"></i>
+                                                    data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}"
+                                                    data-field-active="{{ field.is_active|lower }}">
+                                                <i class="bi bi-file-earmark-x"></i>
                                             </button>
+                                            {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-success" title="Ativar"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-field-id="{{ field.pk }}"
+                                                    data-field-name="{{ field.name }}"
+                                                    data-field-churches="{{ field.church_count }}"
+                                                    data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
+                                                    data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}"
+                                                    data-field-active="{{ field.is_active|lower }}">
+                                                <i class="bi bi-file-earmark"></i>
+                                            </button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -120,10 +143,11 @@
                                         </div>
                                     </div>
                                     <div class="mobile-card-footer">
-                                        <a href="{% url 'field_edit' field.pk %}" class="mobile-card-btn btn-outline-primary">
+                                        <a href="{% url 'field_edit' field.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>
-                                        <button type="button" class="mobile-card-btn btn-outline-danger" 
+                                        {% if field.is_active %}
+                                        <button type="button" class="mobile-card-btn btn-outline-warning" title="Inativar"
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteModal" 
                                                 data-field-id="{{ field.pk }}"
@@ -131,8 +155,20 @@
                                                 data-field-churches="{{ field.church_count }}"
                                                 data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
                                                 data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
-                                            <i class="bi bi-trash"></i> Excluir
+                                            <i class="bi bi-file-earmark-x"></i> Inativar
                                         </button>
+                                        {% else %}
+                                        <button type="button" class="mobile-card-btn btn-outline-success" title="Ativar"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal" 
+                                                data-field-id="{{ field.pk }}"
+                                                data-field-name="{{ field.name }}"
+                                                data-field-churches="{{ field.church_count }}"
+                                                data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
+                                                data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
+                                            <i class="bi bi-file-earmark"></i> Ativar
+                                        </button>
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
@@ -154,14 +190,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title text-danger" id="deleteModalLabel">
-                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                <h5 class="modal-title text-warning" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Inativação
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p class="mb-3">
-                    <strong>Tem certeza que deseja excluir o campo?</strong>
+                    <strong id="toggleQuestion">Tem certeza que deseja inativar o campo?</strong>
                 </p>
                 <div class="card border-warning mb-3">
                     <div class="card-body">
@@ -176,17 +212,17 @@
                 </div>
                 <div class="alert alert-warning mb-0" role="alert">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Atenção:</strong> Esta ação não pode ser desfeita e pode afetar igrejas e usuários vinculados.
+                    <strong>Atenção:</strong> O registro será ocultado mas permanecerá no banco de dados.
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
+                    <i class="bi bi-file-earmark-x"></i> Cancelar
                 </button>
                 <form id="deleteForm" method="post" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    <button type="submit" class="btn btn-warning" id="confirmToggleBtn">
+                        <i class="bi bi-file-earmark-x"></i> Confirmar Inativação
                     </button>
                 </form>
             </div>
@@ -228,6 +264,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Atualiza a action do formulário
         document.getElementById('deleteForm').action = `/fields/${fieldId}/delete/`;
+        
+        // Ajusta modal para Inativar ou Reativar
+        const isActive = button.classList.contains('btn-outline-warning');
+        const toggleBtn = document.getElementById('confirmToggleBtn');
+        const toggleQuestion = document.getElementById('toggleQuestion');
+        if (isActive) {
+            toggleBtn.className = 'btn btn-warning';
+            toggleBtn.innerHTML = '<i class="bi bi-file-earmark-x"></i> Confirmar Inativação';
+            toggleQuestion.innerHTML = '<strong>Tem certeza que deseja inativar o campo?</strong>';
+        } else {
+            toggleBtn.className = 'btn btn-success';
+            toggleBtn.innerHTML = '<i class="bi bi-file-earmark-check"></i> Reativar';
+            toggleQuestion.innerHTML = '<strong>Tem certeza que deseja reativar o campo?</strong>';
+        }
     });
 });
 </script>

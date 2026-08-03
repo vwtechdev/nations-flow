@@ -237,9 +237,113 @@ class FiltersForm {
         });
     }
 
+    getStorageKey() {
+        const form = document.getElementById('chartFilterForm');
+        const page = (form && form.dataset.filterPage) || 'transaction_list';
+        return `filters_${page}`;
+    }
+
+    static saveFromUrl() {
+        if (!window.location.search) return;
+        const form = document.getElementById('chartFilterForm');
+        if (!form) return;
+        const page = form.dataset.filterPage || 'transaction_list';
+        const key = `filters_${page}`;
+        const params = new URLSearchParams(window.location.search);
+        const state = {};
+        for (const [name, value] of params.entries()) {
+            if (!state[name]) state[name] = [];
+            state[name].push(value);
+        }
+        localStorage.setItem(key, JSON.stringify(state));
+    }
+
+    static restoreFromLocalStorage() {
+        const form = document.getElementById('chartFilterForm');
+        if (!form) return;
+        const page = form.dataset.filterPage || 'transaction_list';
+        const key = `filters_${page}`;
+        const saved = localStorage.getItem(key);
+        if (!saved) return;
+        if (window.location.search) return;
+        try {
+            const state = JSON.parse(saved);
+            const params = new URLSearchParams();
+            for (const [k, v] of Object.entries(state)) {
+                if (Array.isArray(v)) v.forEach(x => { if (x) params.append(k, x); });
+                else if (v) params.set(k, v);
+            }
+            if (params.toString()) window.location.search = params.toString();
+        } catch (e) { localStorage.removeItem(key); }
+    }
+
+    static clearLocalStorage() {
+        const form = document.getElementById('chartFilterForm');
+        const page = (form && form.dataset.filterPage) || 'transaction_list';
+        localStorage.removeItem(`filters_${page}`);
+    }
+
     setupMobileSync() {
         this.syncDateFields();
         this.syncNonSelect2Fields();
+        this.setupMonthFilter();
+    }
+
+    setupMonthFilter() {
+        const desktopMonth = document.getElementById('month_filter');
+        const mobileMonth = document.getElementById('month_filter_mobile');
+
+        // Firefox não suporta input[type=month] — ocultar
+        if (/Firefox/i.test(navigator.userAgent)) {
+            const containers = ['month_filter_container', 'month_filter_mobile_container'];
+            containers.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            return;
+        }
+
+        function getDateFields() {
+            const fromDesktop = document.getElementById('date_from') || document.getElementById('startDateFilter');
+            const toDesktop = document.getElementById('date_to') || document.getElementById('endDateFilter');
+            const fromMobile = document.getElementById('date_from_mobile') || document.getElementById('startDateFilter_mobile');
+            const toMobile = document.getElementById('date_to_mobile') || document.getElementById('endDateFilter_mobile');
+            return { fromDesktop, toDesktop, fromMobile, toMobile };
+        }
+
+        function setDates(monthValue) {
+            if (!monthValue) return;
+            const [year, month] = monthValue.split('-').map(Number);
+            const lastDay = new Date(year, month, 0).getDate();
+            const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+            const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+            const fields = getDateFields();
+            if (fields.fromDesktop) fields.fromDesktop.value = firstDay;
+            if (fields.toDesktop) fields.toDesktop.value = lastDayStr;
+            if (fields.fromMobile) fields.fromMobile.value = firstDay;
+            if (fields.toMobile) fields.toMobile.value = lastDayStr;
+        }
+
+        function clearMonth() {
+            if (desktopMonth) desktopMonth.value = '';
+            if (mobileMonth) mobileMonth.value = '';
+        }
+
+        [desktopMonth, mobileMonth].forEach(el => {
+            if (el) el.addEventListener('change', () => {
+                setDates(el.value);
+                if (desktopMonth && mobileMonth) {
+                    if (document.activeElement === desktopMonth) mobileMonth.value = desktopMonth.value;
+                    else if (document.activeElement === mobileMonth) desktopMonth.value = mobileMonth.value;
+                }
+            });
+        });
+
+        const fields = getDateFields();
+        const dateInputs = [fields.fromDesktop, fields.toDesktop, fields.fromMobile, fields.toMobile].filter(Boolean);
+        dateInputs.forEach(input => {
+            input.addEventListener('change', clearMonth);
+        });
     }
 
     syncDateFields() {
@@ -293,6 +397,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const hasFilters = document.querySelector('#chartFilterForm');
     if (hasFilters) {
         window.filtersForm = new FiltersForm();
+    }
+    if (window.location.search) {
+        // Página carregou com filtros → salvar estado
+        FiltersForm.saveFromUrl();
+    } else if (typeof window.loadTransactions === 'undefined') {
+        // Página limpa → restaurar apenas se não for AJAX (transaction_list.js cuida do próprio restore)
+        FiltersForm.restoreFromLocalStorage();
+    }
+});
+
+// Salvar filtros antes de navegar para criar/editar
+document.addEventListener('click', function(e) {
+    const link = e.target.closest('a');
+    if (!link || !link.href) return;
+    if (link.href.includes('/create/') || link.href.includes('/edit/') || link.href.includes('/delete/')) {
+        const form = document.getElementById('chartFilterForm');
+        if (form && window.location.search) {
+            FiltersForm.saveFromUrl();
+        }
+    }
+});
+
+// Interceptar clicks em links "Limpar" para também limpar localStorage
+document.addEventListener('click', function(e) {
+    const link = e.target.closest('a[href="?clear"]');
+    if (link) {
+        e.preventDefault();
+        FiltersForm.clearLocalStorage();
+        const url = new URL(window.location.href);
+        url.search = '';
+        window.location.href = url.toString();
     }
 });
 

@@ -3,6 +3,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/church_form.css' %}" />
+<link rel="stylesheet" href="{% static 'css/transaction_form.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -13,90 +14,100 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <div class="row">
-                        <div class="col-12">
-                            <div class="form-floating mb-3">
-                                {{ form.name }}
-                                <label for="{{ form.name.id_for_label }}">
-                                    <i class="bi bi-sticky"></i> Nome da Igreja
-                                </label>
-                                {% if form.name.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.name.errors %}
-                                            {{ error }}
-                                        {% endfor %}
+                        <!-- Coluna esquerda: Drag & Drop / Preview do Contrato -->
+                        <div class="col-md-5">
+                            <div class="proof-dropzone" id="proofDropzone">
+                                <input type="file" name="contract" id="id_contract"
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="d-none" />
+                                
+                                <div class="dropzone-empty" id="dropzoneEmpty" {% if form.instance.contract %}style="display:none"{% endif %}>
+                                    <i class="bi bi-cloud-upload display-4 text-muted"></i>
+                                    <p class="mt-3 mb-1">Arraste o contrato aqui</p>
+                                    <p class="text-muted small mb-2">ou clique para selecionar</p>
+                                    <span class="badge bg-light text-muted">PDF, DOC, JPG, PNG — até 1MB</span>
+                                </div>
+                                
+                                <div class="dropzone-preview" id="dropzonePreview" style="{% if form.instance.contract %}display:flex{% else %}display:none{% endif %}">
+                                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" 
+                                            id="clearProof" title="Remover arquivo"></button>
+                                    {% if form.instance.contract %}
+                                        {% with ext=form.instance.contract.name|lower|slice:"-4:" %}
+                                        {% if ext == '.pdf' %}
+                                            <iframe id="previewIframe" src="{{ form.instance.contract.url }}" class="preview-iframe"></iframe>
+                                        {% else %}
+                                            <img id="previewImage" src="{{ form.instance.contract.url }}" class="preview-img" alt="Contrato" />
+                                        {% endif %}
+                                        {% endwith %}
+                                        <div class="file-info mt-2 text-center">
+                                            <small class="text-muted">{{ form.instance.contract.name }}</small>
+                                        </div>
+                                    {% else %}
+                                    <img id="previewImage" src="" class="preview-img" style="display:none" alt="Preview" />
+                                    <iframe id="previewIframe" src="" class="preview-iframe" style="display:none"></iframe>
+                                    <div class="file-info mt-2 text-center">
+                                        <small class="text-muted" id="fileName"></small>
+                                        <small class="text-muted ms-2" id="fileSize"></small>
                                     </div>
-                                {% endif %}
+                                    {% endif %}
+                                </div>
                             </div>
+                            {% if form.contract.errors %}
+                                <div class="invalid-feedback d-block mt-2">
+                                    {% for error in form.contract.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                <select name="shepherd" id="shepherdSelect" class="form-control" required>
-                                    <option value="">Selecione um pastor...</option>
-                                    {% for shepherd in shepherds %}
-                                        <option value="{{ shepherd.id }}" {% if form.shepherd.value == shepherd.id %}selected{% endif %}>
-                                            {{ shepherd.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="shepherdSelect">
-                                    <i class="bi bi-person-badge"></i> Pastor Responsável
-                                </label>
-                                {% if form.shepherd.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.shepherd.errors %}
-                                            {{ error }}
-                                        {% endfor %}
+                        <!-- Coluna direita: Campos -->
+                        <div class="col-md-7">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="form-floating mb-3">
+                                        {{ form.name }}
+                                        <label for="{{ form.name.id_for_label }}">
+                                            <i class="bi bi-sticky"></i> Nome da Igreja
+                                        </label>
+                                        {% if form.name.errors %}<div class="invalid-feedback d-block">{% for e in form.name.errors %}{{ e }}{% endfor %}</div>{% endif %}
                                     </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-floating mb-3">
-                                <select name="field" id="churchField" class="form-control" required>
-                                    <option value="">Selecione um campo...</option>
-                                    {% for field in fields %}
-                                        <option value="{{ field.id }}" {% if form.field.value == field.id %}selected{% endif %}>
-                                            {{ field.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                                <label for="churchField">
-                                    <i class="bi bi-geo-alt"></i> Campo
-                                </label>
-                                {% if form.field.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.field.errors %}
-                                            {{ error }}
-                                        {% endfor %}
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <select name="shepherd" id="shepherdSelect" class="form-control" required>
+                                            <option value="">Selecione um pastor...</option>
+                                            {% for shepherd in shepherds %}
+                                                <option value="{{ shepherd.id }}" {% if form.shepherd.value == shepherd.id %}selected{% endif %}>{{ shepherd.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <label for="shepherdSelect"><i class="bi bi-person-badge"></i> Pastor Responsável</label>
+                                        {% if form.shepherd.errors %}<div class="invalid-feedback d-block">{% for e in form.shepherd.errors %}{{ e }}{% endfor %}</div>{% endif %}
                                     </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-12">
-                            <div class="form-floating mb-3">
-                                {{ form.address }}
-                                <label for="{{ form.address.id_for_label }}">
-                                    <i class="bi bi-geo-alt-fill"></i> Endereço
-                                </label>
-                                {% if form.address.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.address.errors %}
-                                            {{ error }}
-                                        {% endfor %}
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <select name="field" id="churchField" class="form-control" required>
+                                            <option value="">Selecione um campo...</option>
+                                            {% for field in fields %}
+                                                <option value="{{ field.id }}" {% if form.field.value == field.id %}selected{% endif %}>{{ field.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <label for="churchField"><i class="bi bi-geo-alt"></i> Campo</label>
+                                        {% if form.field.errors %}<div class="invalid-feedback d-block">{% for e in form.field.errors %}{{ e }}{% endfor %}</div>{% endif %}
                                     </div>
-                                {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-floating mb-3">
+                                        {{ form.address }}
+                                        <label for="{{ form.address.id_for_label }}"><i class="bi bi-geo-alt-fill"></i> Endereço</label>
+                                        {% if form.address.errors %}<div class="invalid-feedback d-block">{% for e in form.address.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
                     
-                    <div class="d-flex gap-2 justify-content-end">
+                    <div class="d-flex gap-2 justify-content-end mt-2">
                         <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                             <i class="bi bi-check-circle"></i> Salvar
                         </button>
@@ -104,6 +115,8 @@
                             <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
+                    </div><!-- fecha col-md-7 -->
+                    </div><!-- fecha row -->
                 </form>
             </div>
         </div>
@@ -172,6 +185,56 @@ $(document).ready(function() {
     $('#churchField').on('select2:clear', function(e) {
         $(this).closest('.form-floating').removeClass('has-success has-error');
     });
+    
+    // Drag & Drop + Preview do Contrato
+    const dropzone = document.getElementById('proofDropzone');
+    const fileInput = document.getElementById('id_contract');
+    if (!dropzone || !fileInput) return;
+    
+    const emptyState = document.getElementById('dropzoneEmpty');
+    const previewState = document.getElementById('dropzonePreview');
+    const previewImg = document.getElementById('previewImage');
+    const previewIframe = document.getElementById('previewIframe');
+    const fileNameEl = document.getElementById('fileName');
+    const fileSizeEl = document.getElementById('fileSize');
+    
+    dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+        
+        const clearBtn = document.getElementById('clearProof');
+        if (clearBtn) clearBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            fileInput.value = '';
+            emptyState.style.display = 'block';
+            previewState.style.display = 'none';
+            if (previewImg) previewImg.style.display = 'none';
+            if (previewIframe) previewIframe.style.display = 'none';
+        });
+    
+    function handleFile(file) {
+        const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!allowed.includes(file.type)) { alert('Tipo não permitido. Use PDF, DOC, JPG ou PNG.'); return; }
+        if (file.size > 1024 * 1024) { alert('Arquivo excede 1MB.'); return; }
+        if (emptyState) emptyState.style.display = 'none';
+        if (previewState) previewState.style.display = 'flex';
+        if (fileNameEl) fileNameEl.textContent = file.name;
+        if (fileSizeEl) fileSizeEl.textContent = (file.size / 1024).toFixed(1) + 'KB';
+        const url = URL.createObjectURL(file);
+        if (file.type === 'application/pdf') {
+            if (previewIframe) { previewIframe.src = url; previewIframe.style.display = 'block'; }
+            if (previewImg) previewImg.style.display = 'none';
+        } else {
+            if (previewImg) { previewImg.src = url; previewImg.style.display = 'block'; }
+            if (previewIframe) previewIframe.style.display = 'none';
+        }
+    }
 });
 </script>
 {% endblock %}

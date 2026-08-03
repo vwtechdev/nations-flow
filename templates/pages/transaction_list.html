@@ -3,6 +3,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
+<link rel="stylesheet" href="{% static 'css/transaction_form.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -16,10 +17,18 @@
                 </h6>
             </div>
             <div class="card-body">
-                <form method="get" id="chartFilterForm">
+                <form method="get" id="chartFilterForm" data-filter-page="transaction_list">
                     <!-- Desktop Layout -->
                     <div class="row d-none d-md-flex">
-                        <div class="col-md-3">
+                        <div class="col-md-2" id="month_filter_container">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="month" id="month_filter">
+                                <label for="month_filter">
+                                    <i class="bi bi-calendar-month"></i> Mês
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from">
                                 <label for="date_from">
@@ -27,8 +36,7 @@
                                 </label>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to">
                                 <label for="date_to">
@@ -36,8 +44,7 @@
                                 </label>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="type" id="typeFilter" class="form-control">
                                     <option value="">Todos os tipos</option>
@@ -49,8 +56,7 @@
                                 </label>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="mb-3">
                                 <label class="form-label text-muted small">
                                     <i class="bi bi-funnel"></i> Mais Filtros
@@ -72,7 +78,7 @@
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
-                                <a href="{% url 'transaction_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                                <a href="?clear" class="btn btn-secondary btn-sm" style="width: 120px;">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
@@ -81,6 +87,16 @@
                     
                     <!-- Mobile Layout -->
                     <div class="d-md-none">
+                        <div class="row">
+                            <div class="col-12" id="month_filter_mobile_container">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="month" id="month_filter_mobile">
+                                    <label for="month_filter_mobile">
+                                        <i class="bi bi-calendar-month"></i> Mês
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
@@ -130,7 +146,7 @@
                                 <i class="bi bi-search"></i> Filtrar
                             </button>
                             <div class="d-grid gap-2 mt-2">
-                                <a href="{% url 'transaction_list' %}" class="btn btn-secondary">
+                                <a href="?clear" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
@@ -371,7 +387,7 @@
 
 <!-- Modal de Visualização de Comprovante -->
 <div class="modal fade" id="proofModal" tabindex="-1" aria-labelledby="proofModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title text-primary" id="proofModalLabel">
@@ -381,43 +397,36 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">
-                            <i class="bi bi-info-circle"></i> Informações da Transação
-                        </h6>
-                        <div class="card border-info">
-                            <div class="card-body">
-                                <p class="card-text mb-1"><strong>ID:</strong> <span id="proofTransactionId"></span></p>
-                                <p class="card-text mb-1"><strong>Data:</strong> <span id="proofTransactionDate"></span></p>
-                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="proofTransactionType"></span></p>
-                                <p class="card-text mb-1"><strong>Categoria:</strong> <span id="proofTransactionCategory"></span></p>
-                                <p class="card-text mb-1"><strong>Igreja:</strong> <span id="proofTransactionChurch"></span></p>
-                                <p class="card-text mb-1"><strong>Valor:</strong> <span id="proofTransactionValue"></span></p>
-                                <p class="card-text mb-0"><strong>Descrição:</strong> <span id="proofTransactionDesc"></span></p>
+                    <div class="col-md-7">
+                        <div id="proofContent" class="proof-dropzone" style="min-height:350px; cursor:default; border-style:solid; border-color:#e9ecef; background:#fff;">
+                            <div class="dropzone-empty">
+                                <i class="bi bi-file-earmark-check display-4" style="color:#adb5bd"></i>
+                                <p class="text-muted mt-2">Carregando comprovante...</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">
-                            <i class="bi bi-file-earmark"></i> Detalhes do Arquivo
-                        </h6>
+                    <div class="col-md-5">
+                        <h6 class="text-muted mb-2"><i class="bi bi-info-circle"></i> Informações da Transação</h6>
+                        <div class="card border-info mb-3">
+                            <div class="card-body py-2 px-3">
+                                <p class="card-text mb-1 small"><strong>ID:</strong> <span id="proofTransactionId"></span></p>
+                                <p class="card-text mb-1 small"><strong>Data:</strong> <span id="proofTransactionDate"></span></p>
+                                <p class="card-text mb-1 small"><strong>Tipo:</strong> <span id="proofTransactionType"></span></p>
+                                <p class="card-text mb-1 small"><strong>Categoria:</strong> <span id="proofTransactionCategory"></span></p>
+                                <p class="card-text mb-1 small"><strong>Igreja:</strong> <span id="proofTransactionChurch"></span></p>
+                                <p class="card-text mb-1 small"><strong>Valor:</strong> <span id="proofTransactionValue"></span></p>
+                                <p class="card-text mb-0 small"><strong>Descrição:</strong> <span id="proofTransactionDesc"></span></p>
+                            </div>
+                        </div>
+                        <h6 class="text-muted mb-2"><i class="bi bi-file-earmark"></i> Detalhes do Arquivo</h6>
                         <div class="card border-success">
-                            <div class="card-body">
-                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="proofFileName"></span></p>
-                                <p class="card-text mb-1"><strong>Tipo:</strong> <span id="proofFileType"></span></p>
-                                <p class="card-text mb-1"><strong>Tamanho:</strong> <span id="proofFileSize"></span></p>
-                                <p class="card-text mb-0"><strong>Data:</strong> <span id="proofFileDate"></span></p>
+                            <div class="card-body py-2 px-3">
+                                <p class="card-text mb-1 small"><strong>Nome:</strong> <span id="proofFileName"></span></p>
+                                <p class="card-text mb-1 small"><strong>Tipo:</strong> <span id="proofFileType"></span></p>
+                                <p class="card-text mb-1 small"><strong>Tamanho:</strong> <span id="proofFileSize"></span></p>
+                                <p class="card-text mb-0 small"><strong>Data:</strong> <span id="proofFileDate"></span></p>
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    <h6 class="text-muted mb-3">
-                        <i class="bi bi-eye"></i> Visualização do Comprovante
-                    </h6>
-                    <div id="proofContent" class="text-center">
-                        <!-- Conteúdo do comprovante será carregado aqui -->
                     </div>
                 </div>
             </div>

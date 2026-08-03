@@ -2,20 +2,11 @@
 __pycache__/
 *.py[cod]
 *.pyo
-*.pyd
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
 
 # Dados e backups
 db_data/
 db_data_backup/
 backups/
-*.sql
-*.dump
-*.backup
 
 # Variáveis de ambiente
 *.env
@@ -24,12 +15,10 @@ backups/
 # Mídia e estáticos (gerados em runtime)
 media/
 staticfiles/
-collectstatic/
 
 # Logs
 logs/
 *.log
-*.log.*
 
 # IDEs e editores
 .idea/
@@ -38,23 +27,18 @@ logs/
 *.swo
 *~
 .DS_Store
-.DS_Store?
 ._*
 Thumbs.db
 desktop.ini
-*.sublime-*
 
 # Testes
 .pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.cache/
-.nox/
 .mypy_cache/
 
 # Docs
 docs/
+README.md
+LICENSE
 
 # Git
 .git/
@@ -65,7 +49,6 @@ tasks/
 
 # Docker
 .dockerignore
-Dockerfile.dev
 docker-compose*.yml
 
 # Deploy local

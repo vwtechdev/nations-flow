@@ -1,13 +1,30 @@
 // Variáveis globais para paginação
 let currentPage = 1;
 let currentFilters = {};
+const FILTER_STORAGE_KEY = 'filters_transaction_list';
+
+function saveFiltersToStorage() {
+    const hasFilters = Object.entries(currentFilters).some(([k, v]) => {
+        if (k === 'page') return false;
+        if (Array.isArray(v)) return v.length > 0;
+        return v && v !== '';
+    });
+    if (hasFilters) {
+        localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(currentFilters));
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Handlers de modais (sempre registrados primeiro) ---
+    
     // Captura os dados da transação quando o modal de comprovante é aberto
     const proofModal = document.getElementById('proofModal');
-    proofModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const proofUrl = button.getAttribute('data-proof-url');
+    if (proofModal) {
+        proofModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+            const proofUrl = button.getAttribute('data-proof-url');
+            if (!proofUrl) return;
         const transactionId = button.getAttribute('data-transaction-id');
         const transactionDate = button.getAttribute('data-transaction-date');
         const transactionType = button.getAttribute('data-transaction-type');
@@ -35,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Carregar e exibir o comprovante
         loadProofContent(proofUrl);
     });
+    }
     
     // Captura os dados da transação quando o modal de exclusão é aberto
     const deleteModal = document.getElementById('deleteModal');
@@ -105,11 +123,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Carregar transações iniciais
-    loadTransactions();
+    // Restaurar filtros salvos ao voltar para a página (URL limpa)
+    let restoredFilters = false;
+    if (!window.location.search) {
+        const saved = localStorage.getItem(FILTER_STORAGE_KEY);
+        if (saved) {
+            try {
+                const restored = JSON.parse(saved);
+                currentPage = restored.page || 1;
+                if (restored.date_from) document.getElementById('date_from') && (document.getElementById('date_from').value = restored.date_from);
+                if (restored.date_to) document.getElementById('date_to') && (document.getElementById('date_to').value = restored.date_to);
+                if (restored.type) document.getElementById('typeFilter') && (document.getElementById('typeFilter').value = restored.type);
+                if (restored.date_from) document.getElementById('date_from_mobile') && (document.getElementById('date_from_mobile').value = restored.date_from);
+                if (restored.date_to) document.getElementById('date_to_mobile') && (document.getElementById('date_to_mobile').value = restored.date_to);
+                if (restored.type) document.getElementById('typeFilter_mobile') && (document.getElementById('typeFilter_mobile').value = restored.type);
+                const hiddenContainer = document.getElementById('advancedFiltersHidden');
+                if (hiddenContainer && restored) {
+                    ['category', 'field', 'church', 'shepherd', 'user'].forEach(name => {
+                        const values = restored[name];
+                        if (Array.isArray(values) && values.length > 0) {
+                            values.forEach(v => {
+                                const input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = name;
+                                input.value = v;
+                                input.setAttribute('data-filter', name);
+                                hiddenContainer.appendChild(input);
+                            });
+                        }
+                    });
+                }
+                loadTransactions();
+                updateExportButton();
+                restoredFilters = true;
+            }
+            catch (e) {
+                localStorage.removeItem(FILTER_STORAGE_KEY);
+            }
+        }
+    }
     
-    // Atualizar botão de exportação com filtros iniciais
-    updateExportButton();
+    // Carregar transações iniciais (se não foram restauradas por filtro)
+    if (!restoredFilters) {
+        loadTransactions();
+        updateExportButton();
+    }
     
     // Adicionar listener para o formulário de filtros
     const filterForm = document.getElementById('chartFilterForm');
@@ -153,16 +211,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
-    // Adicionar listener para limpar filtros
-    const clearButton = document.querySelector('a[href*=\"transaction_list\"]');
-    if (clearButton) {
-        clearButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            currentPage = 1;
-            clearFilters();
-            loadTransactions();
-        });
+
+});
+
+// Salvar filtros antes de navegar para criar/editar/visualizar
+document.addEventListener('click', function(e) {
+    const link = e.target.closest('a');
+    if (!link || !link.href) return;
+    if (link.href.includes('/create/') || link.href.includes('/edit/') || link.href.includes('/delete/')
+        || link.href.includes('/view/')) {
+        saveFiltersToStorage();
     }
 });
 
@@ -241,6 +299,7 @@ window.loadTransactions = function() {
             renderTransactions(data.transactions);
             renderPagination(data.pagination);
             updateTotals(data.totals);
+            saveFiltersToStorage();
             
             // Mostrar paginação se houver mais de uma página
             if (data.pagination.total_pages > 1) {
@@ -654,6 +713,7 @@ function clearFilters() {
         user: [],
         page: 1
     };
+    localStorage.removeItem(FILTER_STORAGE_KEY);
 }
 
 // Função para carregar e exibir o conteúdo do comprovante
@@ -680,25 +740,19 @@ function loadProofContent(proofUrl) {
     
     // Determinar o tipo de arquivo e exibir adequadamente
     if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
-        // Imagem - exibir diretamente
+        // Imagem — exibir com estilo preview
         const img = document.createElement('img');
         img.src = proofUrl;
-        img.className = 'img-fluid';
-        img.style.maxHeight = '500px';
-        img.style.maxWidth = '100%';
+        img.className = 'preview-img';
+        img.style.maxHeight = '400px';
         img.alt = 'Comprovante';
         
         img.onload = function() {
             proofContent.innerHTML = '';
+            proofContent.style.cssText = '';
+            proofContent.className = 'd-flex align-items-center justify-content-center';
+            proofContent.style.minHeight = '350px';
             proofContent.appendChild(img);
-            
-            // Adicionar informações de tamanho se disponível
-            if (this.naturalWidth && this.naturalHeight) {
-                const sizeInfo = document.createElement('p');
-                sizeInfo.className = 'text-muted mt-2';
-                sizeInfo.innerHTML = `<small>Dimensões: ${this.naturalWidth} × ${this.naturalHeight} pixels</small>`;
-                proofContent.appendChild(sizeInfo);
-            }
         };
         
         img.onerror = function() {
@@ -706,16 +760,11 @@ function loadProofContent(proofUrl) {
         };
         
     } else if (fileExtension === 'pdf') {
-        // PDF - mostrar mensagem e botão para abrir em nova aba
+        // PDF — exibir inline via iframe
+        proofContent.style.cssText = '';
+        proofContent.className = '';
         proofContent.innerHTML = `
-            <div class="text-center py-4">
-                <i class="bi bi-file-pdf text-danger" style="font-size: 4rem;"></i>
-                <p class="mt-2 text-muted">Este é um arquivo PDF</p>
-                <p class="text-muted mb-3">Para melhor visualização, abra o arquivo em uma nova aba</p>
-                <a href="${proofUrl}" target="_blank" class="btn btn-primary">
-                    <i class="bi bi-box-arrow-up-right"></i> Abrir PDF em Nova Aba
-                </a>
-            </div>
+            <iframe src="${proofUrl}" class="w-100" style="height:400px; border:1px solid #e9ecef; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.1);"></iframe>
         `;
         
     } else {

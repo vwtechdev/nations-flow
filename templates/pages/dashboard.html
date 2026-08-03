@@ -17,10 +17,18 @@
                 </h6>
             </div>
             <div class="card-body">
-                <form method="get" id="chartFilterForm">
+                <form method="get" id="chartFilterForm" data-filter-page="index">
                     <!-- Desktop Layout -->
                     <div class="row d-none d-md-flex">
-                        <div class="col-md-3">
+                        <div class="col-md-2" id="month_filter_container">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="month" id="month_filter">
+                                <label for="month_filter">
+                                    <i class="bi bi-calendar-month"></i> Mês
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <input type="date" name="start_date" id="startDateFilter" class="form-control" 
                                        value="{{ selected_start_date|default:'' }}">
@@ -29,8 +37,7 @@
                                 </label>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <input type="date" name="end_date" id="endDateFilter" class="form-control" 
                                        value="{{ selected_end_date|default:'' }}">
@@ -39,8 +46,7 @@
                                 </label>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-floating mb-3">
                                 <select name="type" id="typeFilter" class="form-control">
                                     <option value="">Todos os tipos</option>
@@ -52,8 +58,7 @@
                                 </label>
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="mb-3">
                                 <label class="form-label text-muted small">
                                     <i class="bi bi-funnel"></i> Mais Filtros
@@ -69,7 +74,7 @@
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
-                                <a href="{% url 'index' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                                <a href="?clear" class="btn btn-secondary btn-sm" style="width: 120px;">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
@@ -78,6 +83,16 @@
                     
                     <!-- Mobile Layout -->
                     <div class="d-md-none">
+                        <div class="row">
+                            <div class="col-12" id="month_filter_mobile_container">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="month" id="month_filter_mobile">
+                                    <label for="month_filter_mobile">
+                                        <i class="bi bi-calendar-month"></i> Mês
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
@@ -129,7 +144,7 @@
                                 <i class="bi bi-search"></i> Filtrar
                             </button>
                             <div class="d-grid gap-2">
-                                <a href="{% url 'index' %}" class="btn btn-secondary">
+                                <a href="?clear" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
