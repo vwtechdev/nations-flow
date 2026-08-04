@@ -2761,7 +2761,6 @@ def get_today_notifications(request):
 
 # Health Check para monitoramento
 @require_http_methods(["GET"])
-@require_http_methods(["GET", "HEAD"])
 @login_required
 @password_changed_required
 def serve_protected_media(request, file_path):

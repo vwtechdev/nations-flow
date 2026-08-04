@@ -778,34 +778,8 @@ function loadProofContent(proofUrl) {
         `;
     }
     
-    // Tentar obter informações de tamanho do arquivo (se disponível)
-    fetch(proofUrl, { method: 'HEAD' })
-        .then(response => {
-            const contentLength = response.headers.get('content-length');
-            if (contentLength) {
-                const sizeInBytes = parseInt(contentLength);
-                const sizeInKB = (sizeInBytes / 1024).toFixed(2);
-                const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-                
-                let sizeText;
-                if (sizeInBytes < 1024) {
-                    sizeText = `${sizeInBytes} bytes`;
-                } else if (sizeInBytes < 1024 * 1024) {
-                    sizeText = `${sizeInKB} KB`;
-                } else {
-                    sizeText = `${sizeInMB} MB`;
-                }
-                
-                document.getElementById('proofFileSize').textContent = sizeText;
-            }
-        })
-        .catch(() => {
-            document.getElementById('proofFileSize').textContent = 'N/A';
-        });
-    
     // Adicionar data atual (já que não temos a data real do arquivo)
-    const currentDate = new Date().toLocaleDateString('pt-BR');
-    document.getElementById('proofFileDate').textContent = currentDate;
+    document.getElementById('proofFileDate').textContent = new Date().toLocaleDateString('pt-BR');
 }
 
 // Função para mostrar erro ao carregar comprovante
