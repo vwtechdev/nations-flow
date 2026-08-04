@@ -2761,11 +2761,13 @@ def get_today_notifications(request):
 
 # Health Check para monitoramento
 @require_http_methods(["GET"])
+@require_http_methods(["GET", "HEAD"])
 @login_required
 @password_changed_required
 def serve_protected_media(request, file_path):
     """Serve arquivos de mídia protegidos via X-Accel-Redirect (nginx)"""
-    safe_path = os.path.normpath(file_path)
+    import urllib.parse
+    safe_path = os.path.normpath(urllib.parse.unquote(file_path))
     if safe_path.startswith('..') or safe_path.startswith('/'):
         return HttpResponse(status=404)
     response = HttpResponse()

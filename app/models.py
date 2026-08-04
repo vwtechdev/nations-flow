@@ -4,10 +4,30 @@ from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+from django.utils.text import slugify
 from decimal import Decimal
-from datetime import timedelta
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from core.models import BaseModel
+import os
+
+
+def transaction_proof_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    user = slugify(instance.user.get_full_name() or instance.user.username)[:60]
+    return f"proofs/{datetime.now():%Y/%m/%d}/{user}_transacao_{datetime.now():%d_%m_%Y_%H_%M_%S}{ext}"
+
+
+def church_contract_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    name = slugify(instance.name)[:50]
+    return f"churches/{datetime.now():%Y/%m/%d}/{name}_igreja_{datetime.now():%d_%m_%Y_%H_%M_%S}{ext}"
+
+
+def shepherd_contract_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    name = slugify(instance.name)[:50]
+    return f"shepherds/{datetime.now():%Y/%m/%d}/{name}_pastor_{datetime.now():%d_%m_%Y_%H_%M_%S}{ext}"
 
 
 class Field(BaseModel):
@@ -25,7 +45,7 @@ class Field(BaseModel):
 class Shepherd(BaseModel):
     name = models.CharField(max_length=200, verbose_name="Nome do Pastor")
     contract = models.FileField(
-        upload_to='shepherds/%Y/%m/%d/',
+        upload_to=shepherd_contract_path,
         blank=True,
         null=True,
         verbose_name="Contrato do Pastor"
@@ -46,7 +66,7 @@ class Church(BaseModel):
     shepherd = models.ForeignKey(Shepherd, on_delete=models.CASCADE, verbose_name="Pastor Responsável")
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name="Campo")
     contract = models.FileField(
-        upload_to='churches/%Y/%m/%d/',
+        upload_to=church_contract_path,
         blank=True,
         null=True,
         verbose_name="Contrato da Igreja"
@@ -133,7 +153,7 @@ class Transaction(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
     church = models.ForeignKey(Church, on_delete=models.CASCADE, verbose_name="Igreja")
     proof = models.FileField(
-        upload_to='proofs/%Y/%m/%d/',
+        upload_to=transaction_proof_path,
         blank=True,
         null=True,
         verbose_name="Comprovante"
