@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from decimal import Decimal
@@ -243,3 +245,9 @@ class ShepherdHistory(BaseModel):
     def __str__(self):
         end = self.end_date.strftime('%d/%m/%Y') if self.end_date else 'Atual'
         return f"{self.shepherd.name} → {self.church.name} ({self.start_date.strftime('%d/%m/%Y')} - {end})"
+
+
+@receiver(pre_delete, sender=Transaction)
+def delete_transaction_proof(sender, instance, **kwargs):
+    if instance.proof:
+        instance.proof.delete(save=False)
