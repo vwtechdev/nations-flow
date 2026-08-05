@@ -144,7 +144,7 @@ $(function() {
     });
     
     // Auto-hide alert messages after 15 seconds
-    $('.alert').delay(15000).fadeOut(500);
+    $('.alert:not(.alert-info)').delay(15000).fadeOut(500);
     
     // Add smooth transitions to form elements
     $('.form-control, .form-select').on('focus', function() {

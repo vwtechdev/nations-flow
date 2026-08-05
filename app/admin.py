@@ -206,11 +206,11 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(AccessLog)
 class AccessLogAdmin(admin.ModelAdmin):
-    list_display = ['user', 'action', 'created_at', 'ip_address']
+    list_display = ['user', 'action', 'description', 'created_at']
     list_filter = ['action', 'created_at', 'user__role']
-    search_fields = ['user__first_name', 'user__last_name', 'user__email', 'ip_address']
+    search_fields = ['user__first_name', 'user__last_name', 'user__email', 'description']
     date_hierarchy = 'created_at'
-    readonly_fields = ['user', 'action', 'created_at', 'ip_address']
+    readonly_fields = ['user', 'action', 'description', 'content_type', 'object_id', 'created_at']
     
     def has_module_permission(self, request):
         """Verifica se o usuário tem permissão para acessar o módulo admin"""

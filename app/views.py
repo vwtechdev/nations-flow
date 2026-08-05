@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date
-from .models import Church, User, Field, Shepherd, Category, Transaction, AccessLog, Notification, ShepherdHistory
+from .models import Church, User, Field, Shepherd, Category, Transaction, AccessLog, Notification, ShepherdHistory, log_action
 from .forms import (
     ChurchForm, UserForm, FieldForm, ShepherdForm,
     CategoryForm, TransactionForm, ChangePasswordForm, EmailAuthenticationForm, NotificationForm
@@ -101,7 +101,7 @@ def login_view(request):
                 AccessLog.objects.create(
                     user=user,
                     action='login',
-                    ip_address=request.META.get('REMOTE_ADDR')
+                    description='Entrou no Sistema',
                 )
                 
                 messages.success(request, f'Bem-vindo, {user.get_full_name()}!')
@@ -132,7 +132,7 @@ def logout_view(request):
         AccessLog.objects.create(
             user=request.user,
             action='logout',
-            ip_address=request.META.get('REMOTE_ADDR')
+            description='Saiu do Sistema',
         )
     
     # Fazer logout do usuário
@@ -187,6 +187,8 @@ def index(request):
     # Obter filtros da URL (agora usando getlist para múltiplas seleções)
     selected_start_date = request.GET.get('start_date', '')
     selected_end_date = request.GET.get('end_date', '')
+    start_date_raw = selected_start_date
+    end_date_raw = selected_end_date
     selected_categories = request.GET.getlist('category')
     selected_type = request.GET.get('type', '')
     selected_fields = request.GET.getlist('field')
@@ -484,6 +486,29 @@ def index(request):
     
 
     
+    # Montar lista de filtros ativos para exibição
+    active_filters = []
+    if selected_type:
+        active_filters.append(('Tipo', ['Entrada' if selected_type == 'income' else 'Saída']))
+    if selected_categories:
+        names = list(Category.objects.filter(id__in=selected_categories).values_list('name', flat=True))
+        active_filters.append(('Categorias', names))
+    if selected_fields:
+        names = list(Field.objects.filter(id__in=selected_fields).values_list('name', flat=True))
+        active_filters.append(('Campos', names))
+    if selected_churches:
+        names = list(Church.objects.filter(id__in=selected_churches).values_list('name', flat=True))
+        active_filters.append(('Igrejas', names))
+    if selected_shepherds:
+        names = list(Shepherd.objects.filter(id__in=selected_shepherds).values_list('name', flat=True))
+        active_filters.append(('Pastores', names))
+    if selected_users and request.user.is_admin():
+        users_qs = User.objects.filter(id__in=selected_users).exclude(email=settings.SYSTEM_HIDDEN_EMAIL)
+        names = [u.get_full_name() or u.username for u in users_qs]
+        active_filters.append(('Usuários', names))
+    if start_date_raw or end_date_raw:
+        active_filters.append(('Período', [f'{start_date:%d/%m/%Y} a {end_date:%d/%m/%Y}']))
+
     # Adicionar dados ao contexto
     context.update({
         'total_transactions': total_transactions,
@@ -493,15 +518,16 @@ def index(request):
         'categories_data': categories_data,
         'churches_data': churches_data,
         'churches_individual_data': churches_individual_data,
-        'monthly_data': monthly_data,  # Dados mensais para o gráfico de linhas
+        'monthly_data': monthly_data,
         'monthly_data_json': json.dumps(monthly_data),
         'recent_transactions': recent_transactions,
         'access_logs': access_logs,
+        'active_filters': active_filters,
         'selected_category_names': [cat.name for cat in Category.objects.filter(id__in=selected_categories)] if selected_categories else [],
         'selected_field_names': [field.name for field in Field.objects.filter(id__in=selected_fields)] if selected_fields else [],
         'selected_church_names': [church.name for church in Church.objects.filter(id__in=selected_churches)] if selected_churches else [],
     })
-    
+
     return render(request, 'pages/dashboard.html', context)
 
 # Views de Transações
@@ -535,8 +561,10 @@ def transaction_list(request):
     search = request.GET.get('search', '')
     selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
+    date_from_raw = request.GET.get('date_from', '')
+    date_to_raw = request.GET.get('date_to', '')
+    date_from = date_from_raw
+    date_to = date_to_raw
     selected_fields = request.GET.getlist('field')
     selected_churches = request.GET.getlist('church')
     selected_shepherds = request.GET.getlist('shepherd')
@@ -665,6 +693,32 @@ def transaction_list(request):
         ],
     }
     
+    active_filters = []
+    if transaction_type:
+        active_filters.append(('Tipo', ['Entrada' if transaction_type == 'income' else 'Saída']))
+    if search:
+        active_filters.append(('Busca', [search]))
+    if selected_categories:
+        names = list(Category.objects.filter(id__in=selected_categories).values_list('name', flat=True))
+        active_filters.append(('Categorias', names))
+    if selected_fields:
+        names = list(Field.objects.filter(id__in=selected_fields).values_list('name', flat=True))
+        active_filters.append(('Campos', names))
+    if selected_churches:
+        names = list(Church.objects.filter(id__in=selected_churches).values_list('name', flat=True))
+        active_filters.append(('Igrejas', names))
+    if selected_shepherds:
+        names = list(Shepherd.objects.filter(id__in=selected_shepherds).values_list('name', flat=True))
+        active_filters.append(('Pastores', names))
+    if selected_users:
+        users_qs = User.objects.filter(id__in=selected_users).exclude(email=settings.SYSTEM_HIDDEN_EMAIL)
+        names = [u.get_full_name() or u.username for u in users_qs]
+        active_filters.append(('Usuários', names))
+    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+    if date_from_raw or date_to_raw:
+        active_filters.append(('Período', [f'{date_from_obj:%d/%m/%Y} a {date_to_obj:%d/%m/%Y}']))
+
     context = {
         'title': 'Transações',
         'categories': Category.objects.filter(is_active=True),
@@ -687,8 +741,9 @@ def transaction_list(request):
         'total_expense': total_expense,
         'balance': balance,
         'user': request.user,
+        'active_filters': active_filters,
     }
-    
+
     return render(request, 'pages/transaction_list.html', context)
 
 # API para paginação AJAX das transações
@@ -1108,7 +1163,8 @@ def transaction_create(request):
             transaction = form.save(commit=False)
             transaction.user = request.user
             transaction.save()
-            
+            log_action(request.user, 'create', transaction, f'Criou transação ID: {transaction.id}, {transaction.get_type_display()}, {transaction.get_formatted_value()}, {transaction.category.name}', request)
+
             # Verificar se deve criar um lembrete (apenas para administradores)
             if request.user.is_admin() and form.cleaned_data.get('create_reminder'):
                 try:
@@ -1228,7 +1284,8 @@ def transaction_edit(request, pk):
         form = TransactionForm(request.POST, request.FILES, instance=transaction, user=request.user)
         if form.is_valid():
             form.save()
-            
+            log_action(request.user, 'update', transaction, f'Editou transação ID: {transaction.id}, {transaction.get_type_display()}, {transaction.get_formatted_value()}, {transaction.category.name}', request)
+
             # Verificar se deve criar um lembrete
             if form.cleaned_data.get('create_reminder'):
                 try:
@@ -1290,6 +1347,7 @@ def transaction_delete(request, pk):
     transaction = get_object_or_404(Transaction, pk=pk)
     
     if request.method == 'POST':
+        log_action(request.user, 'delete', transaction, f'Excluiu transação ID: {transaction.id}, {transaction.get_type_display()}, {transaction.get_formatted_value()}, {transaction.category.name}', request)
         transaction.delete()
         messages.success(request, 'Transação excluída com sucesso!')
         return redirect('transaction_list')
@@ -1329,6 +1387,7 @@ def category_create(request):
         form = CategoryForm(request.POST)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'create', form.instance, f'Criou categoria {form.instance.name}', request)
             messages.success(request, 'Categoria criada com sucesso!')
             return redirect('category_list')
     else:
@@ -1351,6 +1410,7 @@ def category_edit(request, pk):
         form = CategoryForm(request.POST, instance=category)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'update', category, f'Editou categoria {category.name}', request)
             messages.success(request, 'Categoria atualizada com sucesso!')
             return redirect('category_list')
     else:
@@ -1374,6 +1434,7 @@ def category_delete(request, pk):
         category.is_active = not category.is_active
         category.save()
         status = 'ativada' if category.is_active else 'inativada'
+        log_action(request.user, 'update', category, f'{status.capitalize()} categoria {category.name}', request)
         messages.success(request, f'Categoria {status} com sucesso!')
         return redirect('category_list')
     
@@ -1433,6 +1494,7 @@ def church_create(request):
         form = ChurchForm(request.POST, request.FILES)
         if form.is_valid():
             church = form.save()
+            log_action(request.user, 'create', church, f'Criou igreja {church.name}', request)
             ShepherdHistory.objects.create(
                 church=church,
                 shepherd=church.shepherd,
@@ -1463,6 +1525,7 @@ def church_edit(request, pk):
         form = ChurchForm(request.POST, request.FILES, instance=church)
         if form.is_valid():
             church = form.save()
+            log_action(request.user, 'update', church, f'Editou igreja {church.name}', request)
             if old_shepherd != church.shepherd:
                 ShepherdHistory.objects.filter(church=church, end_date__isnull=True).update(end_date=date.today())
                 ShepherdHistory.objects.create(
@@ -1495,6 +1558,7 @@ def church_delete(request, pk):
         church.is_active = not church.is_active
         church.save()
         status = 'ativada' if church.is_active else 'inativada'
+        log_action(request.user, 'update', church, f'{status.capitalize()} igreja {church.name}', request)
         messages.success(request, f'Igreja {status} com sucesso!')
         return redirect('church_list')
     
@@ -1544,7 +1608,8 @@ def user_create(request):
             
             # Salvar o formulário para processar campos many-to-many se houver
             form.save()
-            
+            log_action(request.user, 'create', user, f'Criou usuário {user.get_full_name()}', request)
+
             messages.success(request, f'Usuário {user.get_full_name()} criado com sucesso!')
             return redirect('user_list')
     else:
@@ -1571,6 +1636,7 @@ def user_edit(request, pk):
         form = UserForm(request.POST, instance=user, user=request.user)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'update', user, f'Editou usuário {user.get_full_name()}', request)
             messages.success(request, 'Usuário atualizado com sucesso!')
             return redirect('user_list')
     else:
@@ -1598,6 +1664,7 @@ def user_delete(request, pk):
         user.is_active = not user.is_active
         user.save()
         status = 'ativado' if user.is_active else 'desativado'
+        log_action(request.user, 'update', user, f'{status.capitalize()} usuário {user.get_full_name()}', request)
         messages.success(request, f'Usuário {status} com sucesso!')
         return redirect('user_list')
     
@@ -1682,6 +1749,7 @@ def field_create(request):
         form = FieldForm(request.POST)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'create', form.instance, f'Criou campo {form.instance.name}', request)
             messages.success(request, 'Campo criado com sucesso!')
             return redirect('field_list')
     else:
@@ -1704,6 +1772,7 @@ def field_edit(request, pk):
         form = FieldForm(request.POST, instance=field)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'update', field, f'Editou campo {field.name}', request)
             messages.success(request, 'Campo atualizado com sucesso!')
             return redirect('field_list')
     else:
@@ -1727,6 +1796,7 @@ def field_delete(request, pk):
         field.is_active = not field.is_active
         field.save()
         status = 'ativado' if field.is_active else 'inativado'
+        log_action(request.user, 'update', field, f'{status.capitalize()} campo {field.name}', request)
         messages.success(request, f'Campo {status} com sucesso!')
         return redirect('field_list')
     
@@ -2441,6 +2511,7 @@ def shepherd_create(request):
         form = ShepherdForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'create', form.instance, f'Criou pastor {form.instance.name}', request)
             messages.success(request, 'Pastor criado com sucesso!')
             return redirect('shepherd_list')
     else:
@@ -2463,6 +2534,7 @@ def shepherd_edit(request, pk):
         form = ShepherdForm(request.POST, request.FILES, instance=shepherd)
         if form.is_valid():
             form.save()
+            log_action(request.user, 'update', shepherd, f'Editou pastor {shepherd.name}', request)
             messages.success(request, 'Pastor atualizado com sucesso!')
             return redirect('shepherd_list')
     else:
@@ -2515,6 +2587,7 @@ def shepherd_delete(request, pk):
         shepherd.is_active = not shepherd.is_active
         shepherd.save()
         status = 'ativado' if shepherd.is_active else 'inativado'
+        log_action(request.user, 'update', shepherd, f'{status.capitalize()} pastor {shepherd.name}', request)
         messages.success(request, f'Pastor {shepherd.name} {status} com sucesso!')
         return redirect('shepherd_list')
     

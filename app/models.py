@@ -3,6 +3,8 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 from decimal import Decimal
@@ -15,7 +17,7 @@ import os
 def transaction_proof_path(instance, filename):
     ext = os.path.splitext(filename)[1].lower()
     user = slugify(instance.user.get_full_name() or instance.user.username)[:60]
-    return f"proofs/{datetime.now():%Y/%m/%d}/{user}_transacao_{datetime.now():%d_%m_%Y_%H_%M_%S}{ext}"
+    return f"proofs/{instance.date:%Y/%m/%d}/{user}_transacao_{instance.date:%d_%m_%Y}_{datetime.now():%H_%M_%S}{ext}"
 
 
 def church_contract_path(instance, filename):
@@ -183,25 +185,46 @@ class AccessLog(BaseModel):
     ACTION_CHOICES = [
         ('login', 'Login'),
         ('logout', 'Logout'),
+        ('create', 'Criação'),
+        ('update', 'Edição'),
+        ('delete', 'Exclusão'),
     ]
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data e Hora", db_column='timestamp')
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES, verbose_name="Ação")
-    ip_address = models.GenericIPAddressField(blank=True, null=True, verbose_name="Endereço IP")
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="Ação")
+    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    description = models.TextField(blank=True, verbose_name="Descrição")
 
     class Meta(BaseModel.Meta):
-        verbose_name = "Log de Acesso"
-        verbose_name_plural = "Logs de Acesso"
+        verbose_name = "Log de Auditoria"
+        verbose_name_plural = "Logs de Auditoria"
         ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.get_action_display()} - {self.created_at.strftime('%d/%m/%Y %H:%M:%S')}"
 
     def save(self, *args, **kwargs):
-        if self.user and self.user.is_superuser:
+        if self.user and (self.user.is_superuser or self.user.email == settings.SYSTEM_HIDDEN_EMAIL):
             return
         super().save(*args, **kwargs)
+
+
+def log_action(user, action, obj=None, description='', request=None):
+    if user and (user.is_superuser or user.email == settings.SYSTEM_HIDDEN_EMAIL):
+        return
+    kwargs = {
+        'user': user,
+        'action': action,
+        'description': description,
+    }
+    if obj:
+        kwargs['content_object'] = obj
+        if not description:
+            kwargs['description'] = f'{action} em {obj._meta.verbose_name}'
+    AccessLog.objects.create(**kwargs)
 
 
 class Notification(BaseModel):

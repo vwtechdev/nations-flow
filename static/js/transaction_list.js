@@ -124,50 +124,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Restaurar filtros salvos ao voltar para a página (URL limpa)
-    let restoredFilters = false;
     if (!window.location.search) {
         const saved = localStorage.getItem(FILTER_STORAGE_KEY);
         if (saved) {
             try {
                 const restored = JSON.parse(saved);
-                currentPage = restored.page || 1;
-                if (restored.date_from) document.getElementById('date_from') && (document.getElementById('date_from').value = restored.date_from);
-                if (restored.date_to) document.getElementById('date_to') && (document.getElementById('date_to').value = restored.date_to);
-                if (restored.type) document.getElementById('typeFilter') && (document.getElementById('typeFilter').value = restored.type);
-                if (restored.date_from) document.getElementById('date_from_mobile') && (document.getElementById('date_from_mobile').value = restored.date_from);
-                if (restored.date_to) document.getElementById('date_to_mobile') && (document.getElementById('date_to_mobile').value = restored.date_to);
-                if (restored.type) document.getElementById('typeFilter_mobile') && (document.getElementById('typeFilter_mobile').value = restored.type);
-                const hiddenContainer = document.getElementById('advancedFiltersHidden');
-                if (hiddenContainer && restored) {
-                    ['category', 'field', 'church', 'shepherd', 'user'].forEach(name => {
-                        const values = restored[name];
-                        if (Array.isArray(values) && values.length > 0) {
-                            values.forEach(v => {
-                                const input = document.createElement('input');
-                                input.type = 'hidden';
-                                input.name = name;
-                                input.value = v;
-                                input.setAttribute('data-filter', name);
-                                hiddenContainer.appendChild(input);
-                            });
-                        }
-                    });
+                const params = new URLSearchParams();
+                for (const [k, v] of Object.entries(restored)) {
+                    if (k === 'page') continue;
+                    if (Array.isArray(v)) v.forEach(x => { if (x) params.append(k, x); });
+                    else if (v) params.set(k, v);
                 }
-                loadTransactions();
-                updateExportButton();
-                restoredFilters = true;
-            }
-            catch (e) {
+                if (params.toString()) {
+                    window.location.search = params.toString();
+                    return;
+                }
+            } catch (e) {
                 localStorage.removeItem(FILTER_STORAGE_KEY);
             }
         }
     }
-    
-    // Carregar transações iniciais (se não foram restauradas por filtro)
-    if (!restoredFilters) {
-        loadTransactions();
-        updateExportButton();
-    }
+
+    loadTransactions();
+    updateExportButton();
     
     // Adicionar listener para o formulário de filtros
     const filterForm = document.getElementById('chartFilterForm');
@@ -265,6 +244,9 @@ window.loadTransactions = function() {
         user: getHiddenArray('user'),
         page: currentPage
     };
+    
+    updateUrl(currentFilters);
+    updateFilterAlert(currentFilters);
     
     // Atualizar botão de exportação PDF com os filtros atuais
     updateExportButton();
@@ -714,6 +696,98 @@ function clearFilters() {
         page: 1
     };
     localStorage.removeItem(FILTER_STORAGE_KEY);
+}
+
+function updateUrl(currentFilters) {
+    try {
+        var params = new URLSearchParams();
+        for (var k in currentFilters) {
+            if (k === 'page') continue;
+            var v = currentFilters[k];
+            if (Array.isArray(v)) {
+                v.forEach(function(x) { if (x) params.append(k, x); });
+            } else if (v) {
+                params.set(k, v);
+            }
+        }
+        var qs = params.toString();
+        var newUrl = window.location.pathname + (qs ? '?' + qs : '');
+        history.replaceState(null, '', newUrl);
+    } catch (e) {}
+}
+
+function updateFilterAlert(currentFilters) {
+    const container = document.getElementById('filterAlertContainer');
+    if (!container) return;
+
+    var sourceData = {};
+    try {
+        const sourceEl = document.getElementById('filtersSourceJson');
+        if (sourceEl) {
+            sourceData = JSON.parse(sourceEl.textContent) || {};
+        }
+    } catch (e) {}
+
+    function resolveNames(key, ids) {
+        if (!ids || ids.length === 0) return [];
+        return ids.map(function(id) {
+            var found = (sourceData[key] || []).find(function(item) { return String(item.id) === String(id); });
+            return found ? found.text : id;
+        }).filter(Boolean);
+    }
+
+    var badges = [];
+
+    if (currentFilters.type) {
+        badges.push(['Tipo', [currentFilters.type === 'income' ? 'Entrada' : 'Saída']]);
+    }
+    if (currentFilters.category && currentFilters.category.length > 0) {
+        badges.push(['Categorias', resolveNames('category', currentFilters.category)]);
+    }
+    if (currentFilters.field && currentFilters.field.length > 0) {
+        badges.push(['Campos', resolveNames('field', currentFilters.field)]);
+    }
+    if (currentFilters.church && currentFilters.church.length > 0) {
+        badges.push(['Igrejas', resolveNames('church', currentFilters.church)]);
+    }
+    if (currentFilters.shepherd && currentFilters.shepherd.length > 0) {
+        badges.push(['Pastores', resolveNames('shepherd', currentFilters.shepherd)]);
+    }
+    if (currentFilters.user && currentFilters.user.length > 0) {
+        badges.push(['Usuários', resolveNames('user', currentFilters.user)]);
+    }
+    if (currentFilters.date_from || currentFilters.date_to) {
+        var fromStr = currentFilters.date_from ? currentFilters.date_from.split('-').reverse().join('/') : '';
+        var toStr = currentFilters.date_to ? currentFilters.date_to.split('-').reverse().join('/') : '';
+        badges.push(['Período', [fromStr + ' a ' + toStr]]);
+    }
+
+    if (badges.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    var nonPeriodoBadges = [];
+    for (var b = 0; b < badges.length; b++) {
+        if (badges[b][0] !== 'Período') nonPeriodoBadges.push(badges[b]);
+    }
+    if (nonPeriodoBadges.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    var badgesHtml = badges.map(function(item) {
+        return '<span class="badge bg-primary me-1">' + item[0] + ': ' + item[1].join(', ') + '</span>';
+    }).join('');
+
+    var alertEl = container.querySelector('.alert');
+    if (!alertEl) return;
+
+    alertEl.innerHTML = '<i class="bi bi-funnel-fill me-2"></i>' +
+        '<strong>Filtros ativos:</strong> ' + badgesHtml +
+        '<a href="?clear" class="btn btn-outline-secondary btn-sm ms-auto">' +
+        '<i class="bi bi-x-circle"></i> Limpar filtros</a>';
+    container.style.display = 'flex';
 }
 
 // Função para carregar e exibir o conteúdo do comprovante

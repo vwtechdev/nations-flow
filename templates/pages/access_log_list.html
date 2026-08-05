@@ -120,14 +120,16 @@
                         <table class="table table-bordered" id="accessLogsTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th>Usuário</th>
                                     <th>Data e Hora</th>
+                                    <th>Usuário</th>
+                                    <th>Descrição</th>
                                     <th>Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for log in logs %}
                                     <tr>
+                                        <td>{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
                                         <td>
                                             {% if log.user.get_full_name %}
                                                 {{ log.user.get_full_name }}
@@ -135,10 +137,10 @@
                                                 {{ log.user.email }}
                                             {% endif %}
                                         </td>
-                                        <td>{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+                                        <td>{{ log.description|default:'-' }}</td>
                                         <td>
-                                            <span class="badge bg-{% if log.action == 'login' %}success{% else %}warning{% endif %}">
-                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% else %}box-arrow-left{% endif %}"></i>
+                                            <span class="badge bg-{% if log.action == 'login' %}success{% elif log.action == 'logout' %}warning{% elif log.action == 'create' %}primary{% elif log.action == 'update' %}info{% else %}danger{% endif %}">
+                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% elif log.action == 'logout' %}box-arrow-left{% elif log.action == 'create' %}plus-circle{% elif log.action == 'update' %}pencil{% else %}trash{% endif %}"></i>
                                                 {{ log.get_action_display }}
                                             </span>
                                         </td>
@@ -155,6 +157,10 @@
                                 <div class="mobile-card">
                                     <div class="mobile-card-header">
                                         <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Data e Hora:</span>
+                                            <span class="mobile-card-value">{{ log.created_at|date:"d/m/Y H:i:s" }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
                                             <span class="mobile-card-label">Usuário:</span>
                                             <span class="mobile-card-value">
                                                 {% if log.user.get_full_name %}
@@ -164,18 +170,18 @@
                                                 {% endif %}
                                             </span>
                                         </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Ação:</span>
-                                            <span class="mobile-card-badge {% if log.action == 'login' %}income{% else %}expense{% endif %}">
-                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% else %}box-arrow-left{% endif %}"></i>
-                                                {{ log.get_action_display }}
-                                            </span>
-                                        </div>
                                     </div>
                                     <div class="mobile-card-body">
                                         <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Data e Hora:</span>
-                                            <span class="mobile-card-value">{{ log.timestamp|date:"d/m/Y H:i:s" }}</span>
+                                            <span class="mobile-card-label">Descrição:</span>
+                                            <span class="mobile-card-value">{{ log.description|default:'-' }}</span>
+                                        </div>
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">Ação:</span>
+                                            <span class="mobile-card-badge {% if log.action == 'login' %}income{% elif log.action == 'create' %}income{% elif log.action == 'update' %}income{% else %}expense{% endif %}">
+                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% elif log.action == 'logout' %}box-arrow-left{% elif log.action == 'create' %}plus-circle{% elif log.action == 'update' %}pencil{% else %}trash{% endif %}"></i>
+                                                {{ log.get_action_display }}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

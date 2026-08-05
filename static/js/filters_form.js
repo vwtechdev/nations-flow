@@ -160,7 +160,11 @@ class FiltersForm {
 
     applySelections() {
         this.syncAllHiddenInputs();
-        this.form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true }));
+        if (typeof window.loadTransactions === 'function') {
+            this.form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true }));
+        } else {
+            this.form.submit();
+        }
     }
 
     bindEvents() {
@@ -330,12 +334,16 @@ class FiltersForm {
         }
 
         [desktopMonth, mobileMonth].forEach(el => {
-            if (el) el.addEventListener('change', () => {
-                setDates(el.value);
+            if (!el) return;
+            el.addEventListener('change', () => {
+                if (el.value) setDates(el.value);
                 if (desktopMonth && mobileMonth) {
                     if (document.activeElement === desktopMonth) mobileMonth.value = desktopMonth.value;
                     else if (document.activeElement === mobileMonth) desktopMonth.value = mobileMonth.value;
                 }
+            });
+            el.addEventListener('input', () => {
+                if (el.value) setDates(el.value);
             });
         });
 

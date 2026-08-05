@@ -263,6 +263,20 @@
     </div>
 </div>
 
+<div id="filterAlertContainer" class="row mb-4"{% if not active_filters %} style="display:none"{% endif %}>
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-center flex-wrap gap-2 mb-0" role="alert">
+            <i class="bi bi-funnel-fill me-2"></i>
+            <strong>Filtros ativos:</strong>
+            {% for label, values in active_filters %}
+                <span class="badge bg-primary me-1">{{ label }}: {{ values|join:", " }}</span>
+            {% endfor %}
+            <a href="?clear" class="btn btn-outline-secondary btn-sm ms-auto">
+                <i class="bi bi-x-circle"></i> Limpar filtros
+            </a>
+        </div>
+    </div>
+</div>
 
 <!-- Cards de Totais -->
 <div class="row">
