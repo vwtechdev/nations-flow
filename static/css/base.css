@@ -1114,7 +1114,7 @@ body.login-page {
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 2.5rem;
+    padding: 1.5rem;
     position: relative;
     transition: all 0.3s ease;
     max-height: 90vh;
@@ -1124,12 +1124,12 @@ body.login-page {
 /* Removido o efeito de hover do login card */
 
 .login-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem;
 }
 
 .login-logo {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     margin: 0 auto;
     background: linear-gradient(135deg, var(--primary-color), #8e44ad);
     border-radius: 50%;
@@ -1140,32 +1140,28 @@ body.login-page {
 }
 
 .login-logo img {
-    width: 65px;
-    height: 65px;
+    width: 50px;
+    height: 50px;
     filter: brightness(0) invert(1);
 }
 
 .login-title {
     color: #2c3e50;
     font-weight: 700;
-    margin-bottom: 0.5rem;
-    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 1.35rem;
 }
 
 .login-subtitle {
     color: #7f8c8d;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: 0;
-}
-
-.login-form .form-floating {
-    position: relative;
 }
 
 .login-form .form-control {
     border: 2px solid #e9ecef;
     border-radius: 12px;
-    padding: 1rem 1rem 1rem 3rem;
+    padding: 0.75rem 1rem;
     font-size: 1rem;
     transition: all 0.3s ease;
     background: white;
@@ -1177,15 +1173,16 @@ body.login-page {
     background: white;
 }
 
-.login-form .form-floating label {
-    padding-left: 3rem;
-    color: #6c757d;
+.login-form .form-label {
     font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
 }
 
-.login-form .form-floating label i {
-    margin-right: 0.5rem;
+.login-form .form-label i {
     color: var(--primary-color);
+    margin-right: 0.3rem;
 }
 
 .password-toggle {
@@ -1211,9 +1208,9 @@ body.login-page {
     background: linear-gradient(135deg, var(--primary-color), #8e44ad);
     border: none;
     border-radius: 12px;
-    padding: 1rem;
+    padding: 0.85rem;
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1rem;
     transition: all 0.3s ease;
     box-shadow: 0 5px 15px rgba(103, 58, 183, 0.3);
 }
@@ -1334,20 +1331,39 @@ kbd {
 /* Responsive adjustments for login */
 @media (max-width: 768px) {
     .login-card {
-        margin: 1rem;
-        padding: 2rem;
+        margin: 0.5rem;
+        padding: 1.25rem;
+        border-radius: 16px;
     }
-    
+
     .login-logo {
-        width: 80px;
-        height: 80px;
+        width: 60px;
+        height: 60px;
     }
-    
+
     .login-logo img {
-        width: 50px;
-        height: 50px;
+        width: 38px;
+        height: 38px;
     }
-    
+
+    .login-title {
+        font-size: 1.25rem;
+    }
+
+    .login-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .login-form .form-control {
+        padding: 0.65rem 0.9rem;
+        font-size: 0.95rem;
+    }
+
+    .login-btn {
+        padding: 0.75rem;
+        font-size: 0.95rem;
+    }
+
     .church-select-container select {
         min-height: 100px !important;
         font-size: 0.9rem !important;

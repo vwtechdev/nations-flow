@@ -45,13 +45,13 @@
     /* Password toggle button styles */
     .password-toggle {
         position: absolute;
-        right: 10px;
+        right: 2px;
         top: 50%;
         transform: translateY(-50%);
         background: none;
         border: none;
         color: #6c757d;
-        padding: 5px;
+        padding: 5px 10px;
         border-radius: 4px;
         cursor: pointer;
         z-index: 10;
@@ -66,17 +66,6 @@
     .password-toggle:focus {
         outline: none;
         box-shadow: 0 0 0 2px rgba(103, 58, 183, 0.25);
-    }
-    
-    /* Position the password field container */
-    .form-floating {
-        position: relative;
-    }
-    
-    /* Ensure the password input has proper padding for the button */
-    .form-floating input[type="password"],
-    .form-floating input[type="text"] {
-        padding-right: 40px;
     }
     
     /* Estilos para mensagens na página de login */
@@ -139,21 +128,23 @@
             <form method="post" action="{% url 'login' %}" class="login-form">
                 {% csrf_token %}
                 
-                <div class="form-floating mb-3">
-                    <input type="email" class="form-control" name="{{form.username.name}}" maxlength="{{form.username.field.max_length}}" id="{{form.username.id_for_label}}" placeholder="Email">
-                    <label for="{{form.username.id_for_label}}">
+                <div class="mb-3">
+                    <label for="{{form.username.id_for_label}}" class="form-label">
                         <i class="bi bi-envelope"></i> {{form.username.label}}
                     </label>
+                    <input type="email" class="form-control" name="{{form.username.name}}" maxlength="{{form.username.field.max_length}}" id="{{form.username.id_for_label}}" placeholder="Digite seu email">
                 </div>
                 
-                <div class="form-floating mb-3">
-                    <input type="password" class="form-control" name="{{form.password.name}}" id="id_password" placeholder="Senha">
-                    <label for="id_password">
+                <div class="mb-4" style="position: relative;">
+                    <label for="id_password" class="form-label">
                         <i class="bi bi-lock"></i> {{form.password.label}}
                     </label>
-                    <button type="button" class="btn btn-link password-toggle" onclick="togglePassword()">
-                        <i class="bi bi-eye" id="password-icon"></i>
-                    </button>
+                    <div style="position: relative;">
+                        <input type="password" class="form-control" name="{{form.password.name}}" id="id_password" placeholder="Digite sua senha" style="padding-right: 40px;">
+                        <button type="button" class="btn btn-link password-toggle" onclick="togglePassword()">
+                            <i class="bi bi-eye" id="password-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 {% if form.errors %}
@@ -163,7 +154,7 @@
                     </div>
                 {% endif %}
                 
-                <div class="d-grid mb-3">
+                <div class="d-grid mt-4">
                     <button class="btn btn-primary btn-lg login-btn" type="submit">
                         <i class="bi bi-box-arrow-in-right"></i> Entrar
                     </button>
