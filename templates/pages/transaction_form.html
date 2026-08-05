@@ -3,6 +3,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/transaction_form.css' %}" />
+<link rel="stylesheet" href="{% static 'css/hide_fab.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -56,16 +57,16 @@
                 </style>
                 {% endif %}
                 
-                <form method="post" enctype="multipart/form-data"{% if readonly %} class="readonly-form"{% endif %}>
+                <form method="post" enctype="multipart/form-data" id="transactionForm"{% if readonly %} class="readonly-form"{% endif %}>
                     {% csrf_token %}
                     
                     <div class="row">
                         <!-- Coluna esquerda: Drag & Drop / Preview -->
                         <div class="col-md-5">
-                            <div class="proof-dropzone" id="proofDropzone">
+                            <div class="proof-dropzone dropzone-disabled" id="proofDropzone">
                                 <input type="file" name="proof" id="id_proof" 
                                        accept=".pdf,.jpg,.jpeg,.png" class="d-none"
-                                       {% if readonly %}disabled{% endif %} />
+                                       disabled />
                                 
                                 <div class="dropzone-empty" id="dropzoneEmpty" {% if form.instance.proof %}style="display:none"{% endif %}>
                                     <i class="bi bi-cloud-upload display-4 text-muted"></i>
@@ -120,7 +121,7 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="form-floating mb-3">
-                                        <select name="category" id="categorySelect" class="form-control" required>
+                                        <select name="category" id="categorySelect" class="form-control" required placeholder=" ">
                                             <option value="">Selecione...</option>
                                             {% for category in categories %}
                                                 <option value="{{ category.id }}" {% if form.category.value == category.id %}selected{% endif %}>{{ category.name }}</option>
@@ -146,7 +147,7 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="form-floating mb-3">
-                                        <select name="field" id="fieldSelect" class="form-control" required>
+                                        <select name="field" id="fieldSelect" class="form-control" required placeholder=" ">
                                             <option value="">Selecione um campo...</option>
                                             {% for field in fields %}
                                                 <option value="{{ field.id }}" {% if form.field.value == field.id %}selected{% endif %}>{{ field.name }}</option>
@@ -158,7 +159,7 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="form-floating mb-3">
-                                        <select name="church" id="churchSelect" class="form-control" required>
+                                        <select name="church" id="churchSelect" class="form-control" required placeholder=" ">
                                             <option value="">Selecione uma igreja...</option>
                                             {% for church in churches %}
                                                 <option value="{{ church.id }}" {% if form.church.value == church.id %}selected{% endif %}>{{ church.name }}</option>
@@ -195,7 +196,7 @@
                             <i class="bi bi-arrow-left"></i> Voltar
                         </a>
                         {% else %}
-                        <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
+                        <button type="submit" id="saveTransactionBtn" class="btn btn-primary btn-sm" style="width: 120px;">
                             <i class="bi bi-check-circle"></i> Salvar
                         </button>
                         <a href="{% url 'transaction_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
@@ -204,6 +205,22 @@
                         {% endif %}
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Seleção (Mobile) -->
+<div class="modal fade" id="selectModal" tabindex="-1" aria-labelledby="selectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="selectModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" id="selectModalSearch" placeholder="Pesquisar...">
+                <div class="list-group" id="selectModalList"></div>
             </div>
         </div>
     </div>
@@ -381,8 +398,7 @@
     
     // Função para adicionar validação que impede envio sem comprovante
     function addProofValidation() {
-        const form = document.querySelector('form');
-        const submitBtn = form.querySelector('button[type="submit"]');
+        const submitBtn = document.getElementById('saveTransactionBtn');
         
         if (submitBtn) {
             submitBtn.disabled = true;
@@ -394,8 +410,7 @@
     
     // Função para reabilitar o botão de envio
     function enableSubmitButton() {
-        const form = document.querySelector('form');
-        const submitBtn = form.querySelector('button[type="submit"]');
+        const submitBtn = document.getElementById('saveTransactionBtn');
         
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -409,15 +424,15 @@
     function validateProofForCategory() {
         const categorySelect = $('#categorySelect');
         const proofInput = document.querySelector('input[name="proof"]');
-        const submitBtn = document.querySelector('button[type="submit"]');
+        const submitBtn = document.getElementById('saveTransactionBtn');
         
         if (!categorySelect.length || !proofInput || !submitBtn) return;
-        if (proofInput.disabled) return; // readonly mode — não validar
         
         const selectedCategoryId = categorySelect.val();
         
         if (!selectedCategoryId) {
-            // Nenhuma categoria selecionada, reabilitar botão
+            // Nenhuma categoria selecionada — desabilitar comprovante
+            disableDropzone();
             enableSubmitButton();
             return;
         }
@@ -430,6 +445,7 @@
                 
                 if (isMandatory) {
                     // Categoria requer comprovante obrigatório
+                    enableDropzone();
                     const hasProof = proofInput.files && proofInput.files.length > 0;
                     const hasCurrentProof = proofInput.dataset.currentFile;
                     
@@ -448,7 +464,8 @@
                         hideProofWarning();
                     }
                 } else {
-                    // Categoria não requer comprovante - reabilitar botão
+                    // Categoria não requer comprovante — desabilitar
+                    disableDropzone();
                     enableSubmitButton();
                     hideProofWarning();
                 }
@@ -482,6 +499,29 @@
         if (existingWarning) {
             existingWarning.remove();
         }
+    }
+    
+    function enableDropzone() {
+        const dropzone = document.getElementById('proofDropzone');
+        const fileInput = document.getElementById('id_proof');
+        if (dropzone) {
+            dropzone.classList.remove('dropzone-disabled');
+            dropzone.style.cursor = 'pointer';
+            dropzone.style.opacity = '1';
+        }
+        if (fileInput) fileInput.disabled = false;
+        setupDropzoneEvents();
+    }
+    
+    function disableDropzone() {
+        const dropzone = document.getElementById('proofDropzone');
+        const fileInput = document.getElementById('id_proof');
+        if (dropzone) {
+            dropzone.classList.add('dropzone-disabled');
+            dropzone.style.cursor = 'not-allowed';
+            dropzone.style.opacity = '0.5';
+        }
+        if (fileInput) fileInput.disabled = true;
     }
     
     // Função para abrir o modal de comprovante
@@ -705,7 +745,7 @@
             }
             
             // Adicionar validação visual antes do envio do formulário
-            const form = document.querySelector('form');
+            const form = document.getElementById('transactionForm');
             form.addEventListener('submit', function(e) {
                 const selectedField = $('#fieldSelect').val();
                 const selectedChurch = $('#churchSelect').val();
@@ -713,14 +753,22 @@
                 if (!selectedField) {
                     e.preventDefault();
                     alert('Por favor, selecione um campo primeiro.');
-                    $('#fieldSelect').select2('open');
+                    if (window.innerWidth > 768) {
+                        $('#fieldSelect').select2('open');
+                    } else {
+                        $('#fieldSelect').trigger('mousedown');
+                    }
                     return false;
                 }
                 
                 if (!selectedChurch) {
                     e.preventDefault();
                     alert('Por favor, selecione uma igreja.');
-                    $('#churchSelect').select2('open');
+                    if (window.innerWidth > 768) {
+                        $('#churchSelect').select2('open');
+                    } else {
+                        $('#churchSelect').trigger('mousedown');
+                    }
                     return false;
                 }
             });
@@ -733,30 +781,150 @@
             });
         }
         
-        // Inicializar Select2 para os campos
-        $('#categorySelect').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Selecione uma categoria...',
-            allowClear: true,
-            width: '100%',
-            language: 'pt-BR'
+        // Desktop: Select2 | Mobile: Modal
+        const isDesktop = window.innerWidth > 768;
+        
+        if (isDesktop) {
+            // Inicializar Select2 para desktop
+            $('#categorySelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Selecione uma categoria...',
+                allowClear: true,
+                width: '100%',
+                language: 'pt-BR'
+            });
+            
+            $('#fieldSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Selecione um campo...',
+                allowClear: true,
+                width: '100%',
+                language: 'pt-BR'
+            });
+            
+            $('#churchSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Selecione uma igreja...',
+                allowClear: true,
+                width: '100%',
+                language: 'pt-BR'
+            });
+            
+            // Adicionar validação personalizada para os campos select2
+            $('#categorySelect').on('select2:select', function(e) {
+                $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+                validateProofForCategory();
+            });
+            $('#categorySelect').on('select2:clear', function(e) {
+                $(this).closest('.form-floating').removeClass('has-success has-error');
+                validateProofForCategory();
+            });
+            $('#fieldSelect').on('select2:select', function(e) {
+                $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+                updateChurches();
+            });
+            $('#fieldSelect').on('select2:clear', function(e) {
+                $(this).closest('.form-floating').removeClass('has-success has-error');
+                updateChurches();
+            });
+            $('#churchSelect').on('select2:select', function(e) {
+                $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+            });
+            $('#churchSelect').on('select2:clear', function(e) {
+                $(this).closest('.form-floating').removeClass('has-success has-error');
+            });
+        } else {
+            // Mobile: modal-based selection
+            setupMobileSelectModal('#categorySelect', 'Selecione uma categoria');
+            setupMobileSelectModal('#fieldSelect', 'Selecione um campo');
+            setupMobileSelectModal('#churchSelect', 'Selecione uma igreja');
+        }
+        
+        function setupMobileSelectModal(selector, title) {
+            const $select = $(selector);
+            const $wrapper = $select.closest('.form-floating');
+            let modalOpen = false;
+            
+            function openSelectModal() {
+                if (modalOpen) return;
+                modalOpen = true;
+                const selectEl = $select[0];
+                const $options = $(selectEl).find('option:not([value=""])');
+                
+                $('#selectModalLabel').text(title);
+                $('#selectModalSearch').val('').trigger('input');
+                renderModalOptions($options, selectEl);
+                
+                $('#selectModalList').off('click').on('click', '.list-group-item-action', function() {
+                    const val = $(this).data('value');
+                    $(selectEl).val(val).removeClass('is-invalid').addClass('is-valid');
+                    $wrapper.removeClass('has-error').addClass('has-success');
+                    bootstrap.Modal.getInstance('#selectModal').hide();
+                });
+                
+                const modal = new bootstrap.Modal('#selectModal');
+                modal.show();
+                
+                $('#selectModal').one('hidden.bs.modal', function() {
+                    $select.trigger('change');
+                    updateMobileLabel($select, $wrapper);
+                    if ($select.val()) {
+                        $select.removeClass('is-invalid').addClass('is-valid');
+                        $wrapper.removeClass('has-error').addClass('has-success');
+                    } else {
+                        $select.removeClass('is-valid is-invalid');
+                        $wrapper.removeClass('has-success has-error');
+                    }
+                    modalOpen = false;
+                });
+            }
+            
+            $select.on('mousedown touchstart', function(e) {
+                e.preventDefault();
+                openSelectModal();
+            });
+        }
+        
+        function renderModalOptions($options, selectEl) {
+            const $list = $('#selectModalList');
+            const selectedVal = $(selectEl).val();
+            let html = '';
+
+            $options.each(function() {
+                const val = this.value;
+                const text = this.textContent;
+                const active = val === selectedVal ? ' active' : '';
+                html += `<button type="button" class="list-group-item list-group-item-action${active}" data-value="${val}">${text}</button>`;
+            });
+
+            if (!html) {
+                html = '<div class="text-muted text-center py-3">Nenhum item disponível</div>';
+            }
+
+            $list.html(html);
+        }
+        
+        $('#selectModalSearch').on('input', function() {
+            const query = this.value.toLowerCase();
+            $('#selectModalList .list-group-item-action').each(function() {
+                $(this).toggle(this.textContent.toLowerCase().includes(query));
+            });
         });
         
-        $('#fieldSelect').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Selecione um campo...',
-            allowClear: true,
-            width: '100%',
-            language: 'pt-BR'
-        });
+        function updateMobileLabel($select, $wrapper) {
+            if ($select.val()) {
+                $wrapper.addClass('has-value');
+            } else {
+                $wrapper.removeClass('has-value');
+            }
+        }
         
-        $('#churchSelect').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Selecione uma igreja...',
-            allowClear: true,
-            width: '100%',
-            language: 'pt-BR'
-        });
+        // Atualizar labels no carregamento
+        if (!isDesktop) {
+            updateMobileLabel($('#categorySelect'), $('#categorySelect').closest('.form-floating'));
+            updateMobileLabel($('#fieldSelect'), $('#fieldSelect').closest('.form-floating'));
+            updateMobileLabel($('#churchSelect'), $('#churchSelect').closest('.form-floating'));
+        }
         
         // Configurar estado inicial do campo de igreja
         if (!$('#fieldSelect').val()) {
@@ -764,39 +932,8 @@
             $('#churchSelect').closest('.form-floating').addClass('form-control-disabled');
         }
         
-        // Adicionar validação personalizada para os campos select2
-        $('#categorySelect').on('select2:select', function(e) {
-            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
-            validateProofForCategory();
-        });
-        
-        $('#categorySelect').on('select2:clear', function(e) {
-            $(this).closest('.form-floating').removeClass('has-success has-error');
-            validateProofForCategory();
-        });
-        
-        $('#fieldSelect').on('select2:select', function(e) {
-            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
-            updateChurches();
-        });
-        
-        $('#fieldSelect').on('select2:clear', function(e) {
-            $(this).closest('.form-floating').removeClass('has-success has-error');
-            updateChurches();
-        });
-        
-        $('#churchSelect').on('select2:select', function(e) {
-            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
-        });
-        
-        $('#churchSelect').on('select2:clear', function(e) {
-            $(this).closest('.form-floating').removeClass('has-success has-error');
-        });
-        
-        // Executar validação inicial do comprovante
+        // Executar validação inicial e configurar campos
         validateProofForCategory();
-        
-        // Executar uma vez para configurar o estado inicial dos campos
         updateChurches();
     });
     
@@ -924,9 +1061,15 @@
     const previewIframe = document.getElementById('previewIframe');
     const fileNameEl = document.getElementById('fileName');
     const fileSizeEl = document.getElementById('fileSize');
+    let dropzoneEventsAttached = false;
     
-    if (dropzone && !fileInput.disabled) {
-        dropzone.addEventListener('click', () => fileInput.click());
+    function setupDropzoneEvents() {
+        if (!dropzone || !fileInput || dropzoneEventsAttached) return;
+        dropzoneEventsAttached = true;
+        
+        dropzone.addEventListener('click', () => {
+            if (!fileInput.disabled) fileInput.click();
+        });
         
         dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
         dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
@@ -940,14 +1083,22 @@
             if (fileInput.files.length) handleFile(fileInput.files[0]);
         });
         
-        document.getElementById('clearProof').addEventListener('click', e => {
-            e.stopPropagation();
-            fileInput.value = '';
-            emptyState.style.display = 'block';
-            previewState.style.display = 'none';
-            previewImg.style.display = 'none';
-            previewIframe.style.display = 'none';
-        });
+        const clearBtn = document.getElementById('clearProof');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                fileInput.value = '';
+                emptyState.style.display = 'block';
+                previewState.style.display = 'none';
+                previewImg.style.display = 'none';
+                previewIframe.style.display = 'none';
+            });
+        }
+    }
+    
+    // Setup initial events only if input is not disabled
+    if (dropzone && !fileInput.disabled) {
+        setupDropzoneEvents();
     }
     
     function handleFile(file) {

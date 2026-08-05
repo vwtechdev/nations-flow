@@ -156,6 +156,8 @@ class FiltersForm {
         this.syncAllHiddenInputs();
         this.renderTable();
         this.form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true }));
+        const modalInstance = bootstrap.Modal.getInstance(this.modal);
+        if (modalInstance) modalInstance.hide();
     }
 
     applySelections() {
@@ -333,17 +335,26 @@ class FiltersForm {
             if (mobileMonth) mobileMonth.value = '';
         }
 
+        function handleMonthChange(el) {
+            if (el.value) setDates(el.value);
+            if (desktopMonth && mobileMonth) {
+                if (document.activeElement === desktopMonth) mobileMonth.value = desktopMonth.value;
+                else if (document.activeElement === mobileMonth) desktopMonth.value = mobileMonth.value;
+            }
+        }
+
         [desktopMonth, mobileMonth].forEach(el => {
             if (!el) return;
             el.addEventListener('change', () => {
-                if (el.value) setDates(el.value);
-                if (desktopMonth && mobileMonth) {
-                    if (document.activeElement === desktopMonth) mobileMonth.value = desktopMonth.value;
-                    else if (document.activeElement === mobileMonth) desktopMonth.value = mobileMonth.value;
-                }
+                setTimeout(() => handleMonthChange(el), 0);
             });
             el.addEventListener('input', () => {
                 if (el.value) setDates(el.value);
+            });
+            el.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (el.value) setDates(el.value);
+                }, 0);
             });
         });
 

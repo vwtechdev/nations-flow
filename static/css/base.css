@@ -2598,6 +2598,15 @@ body.drawer-open {
     transform: scale(0.95);
 }
 
+/* Garantir que modals fiquem acima de FAB e outros elementos fixos */
+.modal {
+    z-index: 10050 !important;
+}
+
+.modal-backdrop {
+    z-index: 10040 !important;
+}
+
 /* Animação de entrada do modal */
 .modal.fade .modal-dialog {
     transform: scale(0.8);

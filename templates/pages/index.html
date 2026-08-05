@@ -385,13 +385,15 @@
     <script>
     // Aguardar Bootstrap estar disponível
     document.addEventListener('DOMContentLoaded', function() {
+        // Não carregar index.js na página de login
+        if (document.body.classList.contains('login-page')) return;
         // Verificar se Bootstrap está disponível
         if (typeof bootstrap !== 'undefined') {
             // Carregar script customizado após Bootstrap estar disponível
             const script = document.createElement('script');
             script.src = '{% static "js/index.js" %}';
             document.head.appendChild(script);
-        } 
+        }
     });
     </script>
 

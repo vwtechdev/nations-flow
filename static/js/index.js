@@ -153,7 +153,7 @@ $(function() {
         $(this).removeClass('shadow-sm');
     });
     
-    // Função para identificar se um formulário é de filtro
+    // Função para identificar se um formulário é de filtro ou logout
     function isFilterForm(form) {
         const formId = form.id || '';
         const formMethod = form.method || '';
@@ -168,6 +168,7 @@ $(function() {
                formMethod.toLowerCase() === 'get' ||
                formAction.includes('filter') ||
                formAction.includes('search') ||
+               formAction.includes('logout') ||
                formClass.includes('filter') ||
                formClass.includes('search');
     }

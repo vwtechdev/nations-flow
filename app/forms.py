@@ -304,7 +304,7 @@ class TransactionForm(forms.ModelForm):
         queryset=Field.objects.all(),
         empty_label="Selecione um campo",
         required=False,
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': ' '}),
         label="Campo"
     )
     
@@ -324,12 +324,12 @@ class TransactionForm(forms.ModelForm):
         model = Transaction
         fields = ['type', 'desc', 'category', 'value', 'date', 'church', 'proof']
         widgets = {
-            'type': forms.Select(attrs={'class': 'form-control'}),
-            'desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'church': forms.Select(attrs={'class': 'form-control'}),
+            'type': forms.Select(attrs={'class': 'form-control', 'placeholder': ' '}),
+            'desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': ' '}),
+            'category': forms.Select(attrs={'class': 'form-control', 'placeholder': ' '}),
+            'value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01', 'placeholder': ' '}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': ' '}),
+            'church': forms.Select(attrs={'class': 'form-control', 'placeholder': ' '}),
             'proof': forms.FileInput(attrs={
                 'class': 'form-control', 
                 'accept': '.pdf,.jpg,.jpeg,.png',

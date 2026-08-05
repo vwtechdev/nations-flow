@@ -4,6 +4,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/church_form.css' %}" />
 <link rel="stylesheet" href="{% static 'css/transaction_form.css' %}" />
+<link rel="stylesheet" href="{% static 'css/hide_fab.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -76,7 +77,7 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="form-floating mb-3">
-                                        <select name="shepherd" id="shepherdSelect" class="form-control" required>
+                                        <select name="shepherd" id="shepherdSelect" class="form-control" required placeholder=" ">
                                             <option value="">Selecione um pastor...</option>
                                             {% for shepherd in shepherds %}
                                                 <option value="{{ shepherd.id }}" {% if form.shepherd.value == shepherd.id %}selected{% endif %}>{{ shepherd.name }}</option>
@@ -88,7 +89,7 @@
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="form-floating mb-3">
-                                        <select name="field" id="churchField" class="form-control" required>
+                                        <select name="field" id="churchField" class="form-control" required placeholder=" ">
                                             <option value="">Selecione um campo...</option>
                                             {% for field in fields %}
                                                 <option value="{{ field.id }}" {% if form.field.value == field.id %}selected{% endif %}>{{ field.name }}</option>
@@ -123,33 +124,140 @@
     </div>
 </div>
 
+<!-- Modal de Seleção (Mobile) -->
+<div class="modal fade" id="selectModal" tabindex="-1" aria-labelledby="selectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="selectModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" id="selectModalSearch" placeholder="Pesquisar...">
+                <div class="list-group" id="selectModalList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Inicializar Select2 para o campo pastor
-    $('#shepherdSelect').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Selecione um pastor...',
-        allowClear: true,
-        width: '100%',
-        language: 'pt-BR'
+    const isDesktop = window.innerWidth > 768;
+    
+    if (isDesktop) {
+        // Desktop: Select2
+        $('#shepherdSelect').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Selecione um pastor...',
+            allowClear: true,
+            width: '100%',
+            language: 'pt-BR'
+        });
+        $('#churchField').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Selecione um campo...',
+            allowClear: true,
+            width: '100%',
+            language: 'pt-BR'
+        });
+        $('#shepherdSelect').on('select2:select', function(e) {
+            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+        });
+        $('#shepherdSelect').on('select2:clear', function(e) {
+            $(this).closest('.form-floating').removeClass('has-success has-error');
+        });
+        $('#churchField').on('select2:select', function(e) {
+            $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
+        });
+        $('#churchField').on('select2:clear', function(e) {
+            $(this).closest('.form-floating').removeClass('has-success has-error');
+        });
+    } else {
+        // Mobile: modal
+        setupMobileSelectModal('#shepherdSelect', 'Selecione um pastor');
+        setupMobileSelectModal('#churchField', 'Selecione um campo');
+        updateMobileLabel('#shepherdSelect');
+        updateMobileLabel('#churchField');
+    }
+    
+    function setupMobileSelectModal(selector, title) {
+        const $select = $(selector);
+        const $wrapper = $select.closest('.form-floating');
+        let modalOpen = false;
+        
+        function openSelectModal() {
+            if (modalOpen) return;
+            modalOpen = true;
+            const selectEl = $select[0];
+            const $options = $(selectEl).find('option:not([value=""])');
+            
+            $('#selectModalLabel').text(title);
+            $('#selectModalSearch').val('').trigger('input');
+            renderModalOptions($options, selectEl);
+            
+            $('#selectModalList').off('click').on('click', '.list-group-item-action', function() {
+                const val = $(this).data('value');
+                $(selectEl).val(val).removeClass('is-invalid').addClass('is-valid');
+                $wrapper.removeClass('has-error').addClass('has-success');
+                bootstrap.Modal.getInstance('#selectModal').hide();
+            });
+            
+            const modal = new bootstrap.Modal('#selectModal');
+            modal.show();
+            
+            $('#selectModal').one('hidden.bs.modal', function() {
+                $select.trigger('change');
+                updateMobileLabel(selector);
+                if ($select.val()) {
+                    $select.removeClass('is-invalid').addClass('is-valid');
+                    $wrapper.removeClass('has-error').addClass('has-success');
+                } else {
+                    $select.removeClass('is-valid is-invalid');
+                    $wrapper.removeClass('has-success has-error');
+                }
+                modalOpen = false;
+            });
+        }
+        
+        $select.on('mousedown touchstart', function(e) {
+            e.preventDefault();
+            openSelectModal();
+        });
+    }
+    
+    function renderModalOptions($options, selectEl) {
+        const $list = $('#selectModalList');
+        const selectedVal = $(selectEl).val();
+        let html = '';
+        $options.each(function() {
+            const val = this.value;
+            const text = this.textContent;
+            const active = val === selectedVal ? ' active' : '';
+            html += `<button type="button" class="list-group-item list-group-item-action${active}" data-value="${val}">${text}</button>`;
+        });
+        if (!html) html = '<div class="text-muted text-center py-3">Nenhum item disponível</div>';
+        $list.html(html);
+    }
+    
+    $('#selectModalSearch').on('input', function() {
+        const query = this.value.toLowerCase();
+        $('#selectModalList .list-group-item-action').each(function() {
+            $(this).toggle(this.textContent.toLowerCase().includes(query));
+        });
     });
     
-    // Inicializar Select2 para o campo field (campo)
-    $('#churchField').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Selecione um campo...',
-        allowClear: true,
-        width: '100%',
-        language: 'pt-BR'
-    });
+    function updateMobileLabel(selector) {
+        const $select = $(selector);
+        const $wrapper = $select.closest('.form-floating');
+        if ($select.val()) $wrapper.addClass('has-value');
+        else $wrapper.removeClass('has-value');
+    }
     
-
-    
-    // Adicionar validação personalizada
+    // Adicionar validação antes do envio do formulário
     $('form').on('submit', function(e) {
         const shepherdValue = $('#shepherdSelect').val();
         const fieldValue = $('#churchField').val();
@@ -157,33 +265,16 @@ $(document).ready(function() {
         if (!shepherdValue) {
             e.preventDefault();
             alert('Por favor, selecione um pastor.');
-            $('#shepherdSelect').focus();
+            if (!isDesktop) $('#shepherdSelect').trigger('mousedown');
             return false;
         }
         
         if (!fieldValue) {
             e.preventDefault();
             alert('Por favor, selecione um campo.');
-            $('#churchField').focus();
+            if (!isDesktop) $('#churchField').trigger('mousedown');
             return false;
         }
-    });
-    
-    // Adicionar feedback visual
-    $('#shepherdSelect').on('select2:select', function(e) {
-        $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
-    });
-    
-    $('#shepherdSelect').on('select2:clear', function(e) {
-        $(this).closest('.form-floating').removeClass('has-success has-error');
-    });
-    
-    $('#churchField').on('select2:select', function(e) {
-        $(this).closest('.form-floating').removeClass('has-error').addClass('has-success');
-    });
-    
-    $('#churchField').on('select2:clear', function(e) {
-        $(this).closest('.form-floating').removeClass('has-success has-error');
     });
     
     // Drag & Drop + Preview do Contrato

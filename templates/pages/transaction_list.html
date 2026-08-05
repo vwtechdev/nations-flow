@@ -90,36 +90,31 @@
                         <div class="row">
                             <div class="col-12" id="month_filter_mobile_container">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="month" id="month_filter_mobile">
+                                    <input class="form-control" type="month" id="month_filter_mobile" placeholder=" ">
                                     <label for="month_filter_mobile">
                                         <i class="bi bi-calendar-month"></i> Mês
                                     </label>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-6">
+                            <div class="col-12">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from_mobile">
+                                    <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from_mobile" placeholder=" ">
                                     <label for="date_from_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Inicial
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-12">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to_mobile">
+                                    <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to_mobile" placeholder=" ">
                                     <label for="date_to_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Final
                                     </label>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-6">
+                            <div class="col-12">
                                 <div class="form-floating mb-3">
-                                    <select name="type" id="typeFilter_mobile" class="form-control">
+                                    <select name="type" id="typeFilter_mobile" class="form-control" placeholder=" ">
                                         <option value="">Todos os tipos</option>
                                         <option value="income" {% if selected_type == 'income' %}selected{% endif %}>Entrada</option>
                                         <option value="expense" {% if selected_type == 'expense' %}selected{% endif %}>Saída</option>
@@ -129,7 +124,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-12">
                                 <div class="mb-3">
                                     <label class="form-label text-muted small">
                                         <i class="bi bi-funnel"></i> Mais Filtros
@@ -410,37 +405,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-7">
-                        <div id="proofContent" class="proof-dropzone" style="min-height:350px; cursor:default; border-style:solid; border-color:#e9ecef; background:#fff;">
-                            <div class="dropzone-empty">
-                                <i class="bi bi-file-earmark-check display-4" style="color:#adb5bd"></i>
-                                <p class="text-muted mt-2">Carregando comprovante...</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <h6 class="text-muted mb-2"><i class="bi bi-info-circle"></i> Informações da Transação</h6>
-                        <div class="card border-info mb-3">
-                            <div class="card-body py-2 px-3">
-                                <p class="card-text mb-1 small"><strong>ID:</strong> <span id="proofTransactionId"></span></p>
-                                <p class="card-text mb-1 small"><strong>Data:</strong> <span id="proofTransactionDate"></span></p>
-                                <p class="card-text mb-1 small"><strong>Tipo:</strong> <span id="proofTransactionType"></span></p>
-                                <p class="card-text mb-1 small"><strong>Categoria:</strong> <span id="proofTransactionCategory"></span></p>
-                                <p class="card-text mb-1 small"><strong>Igreja:</strong> <span id="proofTransactionChurch"></span></p>
-                                <p class="card-text mb-1 small"><strong>Valor:</strong> <span id="proofTransactionValue"></span></p>
-                                <p class="card-text mb-0 small"><strong>Descrição:</strong> <span id="proofTransactionDesc"></span></p>
-                            </div>
-                        </div>
-                        <h6 class="text-muted mb-2"><i class="bi bi-file-earmark"></i> Detalhes do Arquivo</h6>
-                        <div class="card border-success">
-                            <div class="card-body py-2 px-3">
-                                <p class="card-text mb-1 small"><strong>Nome:</strong> <span id="proofFileName"></span></p>
-                                <p class="card-text mb-1 small"><strong>Tipo:</strong> <span id="proofFileType"></span></p>
-                                <p class="card-text mb-1 small"><strong>Tamanho:</strong> <span id="proofFileSize"></span></p>
-                                <p class="card-text mb-0 small"><strong>Data:</strong> <span id="proofFileDate"></span></p>
-                            </div>
-                        </div>
+                <div id="proofContent" style="min-height:350px; display:flex; align-items:center; justify-content:center;">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-file-earmark-check display-4" style="color:#adb5bd"></i>
+                        <p class="mt-2">Carregando anexo...</p>
                     </div>
                 </div>
             </div>

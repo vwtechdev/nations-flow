@@ -1,6 +1,11 @@
 {% extends 'pages/index.html' %}
 {% load static %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/transaction_form.css' %}" />
+<link rel="stylesheet" href="{% static 'css/hide_fab.css' %}" />
+{% endblock %}
+
 {% block content %}
 <style>
     .form-control[readonly] {

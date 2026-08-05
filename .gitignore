@@ -181,4 +181,5 @@ PRD.md
 requirements-dev.txt
 run-dev.sh
 settings_dev.py
+core/dev_middleware.py
 tasks/

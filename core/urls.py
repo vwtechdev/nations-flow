@@ -15,9 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
-from django.conf.urls.static import static
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 
 urlpatterns = [
@@ -25,7 +23,31 @@ urlpatterns = [
     path('', include('app.urls')),
 ]
 
-# Configurações para servir arquivos estáticos e media em desenvolvimento
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    from django.views.static import serve as _serve
+
+    def _no_cache_serve(request, path, **kwargs):
+        response = _serve(request, path, **kwargs)
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        try:
+            del response['ETag']
+        except KeyError:
+            pass
+        try:
+            del response['Last-Modified']
+        except KeyError:
+            pass
+        return response
+
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', _no_cache_serve, {
+            'document_root': str(settings.BASE_DIR / 'static'),
+            'show_indexes': False,
+        }),
+        re_path(r'^media/(?P<path>.*)$', _no_cache_serve, {
+            'document_root': settings.MEDIA_ROOT,
+            'show_indexes': False,
+        }),
+    ]

@@ -98,11 +98,14 @@ def login_view(request):
                 login(request, user)
                 
                 # Registrar o login no AccessLog
-                AccessLog.objects.create(
-                    user=user,
-                    action='login',
-                    description='Entrou no Sistema',
-                )
+                try:
+                    AccessLog.objects.create(
+                        user=user,
+                        action='login',
+                        description='Entrou no Sistema',
+                    )
+                except Exception:
+                    pass
                 
                 messages.success(request, f'Bem-vindo, {user.get_full_name()}!')
                 # Verifica se o usuário precisa trocar a senha
@@ -129,11 +132,14 @@ def logout_view(request):
     """View para fazer logout do usuário"""
     # Registrar o logout no AccessLog antes de fazer logout
     if request.user.is_authenticated:
-        AccessLog.objects.create(
-            user=request.user,
-            action='logout',
-            description='Saiu do Sistema',
-        )
+        try:
+            AccessLog.objects.create(
+                user=request.user,
+                action='logout',
+                description='Saiu do Sistema',
+            )
+        except Exception:
+            pass
     
     # Fazer logout do usuário
     logout(request)

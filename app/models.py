@@ -224,7 +224,10 @@ def log_action(user, action, obj=None, description='', request=None):
         kwargs['content_object'] = obj
         if not description:
             kwargs['description'] = f'{action} em {obj._meta.verbose_name}'
-    AccessLog.objects.create(**kwargs)
+    try:
+        AccessLog.objects.create(**kwargs)
+    except Exception:
+        pass
 
 
 class Notification(BaseModel):

@@ -25,31 +25,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!button) return;
             const proofUrl = button.getAttribute('data-proof-url');
             if (!proofUrl) return;
-        const transactionId = button.getAttribute('data-transaction-id');
-        const transactionDate = button.getAttribute('data-transaction-date');
-        const transactionType = button.getAttribute('data-transaction-type');
-        const transactionCategory = button.getAttribute('data-transaction-category');
-        const transactionChurch = button.getAttribute('data-transaction-church');
-        const transactionDesc = button.getAttribute('data-transaction-desc');
-        const transactionValue = button.getAttribute('data-transaction-value');
         
-        // Preenche os dados da transação no modal
-        document.getElementById('proofTransactionId').textContent = transactionId;
-        document.getElementById('proofTransactionDate').textContent = transactionDate;
-        document.getElementById('proofTransactionType').textContent = transactionType;
-        document.getElementById('proofTransactionCategory').textContent = transactionCategory;
-        document.getElementById('proofTransactionChurch').textContent = transactionChurch;
-        document.getElementById('proofTransactionDesc').textContent = transactionDesc || '-';
-        document.getElementById('proofTransactionValue').textContent = transactionValue;
-        
-        // Atualiza o link de download com o nome real do arquivo
         const downloadProofLink = document.getElementById('downloadProofLink');
         const fileName = getProofFileName(proofUrl);
 
         downloadProofLink.href = proofUrl;
         downloadProofLink.download = fileName;
         
-        // Carregar e exibir o comprovante
         loadProofContent(proofUrl);
     });
     }
@@ -525,7 +507,7 @@ function renderTransactions(transactions) {
                         </div>
                     ` : ''}
                 </div>
-                <div class="mobile-card-footer">
+                <div class="mobile-card-footer" style="flex-wrap: nowrap; justify-content: flex-end; gap: 0.5rem;">
                     ${transaction.proof ? 
                         `<button type="button" class="mobile-card-btn btn-outline-success" 
                                 data-bs-toggle="modal" 
@@ -538,12 +520,9 @@ function renderTransactions(transactions) {
                                 data-transaction-church="${transaction.church_name}"
                                 data-transaction-desc="${truncateText(transaction.desc)}"
                                 data-transaction-value="${transaction.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}"
-                                title="Visualizar Comprovante">
-                            <i class="bi bi-file-earmark-check"></i> Comprovante
-                        </button>` : 
-                        `<span class="mobile-card-btn btn-outline-secondary" title="Sem comprovante" style="cursor: not-allowed; opacity: 0.6;">
-                            <i class="bi bi-file-earmark-x"></i> Sem comprovante
-                        </span>`
+                                title="Visualizar Anexo">
+                            <i class="bi bi-file-earmark-check"></i> Anexo
+                        </button>` : ''
                     }
                     ${transaction.can_edit ? `
                         <a href="/transactions/${transaction.id}/edit/" class="mobile-card-btn btn-outline-primary" title="Editar">
@@ -794,32 +773,24 @@ function updateFilterAlert(currentFilters) {
 function loadProofContent(proofUrl) {
     const proofContent = document.getElementById('proofContent');
     
-    // Mostrar loading
     proofContent.innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Carregando...</span>
             </div>
-            <p class="mt-2 text-muted">Carregando comprovante...</p>
+            <p class="mt-2 text-muted">Carregando anexo...</p>
         </div>
     `;
     
-    // Extrair informações do arquivo da URL
     const fileName = getProofFileName(proofUrl);
     const fileExtension = fileName.split('.').pop().toLowerCase();
     
-    // Preencher informações do arquivo
-    document.getElementById('proofFileName').textContent = fileName;
-    document.getElementById('proofFileType').textContent = fileExtension.toUpperCase();
-    
-    // Determinar o tipo de arquivo e exibir adequadamente
     if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
-        // Imagem — exibir com estilo preview
         const img = document.createElement('img');
         img.src = proofUrl;
         img.className = 'preview-img';
         img.style.maxHeight = '400px';
-        img.alt = 'Comprovante';
+        img.alt = 'Anexo';
         
         img.onload = function() {
             proofContent.innerHTML = '';
@@ -834,7 +805,6 @@ function loadProofContent(proofUrl) {
         };
         
     } else if (fileExtension === 'pdf') {
-        // PDF — exibir inline via iframe
         proofContent.style.cssText = '';
         proofContent.className = '';
         proofContent.innerHTML = `
@@ -842,7 +812,6 @@ function loadProofContent(proofUrl) {
         `;
         
     } else {
-        // Outros tipos de arquivo - mostrar mensagem
         proofContent.innerHTML = `
             <div class="text-center py-4">
                 <i class="bi bi-file-earmark-text text-muted" style="font-size: 4rem;"></i>
@@ -851,9 +820,6 @@ function loadProofContent(proofUrl) {
             </div>
         `;
     }
-    
-    // Adicionar data atual (já que não temos a data real do arquivo)
-    document.getElementById('proofFileDate').textContent = new Date().toLocaleDateString('pt-BR');
 }
 
 // Função para mostrar erro ao carregar comprovante
