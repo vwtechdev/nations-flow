@@ -9,6 +9,7 @@ from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import never_cache
+from django.contrib.staticfiles.storage import staticfiles_storage
 
 from django.utils import timezone
 from datetime import datetime, timedelta, date
@@ -2936,7 +2937,7 @@ def pwa_manifest(request):
     """Web App Manifest para PWA (instalação no mobile)"""
     manifest = {
         "name": "Nations Flow",
-        "short_name": "Nations",
+        "short_name": "Nations Flow",
         "description": "Sistema de gestão financeira para igrejas",
         "lang": "pt-br",
         "start_url": "/",
@@ -2947,16 +2948,29 @@ def pwa_manifest(request):
         "background_color": "#673ab7",
         "icons": [
             {
-                "src": "/static/img/icon-192.png",
+                "src": staticfiles_storage.url("img/icon-mobile.png"),
                 "sizes": "192x192",
                 "type": "image/png",
                 "purpose": "any maskable"
             },
             {
-                "src": "/static/img/icon.png",
+                "src": staticfiles_storage.url("img/icon-mobile.png"),
                 "sizes": "512x512",
                 "type": "image/png",
                 "purpose": "any maskable"
+            },
+            {
+                "src": staticfiles_storage.url("img/icon-mobile.png"),
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any"
+            }
+        ],
+        "screenshots": [
+            {
+                "src": staticfiles_storage.url("img/icon-mobile.png"),
+                "sizes": "512x512",
+                "type": "image/png"
             }
         ]
     }

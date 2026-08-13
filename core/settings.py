@@ -122,7 +122,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Configurações otimizadas para Nginx
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# ManifestStaticFilesStorage aplica hash no nome dos arquivos em cada
+# collectstatic: deploy novo gera URLs novos, garantindo cache miss no
+# navegador/SW mesmo com Cache-Control "immutable" de 1 ano do nginx.
+STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
 # Headers de cache para arquivos estáticos (Nginx irá sobrescrever)
 STATICFILES_FINDERS = [
