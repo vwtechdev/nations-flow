@@ -14,7 +14,7 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
-                <form method="get" id="accessLogFilterForm">
+                <form method="get" id="accessLogFilterForm" action="{% url 'access_log_list' %}">
                     <!-- Desktop Layout -->
                     <div class="row d-none d-md-flex">
                         <div class="col-md-4">
@@ -114,6 +114,28 @@
             </div>
             <div class="card-body">
                 
+                {% if search_query %}
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-search"></i>
+                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
+                        <a href="{% url 'access_log_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-file-earmark-x"></i> Limpar busca
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if date_filter_active %}
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="bi bi-calendar-range"></i>
+                        <strong>Filtro ativo:</strong> Mostrando logs de
+                        <strong>{{ date_from_obj|date:'d/m/Y' }}</strong> até
+                        <strong>{{ date_to_obj|date:'d/m/Y' }}</strong>
+                        <a href="{% url 'access_log_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                            <i class="bi bi-file-earmark-x"></i> Limpar filtro
+                        </a>
+                    </div>
+                {% endif %}
+                
                 {% if logs %}
                     <!-- Tabela Desktop -->
                     <div class="table-responsive">
@@ -189,7 +211,17 @@
                         </div>
                     </div>
                 {% else %}
-                    <p class="text-muted">Nenhum log de acesso encontrado.</p>
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history display-1 text-muted"></i>
+                        <h5 class="text-muted mt-3">Nenhum log de acesso encontrado</h5>
+                        <p class="text-muted">
+                            {% if search_query %}
+                                Não foram encontrados logs para "{{ search_query }}".
+                            {% else %}
+                                Não há registros de acesso no mês atual.
+                            {% endif %}
+                        </p>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -202,4 +234,21 @@
 
 {% block extra_js %}
 <script src="{% static 'js/filters_form.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('accessLogFilterForm');
+    if (!form) return;
+
+    const desktopFields = form.querySelectorAll('.d-md-flex input, .d-md-flex button[type="submit"]');
+    const mobileFields = form.querySelectorAll('.d-md-none input');
+
+    form.addEventListener('submit', function() {
+        const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+        const toDisable = isDesktop ? mobileFields : desktopFields;
+        const toEnable = isDesktop ? desktopFields : mobileFields;
+        toDisable.forEach(el => { el.disabled = true; });
+        toEnable.forEach(el => { el.disabled = false; });
+    });
+});
+</script>
 {% endblock %}

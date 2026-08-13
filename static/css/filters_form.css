@@ -612,19 +612,31 @@
 }
 
 .modal-content {
-    border-radius: 1rem;
+    border-radius: 0;
     border: 1px solid rgba(0, 0, 0, 0.06);
     box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
-    background: linear-gradient(135deg, #f7efff 0%, #d2c7df 100%);
-    border-bottom: 1px solid #e6e9ee;
+    background: var(--primary-color);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0;
 }
 
-.modal-title {
+.modal-header .modal-title {
+    color: white !important;
     font-weight: 700;
     letter-spacing: 0.2px;
+}
+
+.modal-header .modal-title i,
+.modal-header > i {
+    color: white !important;
+}
+
+.modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
 }
 
 .filters-modal-table-wrapper {

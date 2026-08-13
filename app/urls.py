@@ -76,6 +76,10 @@ urlpatterns = [
     
     # Health Check
     path('health/', views.health_check, name='health_check'),
+
+    # PWA
+    path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
+    path('sw.js', views.pwa_sw, name='pwa_sw'),
 ]
 
 # Mídia protegida — apenas em produção (nginx X-Accel-Redirect)

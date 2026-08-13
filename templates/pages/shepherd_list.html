@@ -168,21 +168,18 @@
                     </div>
                 {% else %}
                     <!-- Estado vazio -->
-                    <div class="text-center py-5">
+                    <div class="text-center py-4">
                         {% if search_query %}
                             <i class="bi bi-search display-1 text-muted"></i>
-                            <h4 class="text-muted mt-3">Nenhum pastor encontrado</h4>
-                            <p class="text-muted">Não foi possível encontrar pastores para "{{ search_query }}"</p>
+                            <h5 class="text-muted mt-3">Nenhum pastor encontrado</h5>
+                            <p class="text-muted">Não foram encontrados pastores para "{{ search_query }}"</p>
                             <a href="{% url 'shepherd_list' %}" class="btn btn-outline-primary">
                                 <i class="bi bi-arrow-left"></i> Ver todos os pastores
                             </a>
                         {% else %}
                             <i class="bi bi-person-badge display-1 text-muted"></i>
-                            <h4 class="text-muted mt-3">Nenhum pastor cadastrado</h4>
+                            <h5 class="text-muted mt-3">Nenhum pastor cadastrado</h5>
                             <p class="text-muted">Comece cadastrando o primeiro pastor do sistema</p>
-                            <a href="{% url 'shepherd_create' %}" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i> Cadastrar Pastor
-                            </a>
                         {% endif %}
                     </div>
                 {% endif %}

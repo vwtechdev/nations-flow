@@ -2682,6 +2682,9 @@ def access_log_list(request):
     date_from = request.GET.get('date_from', '').strip()
     date_to = request.GET.get('date_to', '').strip()
     
+    date_from_obj = first_day_of_month
+    date_to_obj = last_day_of_month
+    
     if date_from:
         try:
             date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
@@ -2702,12 +2705,21 @@ def access_log_list(request):
         except ValueError:
             pass  # Ignora datas inválidas
     
+    # Indicador de filtro de data ativo (diferente do mês corrente)
+    date_filter_active = (
+        date_from_obj != first_day_of_month or
+        date_to_obj != last_day_of_month
+    )
+    
     context = {
         'title': 'Logs de Acesso',
         'logs': logs,
         'search_query': search_query,
         'date_from': date_from,
         'date_to': date_to,
+        'date_from_obj': date_from_obj,
+        'date_to_obj': date_to_obj,
+        'date_filter_active': date_filter_active,
         'first_day_of_month': first_day_of_month,
         'last_day_of_month': last_day_of_month,
         'current_month': today.strftime('%B de %Y'),
@@ -2917,5 +2929,47 @@ def health_check(request):
             'timestamp': timezone.now().isoformat(),
             'error': str(e)
         }, status=500)
+
+
+@require_http_methods(["GET"])
+def pwa_manifest(request):
+    """Web App Manifest para PWA (instalação no mobile)"""
+    manifest = {
+        "name": "Nations Flow",
+        "short_name": "Nations",
+        "description": "Sistema de gestão financeira para igrejas",
+        "lang": "pt-br",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "theme_color": "#673ab7",
+        "background_color": "#673ab7",
+        "icons": [
+            {
+                "src": "/static/img/icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "/static/img/icon.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+    response = JsonResponse(manifest, content_type='application/manifest+json')
+    response['Cache-Control'] = 'no-cache'
+    return response
+
+
+@require_http_methods(["GET"])
+def pwa_sw(request):
+    """Service Worker da PWA (escopo raiz, fora de /static/)"""
+    response = render(request, 'pwa/sw.js', content_type='application/javascript')
+    response['Cache-Control'] = 'no-cache'
+    return response
 
 

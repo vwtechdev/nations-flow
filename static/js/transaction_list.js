@@ -417,12 +417,20 @@ function renderTransactions(transactions) {
     const mobileTransactionsTable = document.getElementById('mobileTransactionsTable');
     
     if (!transactions || transactions.length === 0) {
-        const emptyMessage = '<p class="text-muted text-center py-4">Nenhuma transação encontrada.</p>';
+        const emptyMessage = `
+            <div class="table-responsive">
+                <div class="text-center py-4">
+                    <i class="bi bi-receipt display-1 text-muted"></i>
+                    <h5 class="text-muted mt-3">Nenhuma transação encontrada</h5>
+                    <p class="text-muted">Não foram encontradas transações para os filtros selecionados.</p>
+                </div>
+            </div>`;
         transactionsTable.innerHTML = emptyMessage;
         mobileTransactionsTable.innerHTML = `
             <div class="mobile-card-empty">
-                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-                <p class="mt-2 text-muted">Nenhuma transação encontrada.</p>
+                <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                <h6 class="mt-3">Nenhuma transação encontrada</h6>
+                <p class="mt-2 mb-0">Não foram encontradas transações para os filtros selecionados.</p>
             </div>
         `;
         return;

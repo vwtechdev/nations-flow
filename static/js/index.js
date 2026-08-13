@@ -262,7 +262,10 @@ $(function() {
     const navigationDrawerClose = $('#navigationDrawerClose');
     
     // Check if sidebar exists
-    if (sidebar.length > 0) {        
+    if (sidebar.length > 0) {
+        // index.js assume o controle do estado colapsado (remover hint pré-JS)
+        document.documentElement.classList.remove('nf-sidebar-collapsed');
+        
         // Function to toggle mobile navigation drawer
         function toggleNavigationDrawer() {
             navigationDrawer.toggleClass('show');
