@@ -272,6 +272,7 @@ window.loadTransactions = function() {
     };
     
     currentFilters = {
+        search: document.getElementById('searchFilter')?.value || document.getElementById('searchFilter_mobile')?.value || '',
         category: getHiddenArray('category'),
         type: document.getElementById('typeFilter')?.value || document.getElementById('typeFilter_mobile')?.value || '',
         date_from: document.getElementById('date_from')?.value || document.getElementById('date_from_mobile')?.value || '',
@@ -742,6 +743,7 @@ function clearFilters() {
     
     // Limpar filtros específicos
     currentFilters = {
+        search: '',
         category: [],
         type: '',
         date_from: '',
@@ -795,6 +797,9 @@ function updateFilterAlert(currentFilters) {
 
     var badges = [];
 
+    if (currentFilters.search) {
+        badges.push(['Busca', [currentFilters.search]]);
+    }
     if (currentFilters.type) {
         badges.push(['Tipo', [currentFilters.type === 'income' ? 'Entrada' : 'Saída']]);
     }

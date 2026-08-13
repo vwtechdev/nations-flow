@@ -783,6 +783,7 @@ def transaction_list_api(request):
         print(f"DEBUG API - Usuário tesoureiro: {transactions.count()} transações do próprio usuário")
     
     # Filtros (usando getlist para múltiplas seleções)
+    search = request.GET.get('search', '')
     selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
     date_from = request.GET.get('date_from', '')
@@ -793,6 +794,7 @@ def transaction_list_api(request):
     selected_users = request.GET.getlist('user')
     
     # Debug para filtros
+    print(f"DEBUG API - search: {search}")
     print(f"DEBUG API - shepherds: {selected_shepherds}")
     print(f"DEBUG API - users: {selected_users}")
     print(f"DEBUG API - request.GET: {dict(request.GET)}")
@@ -806,6 +808,18 @@ def transaction_list_api(request):
     if not date_to:
         last_day = date(today.year, today.month, monthrange(today.year, today.month)[1])
         date_to = last_day.strftime('%Y-%m-%d')
+    
+    if search:
+        transactions = transactions.filter(
+            Q(desc__icontains=search) |
+            Q(category__name__icontains=search) |
+            Q(church__name__icontains=search) |
+            Q(church__field__name__icontains=search) |
+            Q(church__shepherd__name__icontains=search) |
+            Q(user__first_name__icontains=search) |
+            Q(user__last_name__icontains=search) |
+            Q(user__username__icontains=search)
+        )
     
     if selected_categories:
         transactions = transactions.filter(category_id__in=selected_categories)
@@ -2314,9 +2328,15 @@ def transaction_export_xlsx(request):
     # Aplicar filtros
     filtered_transactions = base_transactions
     if search:
-        filtered_transactions = filtered_transactions.filter(
+        transactions = transactions.filter(
             Q(desc__icontains=search) |
-            Q(category__name__icontains=search)
+            Q(category__name__icontains=search) |
+            Q(church__name__icontains=search) |
+            Q(church__field__name__icontains=search) |
+            Q(church__shepherd__name__icontains=search) |
+            Q(user__first_name__icontains=search) |
+            Q(user__last_name__icontains=search) |
+            Q(user__username__icontains=search)
         )
         print(f"DEBUG - Após filtro de busca: {filtered_transactions.count()} transações")
 

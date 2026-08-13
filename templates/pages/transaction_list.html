@@ -21,6 +21,14 @@
                 <form method="get" id="chartFilterForm" data-filter-page="transaction_list">
                     <!-- Desktop Layout -->
                     <div class="row d-none d-md-flex">
+                        <div class="col-md-2">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="text" name="search" id="searchFilter" value="{{ search }}" placeholder=" ">
+                                <label for="searchFilter">
+                                    <i class="bi bi-search"></i> Pesquisar
+                                </label>
+                            </div>
+                        </div>
                         <div class="col-md-2" id="month_filter_container">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="month" id="month_filter">
@@ -89,6 +97,14 @@
                     <!-- Mobile Layout -->
                     <div class="d-md-none">
                         <div class="row">
+                            <div class="col-12">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="text" name="search" id="searchFilter_mobile" value="{{ search }}" placeholder=" ">
+                                    <label for="searchFilter_mobile">
+                                        <i class="bi bi-search"></i> Buscar
+                                    </label>
+                                </div>
+                            </div>
                             <div class="col-12" id="month_filter_mobile_container">
                                 <div class="form-floating mb-3">
                                     <input class="form-control" type="month" id="month_filter_mobile" placeholder=" ">
