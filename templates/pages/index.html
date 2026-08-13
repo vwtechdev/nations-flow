@@ -13,6 +13,11 @@
             if (window.matchMedia('(min-width: 769px)').matches && localStorage.getItem('sidebarCollapsed') === 'true') {
                 document.documentElement.classList.add('nf-sidebar-collapsed');
             }
+            // Fallback: se o index.js não assumir o controle (ex: versão antiga
+            // servida por cache), remover a classe para a sidebar não ficar presa.
+            setTimeout(function() {
+                document.documentElement.classList.remove('nf-sidebar-collapsed');
+            }, 3000);
         } catch (e) {}
     })();
     </script>

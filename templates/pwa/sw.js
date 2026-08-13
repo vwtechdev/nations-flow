@@ -2,9 +2,13 @@
 /* Nations Flow — Service Worker (offline mínimo)
    Estratégias:
    - Navegação: network-first com fallback para página offline
-   - Estáticos: stale-while-revalidate
-   - API/autenticação: network-only (nunca cachear) */
-const VERSION = 'nationsflow-v1';
+   - Estáticos: network-first com fallback para cache (evita servir assets
+     antigos por causa do stale-while-revalidate + nginx expires 1y)
+   - API/autenticação: network-only (nunca cachear)
+
+   IMPORTANTE: ao alterar estáticos, incremente VERSION para forçar a
+   limpeza do cache antigo nos clientes (o activate só apaga chaves != VERSION). */
+const VERSION = 'nationsflow-v2';
 const OFFLINE_URL = '{% static "offline.html" %}';
 
 const PRECACHE_ASSETS = [
@@ -45,7 +49,7 @@ self.addEventListener('fetch', (event) => {
     // Navegação: network-first com fallback offline
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            fetch(event.request)
+            fetch(event.request, { cache: 'no-cache' })
                 .then((response) => {
                     const copy = response.clone();
                     caches.open(VERSION).then((cache) => cache.put(event.request, copy));
@@ -56,17 +60,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Estáticos: stale-while-revalidate
+    // Estáticos: network-first com fallback para cache
+    // (stale-while-revalidate servia assets antigos; network-first garante
+    //  sempre a versão nova quando há conexão. `cache: 'no-cache'` força a
+    //  revalidação com o servidor em vez de usar o cache HTTP immutable do nginx)
     event.respondWith(
-        caches.match(event.request).then((cached) => {
-            const fetchPromise = fetch(event.request).then((response) => {
+        fetch(event.request, { cache: 'no-cache' })
+            .then((response) => {
                 if (response && response.status === 200 && response.type === 'basic') {
                     const copy = response.clone();
                     caches.open(VERSION).then((cache) => cache.put(event.request, copy));
                 }
                 return response;
-            }).catch(() => cached);
-            return cached || fetchPromise;
-        })
+            })
+            .catch(() => caches.match(event.request))
     );
 });
