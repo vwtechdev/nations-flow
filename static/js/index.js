@@ -143,8 +143,8 @@ $(function() {
         return new bootstrap.Popover(popoverTriggerEl);
     });
     
-    // Auto-hide alert messages after 15 seconds
-    $('.alert:not(.alert-info)').delay(15000).fadeOut(500);
+    // Auto-hide alert messages after 15 seconds (exceto alertas dentro de modais)
+    $('.alert:not(.alert-info)').not('.modal .alert').delay(15000).fadeOut(500);
     
     // Add smooth transitions to form elements
     $('.form-control, .form-select').on('focus', function() {

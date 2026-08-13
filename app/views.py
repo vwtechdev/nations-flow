@@ -1365,12 +1365,38 @@ def transaction_delete(request, pk):
     
     return render(request, 'pages/transaction_confirm_delete.html', context)
 
+@require_http_methods(["POST"])
+@password_changed_required
+@admin_required
+def transaction_bulk_delete(request):
+    """Excluir múltiplas transações em lote - Apenas administradores"""
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    ids = data.get('ids', [])
+    try:
+        ids = [int(i) for i in ids if str(i).strip().isdigit()]
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'IDs inválidos'}, status=400)
+
+    if not ids:
+        return JsonResponse({'deleted': 0})
+
+    transactions = Transaction.objects.filter(id__in=ids)
+    for transaction in transactions:
+        log_action(request.user, 'delete', transaction, f'Excluiu transação ID: {transaction.id}, {transaction.get_type_display()}, {transaction.get_formatted_value()}, {transaction.category.name}', request)
+    deleted_count = transactions.count()
+    transactions.delete()
+    return JsonResponse({'deleted': deleted_count})
+
 # Views de Categorias (apenas admin)
 @password_changed_required
 @admin_required
 def category_list(request):
     """Lista de categorias"""
-    categories = Category.objects.all()
+    categories = Category.objects.all().order_by('-is_active', 'name')
     
     # Busca por nome
     search_query = request.GET.get('search', '').strip()
@@ -1456,7 +1482,7 @@ def category_delete(request, pk):
 @admin_required
 def church_list(request):
     """Lista de igrejas"""
-    churches = Church.objects.all()
+    churches = Church.objects.all().order_by('-is_active', 'name')
     
     # Busca por nome ou pastor
     search_query = request.GET.get('search', '').strip()
@@ -1580,9 +1606,7 @@ def church_delete(request, pk):
 @admin_required
 def user_list(request):
     """Lista de usuários"""
-    users = User.objects.all()
-    
-    users = users.exclude(email=settings.SYSTEM_HIDDEN_EMAIL)
+    users = User.objects.all().exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('-is_active', 'first_name', 'last_name')
     
     # Busca por nome, email ou função
     search_query = request.GET.get('search', '').strip()
@@ -1732,7 +1756,7 @@ def field_list(request):
     
     fields = Field.objects.annotate(
         church_count=Count('church', distinct=True)
-    ).all()
+    ).order_by('-is_active', 'name')
     
     # Busca por nome
     search_query = request.GET.get('search', '').strip()
@@ -2494,7 +2518,7 @@ def shepherd_list(request):
         church_count=Count('shepherdhistory__church', distinct=True),
         first_start_date=Min('shepherdhistory__start_date'),
         last_end_date=Max('shepherdhistory__end_date'),
-    ).order_by('name')
+    ).order_by('-is_active', 'name')
     
     # Busca por nome
     search_query = request.GET.get('search', '').strip()

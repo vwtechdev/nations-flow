@@ -173,6 +173,62 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- Bulk actions (desktop, apenas admin) ---
+    const isAdmin = document.body.dataset.isAdmin === 'true';
+    const bulkActions = document.getElementById('bulkActions');
+    if (isAdmin && bulkActions) {
+        const transactionsTable = document.getElementById('transactionsTable');
+
+        transactionsTable.addEventListener('change', function(event) {
+            if (event.target.id === 'selectAll') {
+                document.querySelectorAll('.transaction-checkbox').forEach(cb => cb.checked = event.target.checked);
+            }
+            updateBulkActions();
+        });
+
+        // Atualiza contador ao abrir o modal de confirmação
+        document.getElementById('bulkDeleteModal').addEventListener('show.bs.modal', function() {
+            const count = document.querySelectorAll('.transaction-checkbox:checked').length;
+            document.getElementById('bulkDeleteCount').textContent = count;
+        });
+
+        // Excluir em lote via AJAX
+        document.getElementById('confirmBulkDelete').addEventListener('click', async function() {
+            const checked = [...document.querySelectorAll('.transaction-checkbox:checked')];
+            const ids = checked.map(cb => cb.value);
+            if (ids.length === 0) {
+                bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide();
+                return;
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const confirmBtn = document.getElementById('confirmBulkDelete');
+            confirmBtn.disabled = true;
+
+            try {
+                const response = await fetch('/transactions/bulk-delete/', {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ids})
+                });
+
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || 'Erro ao excluir transações');
+                }
+
+                const data = await response.json();
+                bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide();
+                loadTransactions();
+                updateBulkActions();
+            } catch (error) {
+                alert('Erro ao excluir transações: ' + error.message);
+            } finally {
+                confirmBtn.disabled = false;
+            }
+        });
+    }
+
 });
 
 // Salvar filtros antes de navegar para criar/editar/visualizar
@@ -330,6 +386,24 @@ function updateExportButton() {
     }
 }
 
+// Função para atualizar contador e visibilidade da barra de bulk actions
+function updateBulkActions() {
+    const bulkActions = document.getElementById('bulkActions');
+    if (!bulkActions) return;
+    const count = document.querySelectorAll('.transaction-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = count;
+    bulkActions.classList.toggle('d-none', count === 0);
+
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        const checkboxes = document.querySelectorAll('.transaction-checkbox');
+        const allChecked = checkboxes.length > 0 && [...checkboxes].every(cb => cb.checked);
+        const anyChecked = count > 0;
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = anyChecked && !allChecked;
+    }
+}
+
 // Função para truncar texto
 function truncateText(text, maxLength = 50) {
     if (!text || text === '-') return text;
@@ -363,6 +437,7 @@ function renderTransactions(transactions) {
             <table class="table table-bordered" width="100%" cellspacing="0">
                 <thead>
                     <tr>
+                        ${isAdmin ? '<th style="width:30px"><input type="checkbox" id="selectAll" title="Selecionar todos"></th>' : ''}
                         <th>Data</th>
                         <th>Tipo</th>
                         <th>Categoria</th>
@@ -389,6 +464,7 @@ function renderTransactions(transactions) {
         // HTML da tabela
         tableHTML += `
             <tr>
+                ${isAdmin ? `<td><input type="checkbox" class="transaction-checkbox" value="${transaction.id}"></td>` : ''}
                 <td>${transaction.date}</td>
                 <td>
                     <span class="badge bg-${typeClass}">
@@ -562,6 +638,8 @@ function renderTransactions(transactions) {
     
     transactionsTable.innerHTML = tableHTML;
     mobileTransactionsTable.innerHTML = mobileCardsHTML;
+    
+    updateBulkActions();
 }
 
 // Função para renderizar paginação

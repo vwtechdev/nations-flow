@@ -4,6 +4,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
 <link rel="stylesheet" href="{% static 'css/transaction_form.css' %}">
+<link rel="stylesheet" href="{% static 'css/bulk_actions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -359,6 +360,16 @@
             </div>
             
             <div class="card-body">
+                {% if user.is_admin %}
+                <!-- Barra de Bulk Actions (Desktop) -->
+                <div id="bulkActions" class="mb-3 d-none">
+                    <span class="me-2 text-muted"><span id="selectedCount">0</span> selecionada(s)</span>
+                    <button type="button" id="bulkDeleteBtn" class="btn btn-sm btn-outline-danger"
+                            data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+                        <i class="bi bi-trash"></i> Excluir selecionadas
+                    </button>
+                </div>
+                {% endif %}
                 <!-- Tabela de Transações (Desktop) -->
                 <div id="transactionsTable">
                     <div class="text-center py-4">
@@ -475,6 +486,37 @@
                         <i class="bi bi-trash"></i> Confirmar Exclusão
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão em Lote -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="bulkDeleteModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão em Lote
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Tem certeza que deseja excluir <span id="bulkDeleteCount">0</span> transação(ões)?</strong>
+                </p>
+                <div class="alert alert-warning mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Esta ação não pode ser desfeita. Os comprovantes anexados serão removidos.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmBulkDelete">
+                    <i class="bi bi-trash"></i> Excluir
+                </button>
             </div>
         </div>
     </div>

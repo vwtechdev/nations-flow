@@ -17,6 +17,7 @@ urlpatterns = [
     path('transactions/<int:pk>/view/', views.transaction_view, name='transaction_view'),
     path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
+    path('transactions/bulk-delete/', views.transaction_bulk_delete, name='transaction_bulk_delete'),
     
     # API para buscar igrejas por campo
     path('api/churches-by-field/<int:field_id>/', views.churches_by_field_api, name='churches_by_field_api'),
