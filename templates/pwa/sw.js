@@ -46,6 +46,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     if (isApiRequest(event.request)) return;
 
+    // Requisições cross-origin (CDNs: jquery/bootstrap/select2) não são
+    // interceptadas: o fetch do SW é regido pelo connect-src da CSP, que não
+    // inclui os CDNs. Deixá-las passar mantém o carregamento direto pelo
+    // navegador e evita o ERR_FAILED que derrubava o jQuery na página.
+    const requestUrl = new URL(event.request.url);
+    if (requestUrl.origin !== self.location.origin) return;
+
     // Navegação: network-first com fallback offline
     if (event.request.mode === 'navigate') {
         event.respondWith(
