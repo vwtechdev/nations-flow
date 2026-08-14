@@ -22,7 +22,7 @@
                         data-bs-toggle="collapse" data-bs-target="#mobileFiltersCollapse"
                         aria-expanded="false" aria-controls="mobileFiltersCollapse">
                     <i class="bi bi-funnel"></i> Filtros
-                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1">{{ active_filters|length }}</span>
+                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1" id="mobileFilterCountBadge">{{ active_filters|length }}</span>
                     <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
                 </button>
             </div>
@@ -40,7 +40,21 @@
                         </div>
                         <div class="col-md-2" id="month_filter_container">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="month" id="month_filter">
+                                {% now "n" as current_month %}
+                                <select class="form-select" id="month_filter" aria-label="Mês">
+                                    <option value="1" {% if current_month == "1" %}selected{% endif %}>Janeiro</option>
+                                    <option value="2" {% if current_month == "2" %}selected{% endif %}>Fevereiro</option>
+                                    <option value="3" {% if current_month == "3" %}selected{% endif %}>Março</option>
+                                    <option value="4" {% if current_month == "4" %}selected{% endif %}>Abril</option>
+                                    <option value="5" {% if current_month == "5" %}selected{% endif %}>Maio</option>
+                                    <option value="6" {% if current_month == "6" %}selected{% endif %}>Junho</option>
+                                    <option value="7" {% if current_month == "7" %}selected{% endif %}>Julho</option>
+                                    <option value="8" {% if current_month == "8" %}selected{% endif %}>Agosto</option>
+                                    <option value="9" {% if current_month == "9" %}selected{% endif %}>Setembro</option>
+                                    <option value="10" {% if current_month == "10" %}selected{% endif %}>Outubro</option>
+                                    <option value="11" {% if current_month == "11" %}selected{% endif %}>Novembro</option>
+                                    <option value="12" {% if current_month == "12" %}selected{% endif %}>Dezembro</option>
+                                </select>
                                 <label for="month_filter">
                                     <i class="bi bi-calendar-month"></i> Mês
                                 </label>
@@ -129,7 +143,21 @@
                             </div>
                             <div class="col-6" id="month_filter_mobile_container">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="month" id="month_filter_mobile" placeholder=" ">
+                                    {% now "n" as current_month_mobile %}
+                                    <select class="form-select" id="month_filter_mobile" aria-label="Mês">
+                                        <option value="1" {% if current_month_mobile == "1" %}selected{% endif %}>Janeiro</option>
+                                        <option value="2" {% if current_month_mobile == "2" %}selected{% endif %}>Fevereiro</option>
+                                        <option value="3" {% if current_month_mobile == "3" %}selected{% endif %}>Março</option>
+                                        <option value="4" {% if current_month_mobile == "4" %}selected{% endif %}>Abril</option>
+                                        <option value="5" {% if current_month_mobile == "5" %}selected{% endif %}>Maio</option>
+                                        <option value="6" {% if current_month_mobile == "6" %}selected{% endif %}>Junho</option>
+                                        <option value="7" {% if current_month_mobile == "7" %}selected{% endif %}>Julho</option>
+                                        <option value="8" {% if current_month_mobile == "8" %}selected{% endif %}>Agosto</option>
+                                        <option value="9" {% if current_month_mobile == "9" %}selected{% endif %}>Setembro</option>
+                                        <option value="10" {% if current_month_mobile == "10" %}selected{% endif %}>Outubro</option>
+                                        <option value="11" {% if current_month_mobile == "11" %}selected{% endif %}>Novembro</option>
+                                        <option value="12" {% if current_month_mobile == "12" %}selected{% endif %}>Dezembro</option>
+                                    </select>
                                     <label for="month_filter_mobile">
                                         <i class="bi bi-calendar-month"></i> Mês
                                     </label>
@@ -385,9 +413,10 @@
     <div class="col-12">
         <div class="card shadow">
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
-                <div id="paginationHeader" class="d-flex align-items-center gap-2 d-none">
-                    <div class="input-group input-group-sm" style="width: auto;">
+                <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
+                <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
+                <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
                         <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
                         <select id="perPageSelect" class="form-select" aria-label="Itens por página">
                             <option value="10">10</option>
@@ -395,8 +424,8 @@
                             <option value="50">50</option>
                         </select>
                     </div>
-                    <span id="pageInfo" class="small text-muted d-none d-md-inline">Página 1 de 1</span>
-                    <ul class="pagination pagination-sm mb-0" id="paginationList"></ul>
+                    <span id="pageInfo" class="small text-muted d-none d-md-inline order-2 order-md-3">Página 1 de 1</span>
+                    <ul class="pagination pagination-sm mb-0 order-3 order-md-4" id="paginationList"></ul>
                 </div>
             </div>
             

@@ -1007,6 +1007,13 @@ a:hover {
     border-color: var(--primary-color);
 }
 
+@media (max-width: 767.98px) {
+    #paginationHeader {
+        flex-basis: 100%;
+        justify-content: space-between;
+    }
+}
+
 /* Custom alert styles */
 .alert-primary {
     background-color: rgba(103, 58, 183, 0.1);

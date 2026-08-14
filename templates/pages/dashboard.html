@@ -49,7 +49,21 @@
                     <div class="row d-none d-md-flex">
                         <div class="col-md-2" id="month_filter_container">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="month" id="month_filter">
+                                {% now "n" as current_month %}
+                                <select class="form-select" id="month_filter" aria-label="Mês">
+                                    <option value="1" {% if current_month == "1" %}selected{% endif %}>Janeiro</option>
+                                    <option value="2" {% if current_month == "2" %}selected{% endif %}>Fevereiro</option>
+                                    <option value="3" {% if current_month == "3" %}selected{% endif %}>Março</option>
+                                    <option value="4" {% if current_month == "4" %}selected{% endif %}>Abril</option>
+                                    <option value="5" {% if current_month == "5" %}selected{% endif %}>Maio</option>
+                                    <option value="6" {% if current_month == "6" %}selected{% endif %}>Junho</option>
+                                    <option value="7" {% if current_month == "7" %}selected{% endif %}>Julho</option>
+                                    <option value="8" {% if current_month == "8" %}selected{% endif %}>Agosto</option>
+                                    <option value="9" {% if current_month == "9" %}selected{% endif %}>Setembro</option>
+                                    <option value="10" {% if current_month == "10" %}selected{% endif %}>Outubro</option>
+                                    <option value="11" {% if current_month == "11" %}selected{% endif %}>Novembro</option>
+                                    <option value="12" {% if current_month == "12" %}selected{% endif %}>Dezembro</option>
+                                </select>
                                 <label for="month_filter">
                                     <i class="bi bi-calendar-month"></i> Mês
                                 </label>
@@ -126,7 +140,21 @@
                             </div>
                             <div class="col-6" id="month_filter_mobile_container">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="month" id="month_filter_mobile" placeholder=" ">
+                                    {% now "n" as current_month_mobile %}
+                                    <select class="form-select" id="month_filter_mobile" aria-label="Mês">
+                                        <option value="1" {% if current_month_mobile == "1" %}selected{% endif %}>Janeiro</option>
+                                        <option value="2" {% if current_month_mobile == "2" %}selected{% endif %}>Fevereiro</option>
+                                        <option value="3" {% if current_month_mobile == "3" %}selected{% endif %}>Março</option>
+                                        <option value="4" {% if current_month_mobile == "4" %}selected{% endif %}>Abril</option>
+                                        <option value="5" {% if current_month_mobile == "5" %}selected{% endif %}>Maio</option>
+                                        <option value="6" {% if current_month_mobile == "6" %}selected{% endif %}>Junho</option>
+                                        <option value="7" {% if current_month_mobile == "7" %}selected{% endif %}>Julho</option>
+                                        <option value="8" {% if current_month_mobile == "8" %}selected{% endif %}>Agosto</option>
+                                        <option value="9" {% if current_month_mobile == "9" %}selected{% endif %}>Setembro</option>
+                                        <option value="10" {% if current_month_mobile == "10" %}selected{% endif %}>Outubro</option>
+                                        <option value="11" {% if current_month_mobile == "11" %}selected{% endif %}>Novembro</option>
+                                        <option value="12" {% if current_month_mobile == "12" %}selected{% endif %}>Dezembro</option>
+                                    </select>
                                     <label for="month_filter_mobile">
                                         <i class="bi bi-calendar-month"></i> Mês
                                     </label>
@@ -392,7 +420,7 @@
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="bi bi-graph-up"></i> Entradas e Saídas
+                    <i class="bi bi-graph-up"></i> Entradas e Saídas <span id="monthlyChartPeriod">de {{ selected_start_date|slice:":4" }}{% if selected_start_date|slice:":4" != selected_end_date|slice:":4" %} a {{ selected_end_date|slice:":4" }}{% endif %}</span>
                 </h6>
                 {% if selected_category or selected_field or selected_church %}
                     <small class="text-muted">
@@ -504,7 +532,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return payload;
     }
 
+    function updateChartTitle(payload) {
+        const el = document.getElementById('monthlyChartPeriod');
+        if (!el) return;
+        const y1 = payload.date_from ? Number(payload.date_from.slice(0, 4)) : new Date().getFullYear();
+        const y2 = payload.date_to ? Number(payload.date_to.slice(0, 4)) : y1;
+        el.textContent = 'de ' + y1 + (y1 !== y2 ? ' a ' + y2 : '');
+    }
+
     async function fetchSummaryAndRender(payload) {
+        updateChartTitle(payload);
         const loading = document.getElementById('dashboardLoading');
         if (loading) loading.classList.remove('d-none');
         try {
@@ -693,14 +730,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function collapseMobileFilters() {
+        const el = document.getElementById('mobileFiltersCollapse');
+        if (!el) return;
+        if (window.bootstrap && bootstrap.Collapse) {
+            const instance = bootstrap.Collapse.getInstance(el) || bootstrap.Collapse.getOrCreateInstance(el);
+            if (el.classList.contains('show')) instance.hide();
+        }
+    }
+
     const chartFilterForm = document.getElementById('chartFilterForm');
     if (chartFilterForm) {
         chartFilterForm.addEventListener('submit', function(e) {
             e.preventDefault();
             fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+            collapseMobileFilters();
         });
         chartFilterForm.addEventListener('filters:applied', function() {
             fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+            collapseMobileFilters();
         });
     }
 

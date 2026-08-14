@@ -4,10 +4,12 @@ let currentPerPage = 20;
 const PER_PAGE_STORAGE_KEY = 'per_page_transaction_list';
 let currentFilters = {};
 const FILTER_STORAGE_KEY = 'filters_transaction_list';
+let datesExplicit = new URLSearchParams(window.location.search).has('date_from') || new URLSearchParams(window.location.search).has('date_to');
 
 function saveFiltersToStorage() {
     const hasFilters = Object.entries(currentFilters).some(([k, v]) => {
         if (k === 'page') return false;
+        if (!datesExplicit && (k === 'date_from' || k === 'date_to')) return false;
         if (Array.isArray(v)) return v.length > 0;
         return v && v !== '';
     });
@@ -175,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             currentPage = 1; // Reset para primeira página
             loadTransactions();
+            collapseMobileFilters();
         };
         
         filterForm.addEventListener('submit', filterForm._submitHandler);
@@ -187,20 +190,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
                 currentPage = 1;
                 loadTransactions();
+                collapseMobileFilters();
             });
         }
         
         // Atualizar quando o modal aplicar filtros
-        filterForm.addEventListener('filters:applied', function() {
+        filterForm.addEventListener('filters:applied', function(e) {
+            if (e.detail && e.detail.month) datesExplicit = true;
             currentPage = 1;
             loadTransactions();
             updateExportButton();
+            collapseMobileFilters();
         });
 
         // Adicionar listeners para mudanças nos campos básicos (para atualizar export em tempo real)
         const filterFields = filterForm.querySelectorAll('select, input[type=\"date\"], input[type=\"text\"]');
         filterFields.forEach(field => {
             field.addEventListener('change', function() {
+                if (field.type === 'date') datesExplicit = true;
                 updateExportButton();
             });
         });
@@ -690,6 +697,8 @@ function renderPagination(pagination) {
     
     if (paginationHeader) paginationHeader.classList.remove('d-none');
     if (pageInfo) pageInfo.textContent = `Página ${pagination.current_page} de ${pagination.total_pages}`;
+    const pageInfoMobile = document.getElementById('pageInfoMobile');
+    if (pageInfoMobile) pageInfoMobile.textContent = `Página ${pagination.current_page} de ${pagination.total_pages}`;
     
     const firstDisabled = !pagination.has_previous;
     const prevDisabled = !pagination.has_previous;
@@ -726,6 +735,16 @@ function renderPagination(pagination) {
 function goToPage(page) {
     currentPage = page;
     loadTransactions();
+}
+
+// Recolher o card de filtros mobile após aplicar filtros
+function collapseMobileFilters() {
+    const el = document.getElementById('mobileFiltersCollapse');
+    if (!el) return;
+    if (window.bootstrap && bootstrap.Collapse) {
+        const instance = bootstrap.Collapse.getInstance(el) || bootstrap.Collapse.getOrCreateInstance(el);
+        if (el.classList.contains('show')) instance.hide();
+    }
 }
 
 // Função para atualizar totais
@@ -774,6 +793,7 @@ function updateUrl(currentFilters) {
         var params = new URLSearchParams();
         for (var k in currentFilters) {
             if (k === 'page') continue;
+            if (!datesExplicit && (k === 'date_from' || k === 'date_to')) continue;
             var v = currentFilters[k];
             if (Array.isArray(v)) {
                 v.forEach(function(x) { if (x) params.append(k, x); });
@@ -830,22 +850,15 @@ function updateFilterAlert(currentFilters) {
     if (currentFilters.user && currentFilters.user.length > 0) {
         badges.push(['Usuários', resolveNames('user', currentFilters.user)]);
     }
-    if (currentFilters.date_from || currentFilters.date_to) {
+    var urlParams = new URLSearchParams(window.location.search);
+    var hasExplicitDates = urlParams.has('date_from') || urlParams.has('date_to');
+    if (hasExplicitDates && (currentFilters.date_from || currentFilters.date_to)) {
         var fromStr = currentFilters.date_from ? currentFilters.date_from.split('-').reverse().join('/') : '';
         var toStr = currentFilters.date_to ? currentFilters.date_to.split('-').reverse().join('/') : '';
         badges.push(['Período', [fromStr + ' a ' + toStr]]);
     }
 
     if (badges.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
-
-    var nonPeriodoBadges = [];
-    for (var b = 0; b < badges.length; b++) {
-        if (badges[b][0] !== 'Período') nonPeriodoBadges.push(badges[b]);
-    }
-    if (nonPeriodoBadges.length === 0) {
         container.style.display = 'none';
         return;
     }
@@ -862,6 +875,13 @@ function updateFilterAlert(currentFilters) {
         '<a href="?clear" class="btn btn-outline-secondary btn-sm ms-auto">' +
         '<i class="bi bi-x-circle"></i> Limpar filtros</a>';
     container.style.display = 'flex';
+
+    var badgeEl = document.getElementById('mobileFilterCountBadge');
+    if (badgeEl) {
+        badgeEl.textContent = badges.length;
+        badgeEl.classList.toggle('bg-primary', badges.length > 0);
+        badgeEl.classList.toggle('bg-secondary', badges.length === 0);
+    }
 }
 
 // Função para carregar e exibir o conteúdo do comprovante
