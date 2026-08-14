@@ -1138,6 +1138,25 @@ def transaction_summary_api(request):
             })
     churches_data.sort(key=lambda x: x['name'])
 
+    # Entradas e saídas por campo - apenas período (ignora os demais filtros)
+    if request.user.is_admin():
+        period_fields_qs = Field.objects.filter(is_active=True)
+    else:
+        period_fields_qs = request.user.fields.filter(is_active=True) if request.user.fields.exists() else Field.objects.none()
+    fields_data = []
+    period_qs = base_transactions.filter(date__gte=date_from, date__lte=date_to)
+    for field in period_fields_qs:
+        field_qs = period_qs.filter(church__field=field)
+        income = field_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = field_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        if income > 0 or expense > 0:
+            fields_data.append({
+                'name': field.name,
+                'income': float(income),
+                'expense': float(expense)
+            })
+    fields_data.sort(key=lambda x: x['name'])
+
     # Por igreja
     if request.user.is_admin():
         churches_qs = Church.objects.all()
@@ -1227,6 +1246,7 @@ def transaction_summary_api(request):
         'categories_data': categories_data,
         'churches_data': churches_data,
         'churches_individual_data': churches_individual_data,
+        'fields_data': fields_data,
         'monthly_data': monthly_data,
         'filters_applied': {
             'date_from': date_from,

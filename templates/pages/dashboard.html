@@ -381,6 +381,25 @@
     </div>
 </div>
 
+<!-- Gráfico de Barras - Entradas e Saídas por Campo -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-diagram-3"></i> Entradas e Saídas por Campo
+                </h6>
+                <small class="text-muted">Considera apenas o período selecionado</small>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" id="fieldsChartContainer" style="height: 400px;">
+                    <canvas id="fieldsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -467,80 +486,131 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const monthlyData = data.monthly_data || [];
         const monthlyCtx = document.getElementById('monthlyChart');
-        if (!monthlyCtx) return;
-        if (window.monthlyChartInstance) window.monthlyChartInstance.destroy();
-        if (!monthlyData.length) {
-            const monthlyContainer = document.getElementById('monthlyChartContainer');
-            if (monthlyContainer) {
-                monthlyContainer.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center text-muted"><i class="bi bi-graph-up fs-1 mb-3"></i><p>Nenhum dado disponível para o período selecionado</p></div></div>';
-            }
-            return;
-        }
-        const labels = monthlyData.map(p => p.month);
-        const incomeSeries = monthlyData.map(p => p.income);
-        const expenseSeries = monthlyData.map(p => p.expense);
-        const balanceSeries = monthlyData.map((p, i) => (incomeSeries[i] - expenseSeries[i]));
-        window.monthlyChartInstance = new Chart(monthlyCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Entradas',
-                    data: incomeSeries,
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#28a745',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }, {
-                    label: 'Saídas',
-                    data: expenseSeries,
-                    borderColor: '#ff6b6b',
-                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#ff6b6b',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }, {
-                    label: 'Saldo',
-                    data: balanceSeries,
-                    borderColor: '#673ab7',
-                    backgroundColor: 'rgba(103, 58, 183, 0.1)',
-                    borderWidth: 3,
-                    fill: false,
-                    tension: 0.4,
-                    pointBackgroundColor: '#673ab7',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                scales: {
-                    x: { display: true, title: { display: true, text: 'Meses' } },
-                    y: {
-                        display: true,
-                        title: { display: true, text: 'Valor (R$)' },
-                        beginAtZero: true,
-                        ticks: { callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+        if (monthlyCtx) {
+            if (window.monthlyChartInstance) window.monthlyChartInstance.destroy();
+            if (!monthlyData.length) {
+                const monthlyContainer = document.getElementById('monthlyChartContainer');
+                if (monthlyContainer) {
+                    monthlyContainer.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center text-muted"><i class="bi bi-graph-up fs-1 mb-3"></i><p>Nenhum dado disponível para o período selecionado</p></div></div>';
+                }
+            } else {
+                const labels = monthlyData.map(p => p.month);
+                const incomeSeries = monthlyData.map(p => p.income);
+                const expenseSeries = monthlyData.map(p => p.expense);
+                const balanceSeries = monthlyData.map((p, i) => (incomeSeries[i] - expenseSeries[i]));
+                window.monthlyChartInstance = new Chart(monthlyCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Entradas',
+                            data: incomeSeries,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#28a745',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }, {
+                            label: 'Saídas',
+                            data: expenseSeries,
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#ff6b6b',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }, {
+                            label: 'Saldo',
+                            data: balanceSeries,
+                            borderColor: '#673ab7',
+                            backgroundColor: 'rgba(103, 58, 183, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#673ab7',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        scales: {
+                            x: { display: true, title: { display: true, text: 'Meses' } },
+                            y: {
+                                display: true,
+                                title: { display: true, text: 'Valor (R$)' },
+                                beginAtZero: true,
+                                ticks: { callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                            }
+                        },
+                        plugins: { legend: { display: true, position: 'top' } }
                     }
-                },
-                plugins: { legend: { display: true, position: 'top' } }
+                });
             }
-        });
+        }
+
+        const fieldsData = data.fields_data || [];
+        const fieldsCtx = document.getElementById('fieldsChart');
+        if (fieldsCtx) {
+            if (window.fieldsChartInstance) window.fieldsChartInstance.destroy();
+            if (!fieldsData.length) {
+                const fieldsContainer = document.getElementById('fieldsChartContainer');
+                if (fieldsContainer) {
+                    fieldsContainer.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center text-muted"><i class="bi bi-diagram-3 fs-1 mb-3"></i><p>Nenhum dado disponível para o período selecionado</p></div></div>';
+                }
+            } else {
+                const fieldLabels = fieldsData.map(p => p.name);
+                const fieldIncome = fieldsData.map(p => p.income);
+                const fieldExpense = fieldsData.map(p => p.expense);
+                window.fieldsChartInstance = new Chart(fieldsCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: fieldLabels,
+                        datasets: [{
+                            label: 'Entradas',
+                            data: fieldIncome,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: '#28a745',
+                            borderWidth: 1
+                        }, {
+                            label: 'Saídas',
+                            data: fieldExpense,
+                            backgroundColor: 'rgba(255, 107, 107, 0.7)',
+                            borderColor: '#ff6b6b',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        scales: {
+                            x: { display: true, title: { display: true, text: 'Campos' } },
+                            y: {
+                                display: true,
+                                title: { display: true, text: 'Valor (R$)' },
+                                beginAtZero: true,
+                                ticks: { callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                            }
+                        },
+                        plugins: { legend: { display: true, position: 'top' } }
+                    }
+                });
+            }
+        }
     }
 
     // Definir datas padrão (início e fim do ano atual)
@@ -636,7 +706,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Verificar se há elementos de gráfico sem dados
     const chartElements = [
-        'monthlyChart'
+        'monthlyChart',
+        'fieldsChart'
     ];
     
     chartElements.forEach(elementId => {

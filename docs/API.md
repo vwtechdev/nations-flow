@@ -130,6 +130,13 @@ fetch('/transactions/api/?page=1&category=1&type=income')
       "expense": 10000.00
     }
   ],
+  "fields_data": [
+    {
+      "name": "Campo Sul",
+      "income": 30000.00,
+      "expense": 20000.00
+    }
+  ],
   "monthly_data": [
     {
       "month": "Janeiro/2024",
@@ -138,6 +145,13 @@ fetch('/transactions/api/?page=1&category=1&type=income')
       "income": 10000.00,
       "expense": 5000.00,
       "balance": 5000.00
+    }
+  ],
+  "fields_data": [
+    {
+      "name": "Campo Sul",
+      "income": 30000.00,
+      "expense": 20000.00
     }
   ],
   "filters_applied": {
@@ -152,6 +166,8 @@ fetch('/transactions/api/?page=1&category=1&type=income')
   }
 }
 ```
+
+**Observação**: `fields_data` (entradas/saídas por Campo) considera **apenas o período** (`date_from`/`date_to`) e ignora os demais filtros (`category`, `type`, `field`, `church`, `shepherd`, `user`). O escopo de campos respeita o papel do usuário (admin vê todos os campos ativos; tesoureiro/supervisor vê apenas os próprios). Campos sem valores no período são omitidos.
 
 ---
 
