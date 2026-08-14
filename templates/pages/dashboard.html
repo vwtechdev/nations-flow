@@ -6,6 +6,24 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
+<style>
+    #dashboardContent { position: relative; }
+    #dashboardLoading {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.85);
+        z-index: 1050;
+        border-radius: 0.5rem;
+    }
+    #dashboardLoading.d-none { display: none !important; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -13,10 +31,17 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">
                     <i class="bi bi-funnel"></i> Filtros do Dashboard
                 </h6>
+                <button type="button" class="btn btn-outline-primary btn-sm d-md-none mobile-filters-toggle collapsed"
+                        data-bs-toggle="collapse" data-bs-target="#mobileFiltersCollapse"
+                        aria-expanded="false" aria-controls="mobileFiltersCollapse">
+                    <i class="bi bi-funnel"></i> Filtros
+                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1">{{ active_filters|length }}</span>
+                    <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
+                </button>
             </div>
             <div class="card-body">
                 <form method="get" id="chartFilterForm" data-filter-page="index">
@@ -84,35 +109,10 @@
                     </div>
                     
                     <!-- Mobile Layout -->
+                    <div class="collapse" id="mobileFiltersCollapse">
                     <div class="d-md-none">
                         <div class="row">
-                            <div class="col-12" id="month_filter_mobile_container">
-                                <div class="form-floating mb-3">
-                                    <input class="form-control" type="month" id="month_filter_mobile" placeholder=" ">
-                                    <label for="month_filter_mobile">
-                                        <i class="bi bi-calendar-month"></i> Mês
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-floating mb-3">
-                                    <input type="date" name="start_date" id="startDateFilter_mobile" class="form-control" placeholder=" "
-                                           value="{{ selected_start_date|default:'' }}">
-                                    <label for="startDateFilter_mobile">
-                                        <i class="bi bi-calendar-date"></i> Data Inicial
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-floating mb-3">
-                                    <input type="date" name="end_date" id="endDateFilter_mobile" class="form-control" placeholder=" "
-                                           value="{{ selected_end_date|default:'' }}">
-                                    <label for="endDateFilter_mobile">
-                                        <i class="bi bi-calendar-date"></i> Data Final
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-12">
+                            <div class="col-6">
                                 <div class="form-floating mb-3">
                                     <select name="type" id="typeFilter_mobile" class="form-control" placeholder=" ">
                                         <option value="">Todos os tipos</option>
@@ -121,6 +121,32 @@
                                     </select>
                                     <label for="typeFilter_mobile">
                                         <i class="bi bi-arrow-left-right"></i> Tipo
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6" id="month_filter_mobile_container">
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" type="month" id="month_filter_mobile" placeholder=" ">
+                                    <label for="month_filter_mobile">
+                                        <i class="bi bi-calendar-month"></i> Mês
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <input type="date" name="start_date" id="startDateFilter_mobile" class="form-control" placeholder=" "
+                                           value="{{ selected_start_date|default:'' }}">
+                                    <label for="startDateFilter_mobile">
+                                        <i class="bi bi-calendar-date"></i> Data Inicial
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <input type="date" name="end_date" id="endDateFilter_mobile" class="form-control" placeholder=" "
+                                           value="{{ selected_end_date|default:'' }}">
+                                    <label for="endDateFilter_mobile">
+                                        <i class="bi bi-calendar-date"></i> Data Final
                                     </label>
                                 </div>
                             </div>
@@ -136,16 +162,19 @@
                             </div>
                         </div>
                         
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-search"></i> Filtrar
-                            </button>
-                            <div class="d-grid gap-2">
-                                <a href="?clear" class="btn btn-secondary">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <a href="?clear" class="btn btn-secondary w-100">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
+                            <div class="col-6">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                            </div>
                         </div>
+                    </div>
                     </div>
                     <div id="advancedFiltersHidden" class="d-none">
                         {% for category_id in selected_categories %}
@@ -275,6 +304,13 @@
 </div>
 {% endif %}
 
+<div id="dashboardContent">
+    <div id="dashboardLoading" class="d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <p class="mt-2 text-muted">Carregando Dashboard...</p>
+    </div>
 <div class="row">
     <!-- Cards de Estatísticas -->
     <div class="col-xl-3 col-md-6 col-6 mb-4">
@@ -401,6 +437,7 @@
         </div>
     </div>
 </div>
+</div>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -468,6 +505,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchSummaryAndRender(payload) {
+        const loading = document.getElementById('dashboardLoading');
+        if (loading) loading.classList.remove('d-none');
+        try {
         const resp = await fetch('/transactions/summary/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
@@ -612,6 +652,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }
+        }
+        } finally {
+            if (loading) loading.classList.add('d-none');
         }
     }
 

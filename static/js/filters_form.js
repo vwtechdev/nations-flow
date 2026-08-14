@@ -363,6 +363,27 @@ class FiltersForm {
         dateInputs.forEach(input => {
             input.addEventListener('change', clearMonth);
         });
+
+        function getInitialMonthValue() {
+            const from = fields.fromDesktop?.value || fields.fromMobile?.value;
+            const to = fields.toDesktop?.value || fields.toMobile?.value;
+            if (!from || !to) return '';
+            const parts = from.split('-').map(Number);
+            if (parts.length !== 3) return '';
+            const [year, month, day] = parts;
+            const lastDay = new Date(year, month, 0).getDate();
+            const toParts = to.split('-').map(Number);
+            if (day === 1 && toParts[0] === year && toParts[1] === month && toParts[2] === lastDay) {
+                return `${year}-${String(month).padStart(2, '0')}`;
+            }
+            return '';
+        }
+
+        const initialMonth = getInitialMonthValue();
+        if (initialMonth) {
+            if (desktopMonth) desktopMonth.value = initialMonth;
+            if (mobileMonth) mobileMonth.value = initialMonth;
+        }
     }
 
     syncDateFields() {

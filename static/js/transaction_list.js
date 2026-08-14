@@ -255,7 +255,7 @@ window.loadTransactions = function() {
     
     // Mostrar loading
     transactionsTable.innerHTML = `
-        <div class="text-center py-4">
+        <div class="text-center py-4 d-none d-md-block">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Carregando...</span>
             </div>
