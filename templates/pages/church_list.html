@@ -99,6 +99,9 @@
                                             {% endif %}
                                         </td>
                                         <td>
+                                            <a href="{% url 'shepherd_history' church.pk %}" class="btn btn-sm btn-outline-info" title="Histórico de Pastores">
+                                                <i class="bi bi-clock-history"></i>
+                                            </a>
                                             <a href="{% url 'church_edit' church.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
@@ -160,6 +163,9 @@
                                         </div>
                                     </div>
                                     <div class="mobile-card-footer">
+                                        <a href="{% url 'shepherd_history' church.pk %}" class="mobile-card-btn btn-outline-info" title="Histórico de Pastores">
+                                            <i class="bi bi-clock-history"></i> Histórico
+                                        </a>
                                         <a href="{% url 'church_edit' church.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>

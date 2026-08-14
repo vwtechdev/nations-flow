@@ -39,6 +39,7 @@ urlpatterns = [
     path('churches/create/', views.church_create, name='church_create'),
     path('churches/<int:pk>/edit/', views.church_edit, name='church_edit'),
     path('churches/<int:pk>/delete/', views.church_delete, name='church_delete'),
+    path('churches/<int:church_id>/shepherd-history/', views.shepherd_history, name='shepherd_history'),
     
     # Usuários
     path('users/', views.user_list, name='user_list'),
@@ -70,6 +71,7 @@ urlpatterns = [
     path('shepherds/create/', views.shepherd_create, name='shepherd_create'),
     path('shepherds/<int:pk>/edit/', views.shepherd_edit, name='shepherd_edit'),
     path('shepherds/<int:pk>/delete/', views.shepherd_delete, name='shepherd_delete'),
+    path('shepherds/<int:pk>/history/', views.shepherd_history_by_shepherd, name='shepherd_history_by_shepherd'),
     
     # API AJAX
     path('api/churches/', views.get_churches, name='get_churches'),

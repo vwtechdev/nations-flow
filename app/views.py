@@ -2657,6 +2657,32 @@ def shepherd_create(request):
     
     return render(request, 'pages/shepherd_form.html', context)
 
+def _shepherd_history_data(records):
+    """Agrega transações por período do histórico de pastores (igreja × pastor)."""
+    data = []
+    for record in records:
+        end = record.end_date or date.today()
+        tx = Transaction.objects.filter(
+            church=record.church,
+            date__gte=record.start_date,
+            date__lte=end,
+        )
+        income = tx.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+        expense = tx.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+        data.append({
+            'record': record,
+            'church_name': record.church.name,
+            'shepherd_name': record.shepherd.name,
+            'start_date': record.start_date,
+            'end_date': record.end_date,
+            'transactions_count': tx.count(),
+            'income': income,
+            'expense': expense,
+            'balance': income - expense,
+        })
+    return data
+
+
 @password_changed_required
 @admin_required
 def shepherd_edit(request, pk):
@@ -2677,35 +2703,12 @@ def shepherd_edit(request, pk):
     churches = shepherd.church_set.all()
     unique_fields = churches.values('field').distinct().count()
     
-    # Histórico do pastor
-    history = ShepherdHistory.objects.filter(shepherd=shepherd).select_related('church').order_by('-start_date')
-    history_data = []
-    for record in history:
-        end = record.end_date or date.today()
-        church_transactions = Transaction.objects.filter(
-            church=record.church,
-            date__gte=record.start_date,
-            date__lte=end,
-        )
-        income = church_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
-        expense = church_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-        history_data.append({
-            'church_name': record.church.name,
-            'start_date': record.start_date,
-            'end_date': record.end_date,
-            'transactions_count': church_transactions.count(),
-            'income': income,
-            'expense': expense,
-            'balance': income - expense,
-        })
-    
     context = {
         'title': 'Editar Pastor',
         'form': form,
         'shepherd': shepherd,
         'church_count': churches.count(),
         'unique_fields_count': unique_fields,
-        'history_data': history_data,
     }
     
     return render(request, 'pages/shepherd_form.html', context)
@@ -2730,6 +2733,40 @@ def shepherd_delete(request, pk):
     }
     
     return render(request, 'pages/shepherd_confirm_delete.html', context)
+
+@password_changed_required
+@admin_required
+def shepherd_history(request, church_id):
+    """Histórico de pastores por igreja"""
+    church = get_object_or_404(Church, pk=church_id)
+    records = ShepherdHistory.objects.filter(church=church).select_related('shepherd').order_by('-start_date')
+
+    context = {
+        'title': 'Histórico de Pastores',
+        'entity_name': church.name,
+        'history_mode': 'church',
+        'history_data': _shepherd_history_data(records),
+        'back_url': 'church_list',
+        'page_title': 'Histórico de Pastores',
+    }
+    return render(request, 'pages/shepherd_history.html', context)
+
+@password_changed_required
+@admin_required
+def shepherd_history_by_shepherd(request, pk):
+    """Histórico de um pastor em todas as igrejas"""
+    shepherd = get_object_or_404(Shepherd, pk=pk)
+    records = ShepherdHistory.objects.filter(shepherd=shepherd).select_related('church').order_by('-start_date')
+
+    context = {
+        'title': 'Histórico do Pastor',
+        'entity_name': shepherd.name,
+        'history_mode': 'shepherd',
+        'history_data': _shepherd_history_data(records),
+        'back_url': 'shepherd_list',
+        'page_title': 'Histórico do Pastor',
+    }
+    return render(request, 'pages/shepherd_history.html', context)
 
 # Views de Logs de Acesso (apenas admin)
 @password_changed_required

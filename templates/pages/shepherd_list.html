@@ -72,6 +72,9 @@
                                                 <i class="bi bi-file-earmark-pdf"></i>
                                             </button>
                                             {% endif %}
+                                            <a href="{% url 'shepherd_history_by_shepherd' shepherd.pk %}" class="btn btn-sm btn-outline-info" title="Histórico">
+                                                <i class="bi bi-clock-history"></i>
+                                            </a>
                                             <a href="{% url 'shepherd_edit' shepherd.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
@@ -141,6 +144,9 @@
                                             <i class="bi bi-file-earmark-pdf"></i> Contrato
                                         </button>
                                         {% endif %}
+                                        <a href="{% url 'shepherd_history_by_shepherd' shepherd.pk %}" class="mobile-card-btn btn-outline-info" title="Histórico">
+                                            <i class="bi bi-clock-history"></i> Histórico
+                                        </a>
                                         <a href="{% url 'shepherd_edit' shepherd.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
                                             <i class="bi bi-pencil"></i> Editar
                                         </a>

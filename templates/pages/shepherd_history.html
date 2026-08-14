@@ -1,0 +1,101 @@
+{% extends 'pages/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-clock-history"></i> {{ title }} — {{ entity_name }}
+                </h6>
+                <a href="{% url back_url %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+            <div class="card-body">
+                {% if history_data %}
+                    <!-- Tabela Desktop -->
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-bordered" id="shepherdHistoryTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>{% if history_mode == 'church' %}Pastor{% else %}Igreja{% endif %}</th>
+                                    <th>Início</th>
+                                    <th>Fim</th>
+                                    <th class="text-end">Transações</th>
+                                    <th class="text-end">Entradas</th>
+                                    <th class="text-end">Saídas</th>
+                                    <th class="text-end">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for h in history_data %}
+                                <tr>
+                                    <td>{% if history_mode == 'church' %}{{ h.shepherd_name }}{% else %}{{ h.church_name }}{% endif %}</td>
+                                    <td>{{ h.start_date|date:"d/m/Y" }}</td>
+                                    <td>{{ h.end_date|date:"d/m/Y"|default:"Atual" }}</td>
+                                    <td class="text-end">{{ h.transactions_count }}</td>
+                                    <td class="text-end text-success">R$ {{ h.income|floatformat:2 }}</td>
+                                    <td class="text-end text-danger">R$ {{ h.expense|floatformat:2 }}</td>
+                                    <td class="text-end {% if h.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        R$ {{ h.balance|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Cards Mobile -->
+                    <div class="mobile-cards d-md-none">
+                        <div class="mobile-cards-container">
+                            {% for h in history_data %}
+                            <div class="mobile-card">
+                                <div class="mobile-card-header">
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">{% if history_mode == 'church' %}Pastor:{% else %}Igreja:{% endif %}</span>
+                                        <span class="mobile-card-value">{% if history_mode == 'church' %}{{ h.shepherd_name }}{% else %}{{ h.church_name }}{% endif %}</span>
+                                    </div>
+                                </div>
+                                <div class="mobile-card-body">
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Período:</span>
+                                        <span class="mobile-card-value">{{ h.start_date|date:"d/m/Y" }} - {{ h.end_date|date:"d/m/Y"|default:"Atual" }}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Transações:</span>
+                                        <span class="mobile-card-value">{{ h.transactions_count }}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Entradas:</span>
+                                        <span class="mobile-card-value text-success">R$ {{ h.income|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Saídas:</span>
+                                        <span class="mobile-card-value text-danger">R$ {{ h.expense|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="mobile-card-row">
+                                        <span class="mobile-card-label">Saldo:</span>
+                                        <span class="mobile-card-value {% if h.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            R$ {{ h.balance|floatformat:2 }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history display-1 text-muted"></i>
+                        <h5 class="text-muted mt-3">Nenhum registro de histórico</h5>
+                        <p class="text-muted">Não há histórico de pastores registrado para {% if history_mode == 'church' %}esta igreja{% else %}este pastor{% endif %}.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="height: 100px;"></div>
+{% endblock %}
