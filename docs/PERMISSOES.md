@@ -27,6 +27,41 @@ O Nations Flow implementa um sistema de permissões baseado em **roles (funçõe
 - ✅ Exportar relatórios (PDF, Excel)
 - ✅ Filtros completos (incluindo filtro por usuário)
 
+**Restrições entre administradores:**
+- ❌ Editar, inativar, ativar ou resetar a senha de **outro admin** (exceto o **Administrador Principal**)
+- ❌ Inativar/ativar a **si mesmo** (pode editar o próprio perfil normalmente)
+
+#### Administrador Principal (`is_owner`)
+
+`User.is_owner` (BooleanField, default `False`) marca o **administrador principal** do sistema — definido apenas por um superusuário no painel `/admin/` do Django.
+
+- Pode gerenciar **qualquer** usuário, incluindo editar, inativar, reativar e resetar a senha de **outros administradores**
+- Não pode inativar/ativar a si mesmo (pode editar o próprio perfil)
+- Não pode ser gerenciado por outros admins (nem por si mesmo, exceto edição do próprio perfil) — apenas superusuários
+- **Não** pode acessar o painel `/admin/` do Django (reservado a superusuários)
+
+> **Nota:** se `is_owner=True` em mais de um usuário, todos os owners têm os mesmos privilégios de gestão, mas cada owner é protegido contra os demais admins (apenas superuser gerencia um owner).
+
+#### Helper `_can_manage_user` (`app/views.py`)
+
+Lógica central das restrições entre administradores, aplicada em `user_edit`, `user_delete`, `user_activate` e `user_reset_password`:
+
+```python
+def _can_manage_user(request_user, target, action):
+    if request_user.is_superuser:
+        return True
+    if request_user == target:
+        return action != 'toggle_active'
+    if target.is_owner:
+        return False
+    if target.role == 'admin':
+        return request_user.is_owner
+    return True
+```
+
+- `action='edit'` → edição/rebaixamento/reset de senha
+- `action='toggle_active'` → inativar/reativar
+
 ---
 
 ### 2. Tesoureiro (`treasurer`)

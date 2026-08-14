@@ -198,6 +198,13 @@
         text-decoration: none;
     }
     
+    .mobile-card-btn.disabled {
+        pointer-events: auto;
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: none;
+    }
+    
     .mobile-card-btn:active {
         transform: translateY(0);
     }
@@ -344,4 +351,12 @@
     .mobile-cards-container {
         padding-bottom: 100px;
     }
+}
+
+/* Cursor de bloqueio em botões desabilitados da tabela desktop (igual ao "Sem comprovante" da transaction_list) */
+#usersTable .btn.disabled,
+#usersTable button[disabled],
+#usersTable button.disabled {
+    pointer-events: auto;
+    cursor: not-allowed;
 }

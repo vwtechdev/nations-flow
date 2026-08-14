@@ -125,6 +125,30 @@ def filter_transactions_by_selected_users(queryset, request, selected_users):
 
     return queryset
 
+
+def _can_manage_user(request_user, target, action):
+    """Verifica se o usuário logado pode gerenciar o usuário alvo.
+    - Superuser: controle total
+    - Editar a si mesmo: permitido
+    - Inativar/reativar a si mesmo: bloqueado
+    - Admin principal (is_owner): só superuser gerencia
+    - Outro admin: só o admin principal (is_owner) gerencia
+    - Tesoureiro/supervisor: qualquer admin gerencia
+    """
+    if request_user.is_superuser:
+        return True
+
+    if request_user == target:
+        return action != 'toggle_active'
+
+    if target.is_owner:
+        return False
+
+    if target.role == 'admin':
+        return request_user.is_owner
+
+    return True
+
 # Views de Autenticação
 @never_cache
 def login_view(request):
@@ -721,9 +745,15 @@ def transaction_list(request):
             if selected_shepherds:
                 churches = churches.filter(shepherd_id__in=selected_shepherds)
         else:
-            # Se o usuário não tem campos, mostrar mensagem de erro
+            # Se o usuário não tem campos, não permitir acesso à lista de
+            # transações: renderizar página de erro dedicada (sem redirect,
+            # que criaria um loop para não-admins já que index redireciona
+            # de volta para transaction_list)
             messages.error(request, 'Você não tem campos associados. Entre em contato com o administrador.')
-            return redirect('index')
+            return render(request, 'pages/error-fields.html', {
+                'title': 'Nenhum Campo Associado',
+                'page_title': 'Transações',
+            })
 
     filters_source_data = {
         'category': [{'id': c.id, 'text': c.name} for c in Category.objects.filter(is_active=True)],
@@ -1714,6 +1744,10 @@ def user_edit(request, pk):
         messages.error(request, 'Este usuário não pode ser editado.')
         return redirect('user_list')
     
+    if not _can_manage_user(request.user, user, 'edit'):
+        messages.error(request, 'Você não tem permissão para editar este usuário.')
+        return redirect('user_list')
+    
     if request.method == 'POST':
         form = UserForm(request.POST, instance=user, user=request.user)
         if form.is_valid():
@@ -1742,6 +1776,10 @@ def user_delete(request, pk):
         messages.error(request, 'Este usuário não pode ser alterado.')
         return redirect('user_list')
     
+    if not _can_manage_user(request.user, user, 'toggle_active'):
+        messages.error(request, 'Você não tem permissão para inativar ou ativar este usuário.')
+        return redirect('user_list')
+    
     if request.method == 'POST':
         user.is_active = not user.is_active
         user.save()
@@ -1766,6 +1804,9 @@ def user_reset_password(request, pk):
         if user.email == settings.SYSTEM_HIDDEN_EMAIL:
             return JsonResponse({'success': False, 'error': 'Este usuário não pode ter a senha resetada.'})
         
+        if not _can_manage_user(request.user, user, 'edit'):
+            return JsonResponse({'success': False, 'error': 'Você não tem permissão para resetar a senha deste usuário.'})
+        
         try:
             user.password = make_password(settings.DEFAULT_USER_PASSWORD)
             user.password_changed = False  # Força o usuário a trocar a senha novamente
@@ -1785,6 +1826,10 @@ def user_activate(request, pk):
     
     if user.email == settings.SYSTEM_HIDDEN_EMAIL:
         messages.error(request, 'Este usuário não pode ser reativado.')
+        return redirect('user_list')
+    
+    if not _can_manage_user(request.user, user, 'toggle_active'):
+        messages.error(request, 'Você não tem permissão para ativar este usuário.')
         return redirect('user_list')
     
     if request.method == 'POST':

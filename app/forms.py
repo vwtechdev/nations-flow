@@ -130,10 +130,6 @@ class UserForm(forms.ModelForm):
         self.fields['last_name'].label = 'Sobrenome *'
         self.fields['email'].label = 'Email *'
         self.fields['role'].label = 'Função *'
-        
-        # Se for um novo usuário (sem instância), remover o campo fields
-        if not self.instance or not self.instance.pk:
-            del self.fields['fields']
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -165,6 +161,15 @@ class UserForm(forms.ModelForm):
                     counter += 1
                 
                 cleaned_data['username'] = username
+        
+        # Usuários não-admin precisam de pelo menos um campo associado
+        role = cleaned_data.get('role')
+        fields = cleaned_data.get('fields') or []
+        if role and role != 'admin' and not fields:
+            self.add_error(
+                'fields',
+                'Usuários que não são administradores devem ter pelo menos um campo associado.'
+            )
         
         return cleaned_data
     

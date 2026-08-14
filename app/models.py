@@ -92,6 +92,7 @@ class User(AbstractUser):
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='treasurer', verbose_name="Função")
     fields = models.ManyToManyField(Field, blank=True, verbose_name="Campos")
+    is_owner = models.BooleanField(default=False, verbose_name="Administrador Principal")
     password_changed = models.BooleanField(default=False, verbose_name="Senha Alterada")
 
     USERNAME_FIELD = 'email'

@@ -98,15 +98,15 @@ class ChurchAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['email', 'first_name', 'last_name', 'role', 'get_fields_display', 'is_active']
-    list_filter = ['role', 'fields', 'is_active']
+    list_display = ['email', 'first_name', 'last_name', 'role', 'is_owner', 'get_fields_display', 'is_active']
+    list_filter = ['role', 'is_owner', 'fields', 'is_active']
     search_fields = ['first_name', 'last_name', 'email']
     ordering = ['email']
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Informações Pessoais', {'fields': ('first_name', 'last_name')}),
-        ('Permissões', {'fields': ('role', 'fields', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Permissões', {'fields': ('role', 'fields', 'is_owner', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Datas importantes', {'fields': ('last_login', 'date_joined')}),
     )
     

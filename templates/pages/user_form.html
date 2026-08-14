@@ -182,8 +182,7 @@
                             </div>
                         </div>
                         
-                        {% if user_obj %}
-                        <!-- Seção de campos - apenas para edição -->
+                        <!-- Seção de campos -->
                         <div class="col-12">
                             <div class="mb-3">
                                 <h6 class="mb-3">
@@ -227,20 +226,6 @@
                                 </small>
                             </div>
                         </div>
-                        {% else %}
-                        <!-- Informação para novos usuários -->
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-info-circle-fill me-2"></i>
-                                    <div>
-                                        <strong>Informação:</strong> Os campos serão associados ao usuário após a criação. 
-                                        Você poderá editar o usuário posteriormente para definir os campos de acesso.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
                     
                     <div class="d-flex gap-2 justify-content-end">
