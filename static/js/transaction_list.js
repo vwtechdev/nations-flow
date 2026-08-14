@@ -455,7 +455,7 @@ function renderTransactions(transactions) {
                         <th>Pastor</th>
                         <th>Valor</th>
                         <th>Descrição</th>
-                        <th>Usuário</th>
+                        ${canSeeUser ? '<th>Usuário</th>' : ''}
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -493,7 +493,7 @@ function renderTransactions(transactions) {
                     R$ ${transaction.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td>${truncateText(transaction.desc)}</td>
-                <td>${transaction.user_name || '-'}</td>
+                ${canSeeUser ? `<td>${transaction.user_name || '-'}</td>` : ''}
                 <td>
                     ${transaction.proof ? 
                         `<button type="button" class="btn btn-sm btn-outline-success me-1" 
