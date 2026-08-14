@@ -2,6 +2,8 @@
 {% load static %}
 {% load dashboard_filters %}
 
+{% block top_page_btn %}{% include 'includes/top_page_btn.html' %}{% endblock %}
+
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
 {% endblock %}

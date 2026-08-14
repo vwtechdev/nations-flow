@@ -263,10 +263,9 @@
         </div>
     </div>
 
-    <!-- Top Page Button -->
-    <button class="top-page-btn" id="topPageBtn" title="Voltar ao Topo" style="display: none;">
-        <i class="bi bi-arrow-up"></i>
-    </button>
+    <!-- Top Page Button (apenas em páginas de listagem via block top_page_btn) -->
+    {% block top_page_btn %}
+    {% endblock %}
 
     <!-- Floating Action Button -->
     {% if user.is_treasurer or user.is_supervisor %}

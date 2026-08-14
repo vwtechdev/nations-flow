@@ -1,6 +1,8 @@
 {% extends 'pages/index.html' %}
 {% load static %}
 
+{% block top_page_btn %}{% include 'includes/top_page_btn.html' %}{% endblock %}
+
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/filters_form.css' %}">
 {% endblock %}
