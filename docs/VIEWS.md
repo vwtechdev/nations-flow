@@ -83,7 +83,7 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
 - **Retorno**: JSON
 - **Funcionalidade**:
   - API AJAX para paginação de transações
-  - Retorna dados paginados (50 por página)
+  - Retorna dados paginados (10/20/50 por página via `?per_page=`, padrão 20)
   - Inclui totais e informações de paginação
 
 #### `transaction_summary_api(request)`

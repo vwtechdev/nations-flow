@@ -24,6 +24,7 @@ O Nations Flow expõe várias APIs para comunicação AJAX e integração. As AP
 - `shepherd` (int, opcional): ID do pastor
 - `user` (int, opcional): ID do usuário (apenas admin)
 - `page` (int, opcional): Número da página (padrão: 1)
+- `per_page` (int, opcional): Itens por página, um de `10`, `20` ou `50` (padrão: 20; valores inválidos caem para 20)
 
 **Resposta JSON:**
 ```json

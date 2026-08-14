@@ -928,7 +928,12 @@ def transaction_list_api(request):
     
     # Paginação
     page = int(request.GET.get('page', 1))
-    per_page = 50
+    try:
+        per_page = int(request.GET.get('per_page', 20))
+    except (TypeError, ValueError):
+        per_page = 20
+    if per_page not in (10, 20, 50):
+        per_page = 20
     start = (page - 1) * per_page
     end = start + per_page
     

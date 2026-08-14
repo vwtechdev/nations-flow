@@ -1,5 +1,7 @@
 // Variáveis globais para paginação
 let currentPage = 1;
+let currentPerPage = 20;
+const PER_PAGE_STORAGE_KEY = 'per_page_transaction_list';
 let currentFilters = {};
 const FILTER_STORAGE_KEY = 'filters_transaction_list';
 
@@ -127,6 +129,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Inicializar itens por página (URL > localStorage > 50)
+    function initPerPage() {
+        const select = document.getElementById('perPageSelect');
+        let value = 20;
+        const urlValue = new URLSearchParams(window.location.search).get('per_page');
+        if (urlValue && [10, 20, 50].includes(Number(urlValue))) {
+            value = Number(urlValue);
+        } else {
+            const saved = localStorage.getItem(PER_PAGE_STORAGE_KEY);
+            if (saved && [10, 20, 50].includes(Number(saved))) {
+                value = Number(saved);
+            }
+        }
+        currentPerPage = value;
+        if (select) select.value = String(value);
+    }
+    initPerPage();
+
+    // Handler para mudança de itens por página
+    const perPageSelect = document.getElementById('perPageSelect');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', function() {
+            currentPerPage = Number(this.value);
+            try {
+                localStorage.setItem(PER_PAGE_STORAGE_KEY, String(currentPerPage));
+            } catch (e) {}
+            currentPage = 1;
+            loadTransactions();
+        });
+    }
+
     loadTransactions();
     updateExportButton();
     
@@ -251,7 +284,6 @@ function getProofFileName(fileUrl) {
 // Tornar a função global para ser chamada por outros scripts
 window.loadTransactions = function() {
     const transactionsTable = document.getElementById('transactionsTable');
-    const paginationContainer = document.getElementById('paginationContainer');
     
     // Mostrar loading
     transactionsTable.innerHTML = `
@@ -310,7 +342,7 @@ window.loadTransactions = function() {
     const queryString = queryParams.join('&');
     
     // Fazer requisição AJAX
-    fetch(`/transactions/api/?${queryString}&page=${currentPage}`)
+    fetch(`/transactions/api/?${queryString}&page=${currentPage}&per_page=${currentPerPage}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -321,13 +353,6 @@ window.loadTransactions = function() {
             renderPagination(data.pagination);
             updateTotals(data.totals);
             saveFiltersToStorage();
-            
-            // Mostrar paginação se houver mais de uma página
-            if (data.pagination.total_pages > 1) {
-                paginationContainer.style.display = 'block';
-            } else {
-                paginationContainer.style.display = 'none';
-            }
         })
         .catch(error => {
             transactionsTable.innerHTML = `
@@ -654,66 +679,45 @@ function renderTransactions(transactions) {
 // Função para renderizar paginação
 function renderPagination(pagination) {
     const paginationList = document.getElementById('paginationList');
+    const paginationHeader = document.getElementById('paginationHeader');
+    const pageInfo = document.getElementById('pageInfo');
     
     if (!pagination || pagination.total_pages <= 1) {
-        paginationList.innerHTML = '';
+        if (paginationList) paginationList.innerHTML = '';
+        if (paginationHeader) paginationHeader.classList.add('d-none');
         return;
     }
     
-    let paginationHTML = '';
+    if (paginationHeader) paginationHeader.classList.remove('d-none');
+    if (pageInfo) pageInfo.textContent = `Página ${pagination.current_page} de ${pagination.total_pages}`;
     
-    // Botão Primeira
-    if (pagination.has_previous) {
-        paginationHTML += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="goToPage(1); return false;">
-                    Primeira
-                </a>
-            </li>
-        `;
-    }
+    const firstDisabled = !pagination.has_previous;
+    const prevDisabled = !pagination.has_previous;
+    const nextDisabled = !pagination.has_next;
+    const lastDisabled = !pagination.has_next;
     
-    // Botão Anterior
-    if (pagination.has_previous) {
-        paginationHTML += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="goToPage(${pagination.previous_page}); return false;">
-                    Anterior
-                </a>
-            </li>
-        `;
-    }
-    
-    // Página atual
-    paginationHTML += `
-        <li class="page-item active">
-            <span class="page-link">
-                Página ${pagination.current_page} de ${pagination.total_pages}
-            </span>
+    let paginationHTML = `
+        <li class="page-item ${firstDisabled ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(1); return false;" aria-label="Primeira página" ${firstDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+        </li>
+        <li class="page-item ${prevDisabled ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${pagination.previous_page}); return false;" aria-label="Página anterior" ${prevDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        <li class="page-item ${nextDisabled ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${pagination.next_page}); return false;" aria-label="Próxima página" ${nextDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        <li class="page-item ${lastDisabled ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="goToPage(${pagination.total_pages}); return false;" aria-label="Última página" ${lastDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
         </li>
     `;
-    
-    // Botão Próxima
-    if (pagination.has_next) {
-        paginationHTML += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="goToPage(${pagination.next_page}); return false;">
-                    Próxima
-                </a>
-            </li>
-        `;
-    }
-    
-    // Botão Última
-    if (pagination.has_next) {
-        paginationHTML += `
-            <li class="page-item">
-                <a class="page-link" href="#" onclick="goToPage(${pagination.total_pages}); return false;">
-                    Última
-                </a>
-            </li>
-        `;
-    }
     
     paginationList.innerHTML = paginationHTML;
 }
