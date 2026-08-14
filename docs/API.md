@@ -532,7 +532,7 @@ As APIs aplicam filtros automaticamente baseados no role do usuário:
 
 - **Admin**: Todos os dados
 - **Tesoureiro**: Apenas seus dados
-- **Supervisor**: Seus dados + dados de tesoureiros dos mesmos campos
+- **Supervisor**: Seus dados + dados de tesoureiros e supervisores dos mesmos campos
 
 ### Verificação de Permissões
 

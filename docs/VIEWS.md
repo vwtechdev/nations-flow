@@ -114,7 +114,7 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
 - **Funcionalidade**:
   - Visualização somente leitura
   - Verifica acesso baseado em role
-  - Supervisor pode ver transações de tesoureiros dos mesmos campos
+  - Supervisor pode ver transações de tesoureiros e supervisores dos mesmos campos
 
 #### `transaction_edit(request, pk)`
 - **Rota**: `/transactions/<pk>/edit/`
@@ -409,7 +409,7 @@ Todas requerem `@admin_required`.
   - Retorna QuerySet de transações baseado no role
   - **Admin**: Todas as transações
   - **Tesoureiro**: Apenas suas próprias transações
-  - **Supervisor**: Suas transações + transações de tesoureiros dos mesmos campos
+  - **Supervisor**: Suas transações + transações de tesoureiros e supervisores dos mesmos campos
   - **Outros**: QuerySet vazio
 
 ---

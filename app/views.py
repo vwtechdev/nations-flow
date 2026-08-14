@@ -41,7 +41,8 @@ def get_transactions_for_user(user):
     
     - Admin: Todas as transações
     - Tesoureiro: Apenas suas próprias transações
-    - Supervisor: Suas próprias transações + transações de tesoureiros que compartilham campos
+    - Supervisor: Suas próprias transações + transações de tesoureiros e
+      supervisores que compartilham campos
     """
     if user.is_admin():
         return Transaction.objects.all()
@@ -66,18 +67,63 @@ def get_transactions_for_user(user):
             fields__in=supervisor_fields
         ).distinct().values_list('id', flat=True)
         
-        # Retornar: transações próprias + transações de tesoureiros em igrejas dos campos do supervisor
+        # Obter outros supervisores que compartilham pelo menos um campo
+        supervisor_ids = User.objects.filter(
+            role='supervisor',
+            fields__in=supervisor_fields
+        ).exclude(id=user.id).distinct().values_list('id', flat=True)
+        
+        # Retornar: transações próprias + transações de tesoureiros e
+        # supervisores em igrejas dos campos do supervisor
         # Nota: Q já está importado no início do arquivo
         return Transaction.objects.filter(
             Q(user=user) |  # Suas próprias transações
             Q(
                 user_id__in=treasurer_ids,
                 church__in=supervisor_churches
-            )  # Transações de tesoureiros dos mesmos campos
+            ) |  # Transações de tesoureiros dos mesmos campos
+            Q(
+                user_id__in=supervisor_ids,
+                church__in=supervisor_churches
+            )  # Transações de supervisores dos mesmos campos
         ).distinct()
     
     else:
         return Transaction.objects.none()
+
+
+def filter_transactions_by_selected_users(queryset, request, selected_users):
+    """Aplica o filtro por usuário respeitando o papel do usuário logado:
+    - Admin: pode filtrar por qualquer usuário
+    - Supervisor: apenas por ele mesmo, tesoureiros e supervisores dos mesmos campos
+    - Tesoureiro: não filtra por usuário (vê apenas as próprias transações)
+    """
+    if not selected_users:
+        return queryset
+
+    if request.user.is_admin():
+        return queryset.filter(user_id__in=selected_users)
+
+    if request.user.is_supervisor():
+        supervisor_fields = request.user.fields.all()
+        if not supervisor_fields.exists():
+            return queryset
+        allowed_user_ids = list(User.objects.filter(
+            Q(id=request.user.id) |  # O próprio supervisor
+            Q(role='treasurer', fields__in=supervisor_fields) |  # Tesoureiros dos mesmos campos
+            Q(role='supervisor', fields__in=supervisor_fields)  # Supervisores dos mesmos campos
+        ).distinct().values_list('id', flat=True))
+        valid_users = []
+        for uid in selected_users:
+            try:
+                if int(uid) in allowed_user_ids:
+                    valid_users.append(uid)
+            except (TypeError, ValueError):
+                continue
+        if valid_users:
+            return queryset.filter(user_id__in=valid_users)
+
+    return queryset
 
 # Views de Autenticação
 @never_cache
@@ -315,9 +361,9 @@ def index(request):
     if selected_shepherds:
         filtered_transactions = filtered_transactions.filter(church__shepherd_id__in=selected_shepherds)
     
-    # Filtro por usuário (múltiplas seleções, apenas para administradores)
-    if selected_users and request.user.is_admin():
-        filtered_transactions = filtered_transactions.filter(user_id__in=selected_users)
+    # Filtro por usuário (múltiplas seleções, respeitando o papel do usuário)
+    if selected_users:
+        filtered_transactions = filter_transactions_by_selected_users(filtered_transactions, request, selected_users)
     
     # Calcular totais
     total_transactions = filtered_transactions.count()
@@ -465,8 +511,8 @@ def index(request):
             month_transactions = month_transactions.filter(church_id__in=selected_churches)
         if selected_shepherds:
             month_transactions = month_transactions.filter(church__shepherd_id__in=selected_shepherds)
-        if selected_users and request.user.is_admin():
-            month_transactions = month_transactions.filter(user_id__in=selected_users)
+        if selected_users:
+            month_transactions = filter_transactions_by_selected_users(month_transactions, request, selected_users)
         month_income = month_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         month_expense = month_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
 
@@ -509,7 +555,7 @@ def index(request):
     if selected_shepherds:
         names = list(Shepherd.objects.filter(id__in=selected_shepherds).values_list('name', flat=True))
         active_filters.append(('Pastores', names))
-    if selected_users and request.user.is_admin():
+    if selected_users:
         users_qs = User.objects.filter(id__in=selected_users).exclude(email=settings.SYSTEM_HIDDEN_EMAIL)
         names = [u.get_full_name() or u.username for u in users_qs]
         active_filters.append(('Usuários', names))
@@ -626,21 +672,9 @@ def transaction_list(request):
     if selected_shepherds:
         transactions = transactions.filter(church__shepherd_id__in=selected_shepherds)
     
-    # Filtro por usuário (múltiplas seleções, para administradores e supervisores)
+    # Filtro por usuário (múltiplas seleções, respeitando o papel do usuário)
     if selected_users:
-        if request.user.is_admin():
-            transactions = transactions.filter(user_id__in=selected_users)
-        elif request.user.is_supervisor():
-            # Supervisor só pode filtrar por usuários que ele pode ver (ele mesmo ou tesoureiros dos mesmos campos)
-            supervisor_fields = request.user.fields.all()
-            if supervisor_fields.exists():
-                allowed_user_ids = User.objects.filter(
-                    Q(id=request.user.id) |  # O próprio supervisor
-                    Q(role='treasurer', fields__in=supervisor_fields)  # Tesoureiros dos mesmos campos
-                ).distinct().values_list('id', flat=True)
-                valid_users = [uid for uid in selected_users if int(uid) in allowed_user_ids]
-                if valid_users:
-                    transactions = transactions.filter(user_id__in=valid_users)
+        transactions = filter_transactions_by_selected_users(transactions, request, selected_users)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -667,12 +701,14 @@ def transaction_list(request):
             churches = Church.objects.filter(is_active=True, field__in=request.user.fields.all())
             shepherds = Shepherd.objects.filter(is_active=True, church__field__in=request.user.fields.all()).distinct()
             
-            # Para Supervisor, incluir usuários que ele pode ver (ele mesmo e tesoureiros dos mesmos campos)
+            # Para Supervisor, incluir usuários que ele pode ver (ele mesmo,
+            # tesoureiros e supervisores dos mesmos campos)
             if request.user.is_supervisor():
                 supervisor_fields = request.user.fields.all()
                 users = User.objects.filter(
                     Q(id=request.user.id) |  # O próprio supervisor
-                    Q(role='treasurer', fields__in=supervisor_fields)  # Tesoureiros dos mesmos campos
+                    Q(role='treasurer', fields__in=supervisor_fields) |  # Tesoureiros dos mesmos campos
+                    Q(role='supervisor', fields__in=supervisor_fields)  # Supervisores dos mesmos campos
                 ).distinct().exclude(email=settings.SYSTEM_HIDDEN_EMAIL).order_by('first_name', 'last_name')
             else:
                 users = User.objects.none()
@@ -851,8 +887,8 @@ def transaction_list_api(request):
         transactions = transactions.filter(church__shepherd_id__in=selected_shepherds)
         print(f"DEBUG API - Após filtro de pastores: {transactions.count()} transações")
     
-    if selected_users and request.user.is_admin():
-        transactions = transactions.filter(user_id__in=selected_users)
+    if selected_users:
+        transactions = filter_transactions_by_selected_users(transactions, request, selected_users)
     
     # Calcular totais
     total_transactions = transactions.count()
@@ -1025,8 +1061,8 @@ def transaction_summary_api(request):
             filtered = filtered.filter(church_id__in=selected_churches)
         if selected_shepherds:
             filtered = filtered.filter(church__shepherd_id__in=selected_shepherds)
-        if selected_users and request.user.is_admin():
-            filtered = filtered.filter(user_id__in=selected_users)
+        if selected_users:
+            filtered = filter_transactions_by_selected_users(filtered, request, selected_users)
     except Exception as e:
         import traceback
         print(f"Erro ao aplicar filtros na API de resumo: {e}")
@@ -1138,8 +1174,8 @@ def transaction_summary_api(request):
             month_qs = month_qs.filter(church_id__in=selected_churches)
         if selected_shepherds:
             month_qs = month_qs.filter(church__shepherd_id__in=selected_shepherds)
-        if selected_users and request.user.is_admin():
-            month_qs = month_qs.filter(user_id__in=selected_users)
+        if selected_users:
+            month_qs = filter_transactions_by_selected_users(month_qs, request, selected_users)
         month_income = month_qs.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
         month_expense = month_qs.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
         monthly_data.append({
@@ -1247,12 +1283,13 @@ def transaction_view(request, pk):
     if not request.user.is_admin():
         # Supervisor e Tesoureiro: verificar se têm acesso
         if request.user.is_supervisor():
-            # Supervisor pode ver suas próprias transações ou de tesoureiros dos mesmos campos
+            # Supervisor pode ver suas próprias transações, de tesoureiros e
+            # de outros supervisores dos mesmos campos
             supervisor_fields = request.user.fields.all()
             can_view = (
                 transaction.user == request.user or  # Sua própria transação
                 (
-                    transaction.user.role == 'treasurer' and
+                    transaction.user.role in ('treasurer', 'supervisor') and
                     transaction.user.fields.filter(id__in=supervisor_fields.values_list('id', flat=True)).exists() and
                     supervisor_fields.filter(id=transaction.church.field.id).exists()
                 )
@@ -1983,8 +2020,8 @@ def transaction_export_pdf(request):
         transactions = transactions.filter(church__shepherd_id__in=selected_shepherds)
         print(f"DEBUG - Após filtro de pastores: {transactions.count()} transações")
     
-    if selected_users and request.user.is_admin():
-        transactions = transactions.filter(user_id__in=selected_users)
+    if selected_users:
+        transactions = filter_transactions_by_selected_users(transactions, request, selected_users)
         print(f"DEBUG - Após filtro de usuários: {transactions.count()} transações")
     
     print(f"DEBUG - Total final de transações: {transactions.count()}")
@@ -2133,7 +2170,7 @@ def transaction_export_pdf(request):
         if shepherd_names:
             filters_applied.append(f"Pastor: {', '.join(shepherd_names)}")
 
-    if selected_users and request.user.is_admin():
+    if selected_users:
         user_names = [str(user) for user in User.objects.filter(id__in=selected_users)]
         if user_names:
             filters_applied.append(f"Usuário: {', '.join(user_names)}")
@@ -2375,8 +2412,8 @@ def transaction_export_xlsx(request):
         filtered_transactions = filtered_transactions.filter(church__shepherd_id__in=selected_shepherds)
         print(f"DEBUG - Após filtro de pastores: {filtered_transactions.count()} transações")
     
-    if selected_users and request.user.is_admin():
-        filtered_transactions = filtered_transactions.filter(user_id__in=selected_users)
+    if selected_users:
+        filtered_transactions = filter_transactions_by_selected_users(filtered_transactions, request, selected_users)
         print(f"DEBUG - Após filtro de usuários: {filtered_transactions.count()} transações")
     
     print(f"DEBUG - Total final de transações: {filtered_transactions.count()}")

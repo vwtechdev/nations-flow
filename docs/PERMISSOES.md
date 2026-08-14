@@ -62,6 +62,7 @@ O Nations Flow implementa um sistema de permissões baseado em **roles (funçõe
 - Acesso intermediário entre Admin e Tesoureiro
 - Pode visualizar suas próprias transações
 - Pode visualizar transações de tesoureiros que compartilham os mesmos campos
+- Pode visualizar transações de outros supervisores que compartilham os mesmos campos
 - Não pode editar ou excluir transações
 - Acesso restrito aos campos associados
 
@@ -70,16 +71,17 @@ O Nations Flow implementa um sistema de permissões baseado em **roles (funçõe
 - ✅ Criar transações (apenas em seus campos)
 - ✅ Visualizar suas próprias transações
 - ✅ Visualizar transações de tesoureiros dos mesmos campos
+- ✅ Visualizar transações de supervisores dos mesmos campos
 - ❌ Editar transações
 - ❌ Excluir transações
-- ✅ Exportar relatórios (suas transações + tesoureiros dos mesmos campos)
+- ✅ Exportar relatórios (suas transações + tesoureiros e supervisores dos mesmos campos)
 - ❌ Gerenciar usuários, campos, igrejas, pastores, categorias
 - ❌ Logs de acesso
 - ❌ Notificações
-- ✅ Filtros limitados (pode filtrar por usuário: ele mesmo ou tesoureiros dos mesmos campos)
+- ✅ Filtros limitados (pode filtrar por usuário: ele mesmo, tesoureiros ou supervisores dos mesmos campos)
 
 **Lógica de Acesso:**
-- Supervisor vê transações de tesoureiros que:
+- Supervisor vê transações de tesoureiros e supervisores que:
   1. Têm pelo menos um campo em comum com o supervisor
   2. As transações são de igrejas dos campos compartilhados
 
@@ -226,20 +228,28 @@ def get_transactions_for_user(user):
         return Transaction.objects.filter(user=user)
     
     elif user.is_supervisor():
-        # Supervisor: suas transações + transações de tesoureiros dos mesmos campos
+        # Supervisor: suas transações + transações de tesoureiros e supervisores dos mesmos campos
         supervisor_fields = user.fields.all()
         supervisor_churches = Church.objects.filter(field__in=supervisor_fields)
         treasurer_ids = User.objects.filter(
             role='treasurer',
             fields__in=supervisor_fields
         ).distinct().values_list('id', flat=True)
+        supervisor_ids = User.objects.filter(
+            role='supervisor',
+            fields__in=supervisor_fields
+        ).exclude(id=user.id).distinct().values_list('id', flat=True)
         
         return Transaction.objects.filter(
             Q(user=user) |  # Suas próprias transações
             Q(
                 user_id__in=treasurer_ids,
                 church__in=supervisor_churches
-            )  # Transações de tesoureiros dos mesmos campos
+            ) |  # Transações de tesoureiros dos mesmos campos
+            Q(
+                user_id__in=supervisor_ids,
+                church__in=supervisor_churches
+            )  # Transações de supervisores dos mesmos campos
         ).distinct()
     
     else:
