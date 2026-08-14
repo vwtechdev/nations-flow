@@ -35,19 +35,30 @@
                 <h6 class="m-0 font-weight-bold text-primary">
                     <i class="bi bi-funnel"></i> Filtros do Dashboard
                 </h6>
+                <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm d-none d-md-inline-flex mobile-filters-toggle"
+                        data-bs-toggle="collapse" data-bs-target="#desktopFiltersCollapse"
+                        aria-expanded="true" aria-controls="desktopFiltersCollapse">
+                    <i class="bi bi-funnel"></i> Filtros
+                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1" id="desktopFilterCountBadge">{{ active_filters|length }}</span>
+                    <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
+                </button>
                 <button type="button" class="btn btn-outline-primary btn-sm d-md-none mobile-filters-toggle collapsed"
                         data-bs-toggle="collapse" data-bs-target="#mobileFiltersCollapse"
                         aria-expanded="false" aria-controls="mobileFiltersCollapse">
                     <i class="bi bi-funnel"></i> Filtros
-                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1">{{ active_filters|length }}</span>
+                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1" id="mobileFilterCountBadge">{{ active_filters|length }}</span>
                     <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
                 </button>
+                </div>
             </div>
             <div class="card-body">
                 <form method="get" id="chartFilterForm" data-filter-page="index">
                     <!-- Desktop Layout -->
-                    <div class="row d-none d-md-flex">
-                        <div class="col-md-2" id="month_filter_container">
+                    <div class="d-none d-md-block">
+                    <div class="collapse show" id="desktopFiltersCollapse">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4 col-lg-3 col-xl-2" id="month_filter_container">
                             <div class="form-floating mb-3">
                                 {% now "n" as current_month %}
                                 <select class="form-select" id="month_filter" aria-label="Mês">
@@ -69,7 +80,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input type="date" name="start_date" id="startDateFilter" class="form-control" 
                                        value="{{ selected_start_date|default:'' }}">
@@ -78,7 +89,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input type="date" name="end_date" id="endDateFilter" class="form-control" 
                                        value="{{ selected_end_date|default:'' }}">
@@ -87,7 +98,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <select name="type" id="typeFilter" class="form-control">
                                     <option value="">Todos os tipos</option>
@@ -99,19 +110,20 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="mb-3">
                                 <label class="form-label text-muted small">
                                     <i class="bi bi-funnel"></i> Mais Filtros
                                 </label>
                                 <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#filtersModal">
                                     <i class="bi bi-funnel"></i> Mais Filtros
+                                    <span class="badge bg-primary mais-filtros-count ms-1 d-none">0</span>
                                 </button>
                             </div>
                         </div>
                         
-                        <div class="col-12 d-flex align-items-end">
-                            <div class="d-flex gap-2 justify-content-end w-100">
+                        <div class="col-auto col-xl-2 ms-auto mb-3">
+                            <div class="d-flex gap-2 justify-content-end">
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
@@ -120,6 +132,8 @@
                                 </a>
                             </div>
                         </div>
+                    </div>
+                    </div>
                     </div>
                     
                     <!-- Mobile Layout -->
@@ -739,17 +753,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Atualizar a contagem de filtros avançados selecionados no botão "Mais Filtros"
+    function updateMaisFiltrosBadge() {
+        const count = document.querySelectorAll('#advancedFiltersHidden input[data-filter]').length;
+        document.querySelectorAll('.mais-filtros-count').forEach(function(badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        });
+    }
+
+    // Atualizar as badges de filtros ativos (toggles desktop e mobile)
+    function updateFilterBadges() {
+        const f = readFiltersFromForm();
+        let count = 0;
+        if (f.type) count++;
+        const y = new Date().getFullYear();
+        const isDefaultRange = (!f.date_from || f.date_from === `${y}-01-01`) && (!f.date_to || f.date_to === `${y}-12-31`);
+        if (!isDefaultRange) count++;
+        count += (f.category || []).length + (f.field || []).length + (f.shepherd || []).length +
+                 (f.church || []).length + (f.user || []).length;
+        ['desktopFilterCountBadge', 'mobileFilterCountBadge'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = count;
+            el.classList.toggle('bg-primary', count > 0);
+            el.classList.toggle('bg-secondary', count === 0);
+        });
+        updateMaisFiltrosBadge();
+    }
+
     const chartFilterForm = document.getElementById('chartFilterForm');
     if (chartFilterForm) {
         chartFilterForm.addEventListener('submit', function(e) {
             e.preventDefault();
             fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+            updateFilterBadges();
             collapseMobileFilters();
         });
-        chartFilterForm.addEventListener('filters:applied', function() {
+        chartFilterForm.addEventListener('filters:applied', function(e) {
             fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+            updateFilterBadges();
             collapseMobileFilters();
         });
+
+        // Auto-aplicar ao mudar o tipo (desktop)
+        const typeDesktop = document.getElementById('typeFilter');
+        if (typeDesktop) {
+            typeDesktop.addEventListener('change', function() {
+                fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error(err));
+                updateFilterBadges();
+            });
+        }
     }
 
     // Inicial: preencher com ano atual e buscar via resumo
@@ -766,6 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (endMobile && !endMobile.value) endMobile.value = end;
 
         fetchSummaryAndRender(readFiltersFromForm()).catch(err => console.error('Erro ao carregar dados do dashboard:', err));
+        updateFilterBadges();
     })();
     
     // Sincronizar filtros desktop e mobile

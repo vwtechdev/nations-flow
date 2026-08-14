@@ -18,6 +18,14 @@
                 <h6 class="m-0 font-weight-bold text-primary">
                     <i class="bi bi-funnel"></i> Filtros das Transações
                 </h6>
+                <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm d-none d-md-inline-flex mobile-filters-toggle"
+                        data-bs-toggle="collapse" data-bs-target="#desktopFiltersCollapse"
+                        aria-expanded="true" aria-controls="desktopFiltersCollapse">
+                    <i class="bi bi-funnel"></i> Filtros
+                    <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1" id="desktopFilterCountBadge">{{ active_filters|length }}</span>
+                    <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
+                </button>
                 <button type="button" class="btn btn-outline-primary btn-sm d-md-none mobile-filters-toggle collapsed"
                         data-bs-toggle="collapse" data-bs-target="#mobileFiltersCollapse"
                         aria-expanded="false" aria-controls="mobileFiltersCollapse">
@@ -25,12 +33,15 @@
                     <span class="badge {% if active_filters %}bg-primary{% else %}bg-secondary{% endif %} ms-1" id="mobileFilterCountBadge">{{ active_filters|length }}</span>
                     <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
                 </button>
+                </div>
             </div>
             <div class="card-body">
                 <form method="get" id="chartFilterForm" data-filter-page="transaction_list">
                     <!-- Desktop Layout -->
-                    <div class="row d-none d-md-flex">
-                        <div class="col-md-2">
+                    <div class="d-none d-md-block">
+                    <div class="collapse show" id="desktopFiltersCollapse">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="text" name="search" id="searchFilter" value="{{ search }}" placeholder=" ">
                                 <label for="searchFilter">
@@ -38,7 +49,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2" id="month_filter_container">
+                        <div class="col-md-4 col-lg-3 col-xl-2" id="month_filter_container">
                             <div class="form-floating mb-3">
                                 {% now "n" as current_month %}
                                 <select class="form-select" id="month_filter" aria-label="Mês">
@@ -60,7 +71,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_from" value="{{ date_from }}" id="date_from">
                                 <label for="date_from">
@@ -68,7 +79,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_to" value="{{ date_to }}" id="date_to">
                                 <label for="date_to">
@@ -76,7 +87,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <select name="type" id="typeFilter" class="form-control">
                                     <option value="">Todos os tipos</option>
@@ -88,19 +99,20 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="mb-3">
                                 <label class="form-label text-muted small">
                                     <i class="bi bi-funnel"></i> Mais Filtros
                                 </label>
                                 <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#filtersModal">
                                     <i class="bi bi-funnel"></i> Mais Filtros
+                                    <span class="badge bg-primary mais-filtros-count ms-1 d-none">0</span>
                                 </button>
                             </div>
                         </div>
                         
-                        <div class="col-12 d-flex align-items-end">
-                            <div class="d-flex gap-2 justify-content-end w-100">
+                        <div class="col-auto ms-auto mb-3">
+                            <div class="d-flex gap-2 justify-content-end">
                                 <a href="{% url 'transaction_export_pdf' %}?{{ request.GET.urlencode }}" id="exportPdfButton" class="btn btn-danger btn-sm" style="width: 120px; background-color: #ff6b6b; border-color: #ff6b6b;">
                                     <i class="bi bi-file-pdf-fill"></i> PDF
                                 </a>
@@ -115,6 +127,8 @@
                                 </a>
                             </div>
                         </div>
+                    </div>
+                    </div>
                     </div>
                     
                     <!-- Mobile Layout -->

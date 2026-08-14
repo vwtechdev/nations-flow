@@ -164,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loadTransactions();
     updateExportButton();
+    updateMaisFiltrosBadge();
     
     // Adicionar listener para o formulário de filtros
     const filterForm = document.getElementById('chartFilterForm');
@@ -193,6 +194,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 collapseMobileFilters();
             });
         }
+
+        // Auto-aplicar ao mudar o tipo (desktop)
+        const typeDesktop = document.getElementById('typeFilter');
+        if (typeDesktop) {
+            typeDesktop.addEventListener('change', function() {
+                currentPage = 1;
+                loadTransactions();
+                updateExportButton();
+            });
+        }
         
         // Atualizar quando o modal aplicar filtros
         filterForm.addEventListener('filters:applied', function(e) {
@@ -200,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentPage = 1;
             loadTransactions();
             updateExportButton();
+            updateMaisFiltrosBadge();
             collapseMobileFilters();
         });
 
@@ -747,6 +759,19 @@ function collapseMobileFilters() {
     }
 }
 
+// Atualizar a contagem de filtros avançados selecionados no botão "Mais Filtros"
+function updateMaisFiltrosBadge() {
+    const count = document.querySelectorAll('#advancedFiltersHidden input[data-filter]').length;
+    document.querySelectorAll('.mais-filtros-count').forEach(function(badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('d-none');
+        } else {
+            badge.classList.add('d-none');
+        }
+    });
+}
+
 // Função para atualizar totais
 function updateTotals(totals) {
     // Atualizar os cards de totais se existirem
@@ -881,6 +906,13 @@ function updateFilterAlert(currentFilters) {
         badgeEl.textContent = badges.length;
         badgeEl.classList.toggle('bg-primary', badges.length > 0);
         badgeEl.classList.toggle('bg-secondary', badges.length === 0);
+    }
+
+    var desktopBadgeEl = document.getElementById('desktopFilterCountBadge');
+    if (desktopBadgeEl) {
+        desktopBadgeEl.textContent = badges.length;
+        desktopBadgeEl.classList.toggle('bg-primary', badges.length > 0);
+        desktopBadgeEl.classList.toggle('bg-secondary', badges.length === 0);
     }
 }
 

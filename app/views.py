@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
 from django.db.models import Sum, Q, Count
+from .search import search_q
 from django.db import connection
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
@@ -661,8 +662,7 @@ def transaction_list(request):
     
     if search:
         transactions = transactions.filter(
-            Q(desc__icontains=search) | 
-            Q(category__name__icontains=search)
+            search_q(search, 'desc', 'category__name')
         )
     
     if selected_categories:
@@ -878,14 +878,8 @@ def transaction_list_api(request):
     
     if search:
         transactions = transactions.filter(
-            Q(desc__icontains=search) |
-            Q(category__name__icontains=search) |
-            Q(church__name__icontains=search) |
-            Q(church__field__name__icontains=search) |
-            Q(church__shepherd__name__icontains=search) |
-            Q(user__first_name__icontains=search) |
-            Q(user__last_name__icontains=search) |
-            Q(user__username__icontains=search)
+            search_q(search, 'desc', 'category__name', 'church__name', 'church__field__name',
+                     'church__shepherd__name', 'user__first_name', 'user__last_name', 'user__username')
         )
     
     if selected_categories:
@@ -1508,7 +1502,7 @@ def category_list(request):
     # Busca por nome
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        categories = categories.filter(name__icontains=search_query)
+        categories = categories.filter(search_q(search_query, 'name'))
     
     context = {
         'title': 'Categorias',
@@ -1594,10 +1588,7 @@ def church_list(request):
     # Busca por nome ou pastor
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        churches = churches.filter(
-            Q(name__icontains=search_query) | 
-            Q(shepherd__name__icontains=search_query)
-        )
+        churches = churches.filter(search_q(search_query, 'name', 'shepherd__name'))
     
     # Filtro por campo
     field_filter = request.GET.get('field')
@@ -1718,12 +1709,7 @@ def user_list(request):
     # Busca por nome, email ou função
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        users = users.filter(
-            Q(first_name__icontains=search_query) | 
-            Q(last_name__icontains=search_query) |
-            Q(email__icontains=search_query) |
-            Q(role__icontains=search_query)
-        )
+        users = users.filter(search_q(search_query, 'first_name', 'last_name', 'email', 'role'))
     
     context = {
         'title': 'Usuários',
@@ -1883,7 +1869,7 @@ def field_list(request):
     # Busca por nome
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        fields = fields.filter(name__icontains=search_query)
+        fields = fields.filter(search_q(search_query, 'name'))
     
     context = {
         'title': 'Campos',
@@ -2052,8 +2038,7 @@ def transaction_export_pdf(request):
     # Aplicar filtros
     if search:
         transactions = transactions.filter(
-            Q(desc__icontains=search) | 
-            Q(category__name__icontains=search)
+            search_q(search, 'desc', 'category__name')
         )
         print(f"DEBUG - Após filtro de busca: {transactions.count()} transações")
     
@@ -2437,14 +2422,8 @@ def transaction_export_xlsx(request):
     filtered_transactions = base_transactions
     if search:
         transactions = transactions.filter(
-            Q(desc__icontains=search) |
-            Q(category__name__icontains=search) |
-            Q(church__name__icontains=search) |
-            Q(church__field__name__icontains=search) |
-            Q(church__shepherd__name__icontains=search) |
-            Q(user__first_name__icontains=search) |
-            Q(user__last_name__icontains=search) |
-            Q(user__username__icontains=search)
+            search_q(search, 'desc', 'category__name', 'church__name', 'church__field__name',
+                     'church__shepherd__name', 'user__first_name', 'user__last_name', 'user__username')
         )
         print(f"DEBUG - Após filtro de busca: {filtered_transactions.count()} transações")
 
@@ -2651,7 +2630,7 @@ def shepherd_list(request):
     # Busca por nome
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        shepherds = shepherds.filter(name__icontains=search_query)
+        shepherds = shepherds.filter(search_q(search_query, 'name'))
     
     context = {
         'title': 'Pastores',
@@ -2797,64 +2776,57 @@ def shepherd_history_by_shepherd(request, pk):
 @password_changed_required
 @admin_required
 def access_log_list(request):
-    """Lista de logs de acesso - apenas do primeiro ao último dia do mês atual"""
+    """Lista de logs de acesso - padrão no mês atual, mas permite filtrar por qualquer mês via date_from/date_to."""
     from datetime import date
     import calendar
-    
+
     # Calcular primeiro e último dia do mês atual
     today = date.today()
     first_day_of_month = today.replace(day=1)
     last_day_of_month = today.replace(day=calendar.monthrange(today.year, today.month)[1])
-    
-    # Filtrar logs apenas do mês atual
+
+    # Base: logs sem filtro de data inicial (aplicado abaixo conforme datas informadas)
     logs = AccessLog.objects.select_related('user').exclude(
         user__email=settings.SYSTEM_HIDDEN_EMAIL
-    ).filter(
-        created_at__date__gte=first_day_of_month,
-        created_at__date__lte=last_day_of_month
     ).order_by('-created_at')
-    
+
     # Busca por nome ou email do usuário
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        logs = logs.filter(
-            Q(user__first_name__icontains=search_query) |
-            Q(user__last_name__icontains=search_query) |
-            Q(user__email__icontains=search_query)
-        )
-    
-    # Filtro por data (opcional, mas limitado ao mês atual)
+        logs = logs.filter(search_q(search_query, 'user__first_name', 'user__last_name', 'user__email'))
+
+    # Filtro por data: padrão = mês atual; com datas explícitas, usa o range informado (sem clamp ao mês atual)
     date_from = request.GET.get('date_from', '').strip()
     date_to = request.GET.get('date_to', '').strip()
-    
+
     date_from_obj = first_day_of_month
     date_to_obj = last_day_of_month
-    
+
     if date_from:
         try:
             date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-            # Garantir que não vá antes do primeiro dia do mês
-            if date_from_obj < first_day_of_month:
-                date_from_obj = first_day_of_month
-            logs = logs.filter(created_at__date__gte=date_from_obj)
         except ValueError:
-            pass  # Ignora datas inválidas
-    
+            pass  # mantém default (primeiro dia do mês atual)
+
     if date_to:
         try:
             date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-            # Garantir que não vá depois do último dia do mês
-            if date_to_obj > last_day_of_month:
-                date_to_obj = last_day_of_month
-            logs = logs.filter(created_at__date__lte=date_to_obj)
         except ValueError:
-            pass  # Ignora datas inválidas
+            pass  # mantém default (último dia do mês atual)
+
+    logs = logs.filter(
+        created_at__date__gte=date_from_obj,
+        created_at__date__lte=date_to_obj,
+    )
     
     # Indicador de filtro de data ativo (diferente do mês corrente)
     date_filter_active = (
         date_from_obj != first_day_of_month or
         date_to_obj != last_day_of_month
     )
+    
+    # Mês selecionado (para o seletor de mês)
+    selected_month = date_from_obj.month if date_from_obj else today.month
     
     context = {
         'title': 'Logs de Acesso',
@@ -2868,6 +2840,7 @@ def access_log_list(request):
         'first_day_of_month': first_day_of_month,
         'last_day_of_month': last_day_of_month,
         'current_month': today.strftime('%B de %Y'),
+        'selected_month': selected_month,
     }
     
     return render(request, 'pages/access_log_list.html', context)
@@ -2885,10 +2858,7 @@ def notification_list(request):
     # Busca por título ou mensagem
     search_query = request.GET.get('search', '').strip()
     if search_query:
-        notifications = notifications.filter(
-            Q(title__icontains=search_query) |
-            Q(body__icontains=search_query)
-        )
+        notifications = notifications.filter(search_q(search_query, 'title', 'body'))
     
     context = {
         'title': 'Minhas Notificações',

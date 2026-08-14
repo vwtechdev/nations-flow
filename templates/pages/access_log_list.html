@@ -16,65 +16,111 @@
                 <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
             </div>
             <div class="card-body">
-                <form method="get" id="accessLogFilterForm" action="{% url 'access_log_list' %}">
+<form method="get" id="accessLogFilterForm" action="{% url 'access_log_list' %}" data-filter-page="access_log_list">
                     <!-- Desktop Layout -->
                     <div class="row d-none d-md-flex">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="search" name="search" value="{{ search_query|default:'' }}" id="search">
+                                <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search" placeholder=" ">
                                 <label for="search">
-                                    <i class="bi bi-search"></i> Pesquisar usuário
+                                    <i class="bi bi-search"></i> Pesquisar
                                 </label>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="date" name="date_from" value="{{ first_day_of_month|date:'Y-m-d' }}" id="date_from">
+                                <select class="form-select" id="month_filter" aria-label="Mês">
+                                    <option value="1" {% if selected_month == 1 %}selected{% endif %}>Janeiro</option>
+                                    <option value="2" {% if selected_month == 2 %}selected{% endif %}>Fevereiro</option>
+                                    <option value="3" {% if selected_month == 3 %}selected{% endif %}>Março</option>
+                                    <option value="4" {% if selected_month == 4 %}selected{% endif %}>Abril</option>
+                                    <option value="5" {% if selected_month == 5 %}selected{% endif %}>Maio</option>
+                                    <option value="6" {% if selected_month == 6 %}selected{% endif %}>Junho</option>
+                                    <option value="7" {% if selected_month == 7 %}selected{% endif %}>Julho</option>
+                                    <option value="8" {% if selected_month == 8 %}selected{% endif %}>Agosto</option>
+                                    <option value="9" {% if selected_month == 9 %}selected{% endif %}>Setembro</option>
+                                    <option value="10" {% if selected_month == 10 %}selected{% endif %}>Outubro</option>
+                                    <option value="11" {% if selected_month == 11 %}selected{% endif %}>Novembro</option>
+                                    <option value="12" {% if selected_month == 12 %}selected{% endif %}>Dezembro</option>
+                                </select>
+                                <label for="month_filter">
+                                    <i class="bi bi-calendar-month"></i> Mês
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" type="date" name="date_from" value="{% if date_from %}{{ date_from }}{% else %}{{ first_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_from">
                                 <label for="date_from">
                                     <i class="bi bi-calendar-date"></i> Data Inicial
                                 </label>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-3">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="date" name="date_to" value="{{ last_day_of_month|date:'Y-m-d' }}" id="date_to">
+                                <input class="form-control" type="date" name="date_to" value="{% if date_to %}{{ date_to }}{% else %}{{ last_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_to">
                                 <label for="date_to">
                                     <i class="bi bi-calendar-date"></i> Data Final
                                 </label>
                             </div>
                         </div>
-                        
+
                         <div class="col-12 d-flex align-items-end">
                             <div class="d-flex gap-2 justify-content-end w-100">
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
-                                <a href="{% url 'access_log_list' %}" class="btn btn-secondary btn-sm" style="width: 120px;">
+                                <a href="?clear" class="btn btn-secondary btn-sm" style="width: 120px;">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Mobile Layout -->
                     <div class="d-md-none">
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="search" name="search" value="{{ search_query|default:'' }}" id="search_mobile">
+                                    <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search_mobile" placeholder=" ">
                                     <label for="search_mobile">
-                                        <i class="bi bi-search"></i> Pesquisar usuário
+                                        <i class="bi bi-search"></i> Pesquisar
                                     </label>
                                 </div>
                             </div>
                         </div>
-                        
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" id="month_filter_mobile" aria-label="Mês">
+                                        <option value="1" {% if selected_month == 1 %}selected{% endif %}>Janeiro</option>
+                                        <option value="2" {% if selected_month == 2 %}selected{% endif %}>Fevereiro</option>
+                                        <option value="3" {% if selected_month == 3 %}selected{% endif %}>Março</option>
+                                        <option value="4" {% if selected_month == 4 %}selected{% endif %}>Abril</option>
+                                        <option value="5" {% if selected_month == 5 %}selected{% endif %}>Maio</option>
+                                        <option value="6" {% if selected_month == 6 %}selected{% endif %}>Junho</option>
+                                        <option value="7" {% if selected_month == 7 %}selected{% endif %}>Julho</option>
+                                        <option value="8" {% if selected_month == 8 %}selected{% endif %}>Agosto</option>
+                                        <option value="9" {% if selected_month == 9 %}selected{% endif %}>Setembro</option>
+                                        <option value="10" {% if selected_month == 10 %}selected{% endif %}>Outubro</option>
+                                        <option value="11" {% if selected_month == 11 %}selected{% endif %}>Novembro</option>
+                                        <option value="12" {% if selected_month == 12 %}selected{% endif %}>Dezembro</option>
+                                    </select>
+                                    <label for="month_filter_mobile">
+                                        <i class="bi bi-calendar-month"></i> Mês
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_from" value="{{ first_day_of_month|date:'Y-m-d' }}" id="date_from_mobile">
+                                    <input class="form-control" type="date" name="date_from" value="{% if date_from %}{{ date_from }}{% else %}{{ first_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_from_mobile">
                                     <label for="date_from_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Inicial
                                     </label>
@@ -82,17 +128,17 @@
                             </div>
                             <div class="col-6">
                                 <div class="form-floating mb-3">
-                                    <input class="form-control" type="date" name="date_to" value="{{ last_day_of_month|date:'Y-m-d' }}" id="date_to_mobile">
+                                    <input class="form-control" type="date" name="date_to" value="{% if date_to %}{{ date_to }}{% else %}{{ last_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_to_mobile">
                                     <label for="date_to_mobile">
                                         <i class="bi bi-calendar-date"></i> Data Final
                                     </label>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row g-2">
                             <div class="col-6">
-                                <a href="{% url 'access_log_list' %}" class="btn btn-secondary w-100">
+                                <a href="?clear" class="btn btn-secondary w-100">
                                     <i class="bi bi-x-circle"></i> Limpar
                                 </a>
                             </div>
@@ -253,6 +299,11 @@ document.addEventListener('DOMContentLoaded', function() {
         toDisable.forEach(el => { el.disabled = true; });
         toEnable.forEach(el => { el.disabled = false; });
     });
+
+    // Inicializar seletor de mês
+    if (typeof setupMonthFilter === 'function') {
+        setupMonthFilter(form);
+    }
 });
 </script>
 {% endblock %}

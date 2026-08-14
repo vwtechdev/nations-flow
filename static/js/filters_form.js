@@ -130,20 +130,33 @@ class FiltersForm {
                 <td>${option.text}</td>
             `;
 
+            // Permitir clicar na linha inteira para selecionar/deselecionar
+            row.addEventListener('click', (e) => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (e.target !== checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
             this.tableBody.appendChild(row);
         });
 
         this.applySearchFilter();
     }
 
+    normalizeSearchText(text) {
+        return (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
     applySearchFilter() {
         if (!this.searchInput) return;
 
-        const query = this.searchInput.value.trim().toLowerCase();
+        const query = this.normalizeSearchText(this.searchInput.value);
         const rows = Array.from(this.tableBody.querySelectorAll('tr'));
 
         rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
+            const text = this.normalizeSearchText(row.textContent);
             row.style.display = text.includes(query) ? '' : 'none';
         });
     }
@@ -289,123 +302,14 @@ class FiltersForm {
         localStorage.removeItem(`filters_${page}`);
     }
 
+    setupMonthFilter() {
+        setupMonthFilter(this.form);
+    }
+
     setupMobileSync() {
         this.syncDateFields();
         this.syncNonSelect2Fields();
         this.setupMonthFilter();
-    }
-
-    setupMonthFilter() {
-        const desktopMonth = document.getElementById('month_filter');
-        const mobileMonth = document.getElementById('month_filter_mobile');
-
-        if (!desktopMonth && !mobileMonth) return;
-
-        const form = this.form;
-        const page = (form && form.dataset.filterPage) || 'transaction_list';
-        const storageKey = `selected_month_${page}`;
-
-        function getDateFields() {
-            const fromDesktop = document.getElementById('date_from') || document.getElementById('startDateFilter');
-            const toDesktop = document.getElementById('date_to') || document.getElementById('endDateFilter');
-            const fromMobile = document.getElementById('date_from_mobile') || document.getElementById('startDateFilter_mobile');
-            const toMobile = document.getElementById('date_to_mobile') || document.getElementById('endDateFilter_mobile');
-            return { fromDesktop, toDesktop, fromMobile, toMobile };
-        }
-
-        function setDates(monthValue) {
-            if (!monthValue) return;
-            const month = Number(monthValue);
-            const year = new Date().getFullYear();
-            const lastDay = new Date(year, month, 0).getDate();
-            const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-            const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-            const fields = getDateFields();
-            if (fields.fromDesktop) fields.fromDesktop.value = firstDay;
-            if (fields.toDesktop) fields.toDesktop.value = lastDayStr;
-            if (fields.fromMobile) fields.fromMobile.value = firstDay;
-            if (fields.toMobile) fields.toMobile.value = lastDayStr;
-        }
-
-        function hasUrlDateFilter() {
-            const params = new URLSearchParams(window.location.search);
-            return params.has('date_from') || params.has('date_to') ||
-                   params.has('start_date') || params.has('end_date');
-        }
-
-        function getInitialMonth() {
-            // 1) Range inicial completo na URL → mês do range
-            const fields = getDateFields();
-            const from = fields.fromDesktop?.value || fields.fromMobile?.value;
-            const to = fields.toDesktop?.value || fields.toMobile?.value;
-            if (from && to) {
-                const parts = from.split('-').map(Number);
-                if (parts.length === 3) {
-                    const [year, month, day] = parts;
-                    const lastDay = new Date(year, month, 0).getDate();
-                    const toParts = to.split('-').map(Number);
-                    if (day === 1 && toParts[0] === year && toParts[1] === month && toParts[2] === lastDay) {
-                        return { value: String(month), source: 'range' };
-                    }
-                }
-            }
-            // 2) Mês salvo em localStorage
-            try {
-                const saved = localStorage.getItem(storageKey);
-                const num = Number(saved);
-                if (saved && num >= 1 && num <= 12) {
-                    return { value: String(num), source: 'saved' };
-                }
-            } catch (e) {}
-            // 3) Mês atual
-            return { value: String(new Date().getMonth() + 1), source: 'current' };
-        }
-
-        function setSelectValues(value) {
-            if (desktopMonth) desktopMonth.value = value;
-            if (mobileMonth) mobileMonth.value = value;
-        }
-
-        function handleMonthChange(el) {
-            if (!el.value) return;
-            setDates(el.value);
-            if (desktopMonth && mobileMonth) {
-                if (el === desktopMonth) mobileMonth.value = desktopMonth.value;
-                else if (el === mobileMonth) desktopMonth.value = mobileMonth.value;
-            }
-            try {
-                localStorage.setItem(storageKey, el.value);
-            } catch (e) {}
-            if (form) {
-                form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true, detail: { month: true } }));
-            }
-        }
-
-        [desktopMonth, mobileMonth].forEach(el => {
-            if (!el) return;
-            el.addEventListener('change', () => handleMonthChange(el));
-        });
-
-        const fields = getDateFields();
-        const dateInputs = [fields.fromDesktop, fields.toDesktop, fields.fromMobile, fields.toMobile].filter(Boolean);
-        dateInputs.forEach(input => {
-            input.addEventListener('change', () => {
-                const currentMonth = String(new Date().getMonth() + 1);
-                if (desktopMonth) desktopMonth.value = currentMonth;
-                if (mobileMonth) mobileMonth.value = currentMonth;
-            });
-        });
-
-        const { value: initialMonth, source } = getInitialMonth();
-        setSelectValues(initialMonth);
-
-        // Aplicar mês salvo na carga (sem filtro de datas na URL)
-        if (source === 'saved' && !hasUrlDateFilter() && form) {
-            setDates(initialMonth);
-            setTimeout(() => {
-                form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true, detail: { month: true } }));
-            }, 0);
-        }
     }
 
     syncDateFields() {
@@ -451,6 +355,111 @@ class FiltersForm {
                 });
             }
         });
+    }
+}
+
+// Configura o seletor de mês (Dashboard, Lista de Transações e Lista de Logs de Acesso).
+// Form deve ter data-filter-page para definir a chave do localStorage.
+function setupMonthFilter(form) {
+    const desktopMonth = document.getElementById('month_filter');
+    const mobileMonth = document.getElementById('month_filter_mobile');
+
+    if (!desktopMonth && !mobileMonth) return;
+
+    const page = (form && form.dataset.filterPage) || 'transaction_list';
+    const storageKey = `selected_month_${page}`;
+
+    function getDateFields() {
+        const fromDesktop = document.getElementById('date_from') || document.getElementById('startDateFilter');
+        const toDesktop = document.getElementById('date_to') || document.getElementById('endDateFilter');
+        const fromMobile = document.getElementById('date_from_mobile') || document.getElementById('startDateFilter_mobile');
+        const toMobile = document.getElementById('date_to_mobile') || document.getElementById('endDateFilter_mobile');
+        return { fromDesktop, toDesktop, fromMobile, toMobile };
+    }
+
+    function setDates(monthValue) {
+        if (!monthValue) return;
+        const month = Number(monthValue);
+        const year = new Date().getFullYear();
+        const lastDay = new Date(year, month, 0).getDate();
+        const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+        const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        const fields = getDateFields();
+        if (fields.fromDesktop) fields.fromDesktop.value = firstDay;
+        if (fields.toDesktop) fields.toDesktop.value = lastDayStr;
+        if (fields.fromMobile) fields.fromMobile.value = firstDay;
+        if (fields.toMobile) fields.toMobile.value = lastDayStr;
+    }
+
+    function hasUrlDateFilter() {
+        const params = new URLSearchParams(window.location.search);
+        return params.has('date_from') || params.has('date_to') ||
+               params.has('start_date') || params.has('end_date');
+    }
+
+    function getInitialMonth() {
+        // 1) Range inicial completo na URL → mês do range
+        const fields = getDateFields();
+        const from = fields.fromDesktop?.value || fields.fromMobile?.value;
+        const to = fields.toDesktop?.value || fields.toMobile?.value;
+        
+        if (from && to) {
+            const parts = from.split('-').map(Number);
+            if (parts.length === 3) {
+                const [year, month, day] = parts;
+                const lastDay = new Date(year, month, 0).getDate();
+                const toParts = to.split('-').map(Number);
+                if (day === 1 && toParts[0] === year && toParts[1] === month && toParts[2] === lastDay) {
+                    return { value: String(month), source: 'range' };
+                }
+            }
+        }
+        // 2) Mês salvo em localStorage
+        try {
+            const saved = localStorage.getItem(storageKey);
+            const num = Number(saved);
+            if (saved && num >= 1 && num <= 12) {
+                return { value: String(num), source: 'saved' };
+            }
+        } catch (e) {}
+        // 3) Mês atual
+        return { value: String(new Date().getMonth() + 1), source: 'current' };
+    }
+
+    function setSelectValues(value) {
+        if (desktopMonth) desktopMonth.value = value;
+        if (mobileMonth) mobileMonth.value = value;
+    }
+
+    function handleMonthChange(el) {
+        if (!el.value) return;
+        setDates(el.value);
+        if (desktopMonth && mobileMonth) {
+            if (el === desktopMonth) mobileMonth.value = desktopMonth.value;
+            else if (el === mobileMonth) desktopMonth.value = mobileMonth.value;
+        }
+        try {
+            localStorage.setItem(storageKey, el.value);
+        } catch (e) {}
+        if (form) {
+            form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true, detail: { month: true } }));
+        }
+    }
+
+    [desktopMonth, mobileMonth].forEach(el => {
+        if (!el) return;
+        el.addEventListener('change', () => handleMonthChange(el));
+    });
+
+    const { value: initialMonth, source } = getInitialMonth();
+    setSelectValues(initialMonth);
+
+    // Aplicar mês salvo na carga (sem filtro de datas na URL)
+    if (source === 'saved' && !hasUrlDateFilter() && form) {
+        setDates(initialMonth);
+        setTimeout(() => {
+            form.dispatchEvent(new CustomEvent('filters:applied', { bubbles: true, detail: { month: true } }));
+        }, 0);
     }
 }
 
@@ -501,3 +510,4 @@ document.addEventListener('click', function(e) {
 
 // Exportar para uso global
 window.FiltersForm = FiltersForm;
+window.setupMonthFilter = setupMonthFilter;
