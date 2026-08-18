@@ -543,7 +543,9 @@ class EmailAuthenticationForm(AuthenticationForm):
         
         # reCAPTCHA apenas em produção (DEBUG=False)
         if not settings.DEBUG:
-            self.fields['captcha'] = ReCaptchaField(widget=ReCaptchaV3)
+            # action='login' é obrigatório: sem ela o Google retorna action vazia
+            # e o django-recaptcha 4.1.0 falha com "mismatched action".
+            self.fields['captcha'] = ReCaptchaField(widget=ReCaptchaV3(action='login'))
     
     def clean_username(self):
         email = self.cleaned_data.get('username')
