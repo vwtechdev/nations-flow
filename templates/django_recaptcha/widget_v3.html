@@ -1,3 +1,7 @@
-{% include "django_recaptcha/includes/js_v3.html" %}
+{% comment %} Override do widget_v3 do django-recaptcha: o div.g-recaptcha invisível
+   ajuda o Chrome a detectar o captcha (likely_contains_captcha). O input hidden
+   vem ANTES do include js_v3 para o script executar com o input já no DOM
+   (necessário para o pré-token e o patch do form.submit). {% endcomment %}
 <div class="g-recaptcha" data-sitekey="{{ public_key }}" data-size="invisible"></div>
 <input type="hidden" name="{{ widget.name }}" id="id_captcha">
+{% include "django_recaptcha/includes/js_v3.html" %}

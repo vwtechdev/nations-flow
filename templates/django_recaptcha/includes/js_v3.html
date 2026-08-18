@@ -1,10 +1,15 @@
-{% comment %} Override do js_v3 do django-recaptcha: registra o handler de submit no
-   DOMContentLoaded (o input hidden já existe no DOM), sem depender do
-   grecaptcha.ready para registrar o listener. O ready é usado apenas no momento
-   do clique para aguardar o carregamento do api.js, evitando submit sem token
-   quando o api.js vem do cache e o callback dispara antes do DOM estar pronto.
-   O elemento alvo é o input hidden do campo (o div.g-recaptcha do widget_v3
-   serve apenas para o Chrome detectar o captcha e não autosubmeter). {% endcomment %}
+{% comment %} Override do js_v3 do django-recaptcha: o autofill de credenciais do
+   Chrome mobile chama form.submit() nativo, que NÃO dispara o evento 'submit' —
+   o POST ia sem o campo captcha ('Este campo é obrigatório'). Para resolver:
+   1) Patch de HTMLFormElement.prototype.submit escopado ao form de login: bloqueia
+      submissões sem token (autosubmit), exigindo o toque em "Entrar"; para os
+      demais forms da página repassa ao nativo.
+   2) Pré-token gerado no load e renovado a cada 90s (o token expira em ~2min):
+      fallback caso o Chrome autosubmeta mesmo assim — o input já tem token válido.
+   3) Handler de submit: gera o token no clique (grecaptcha.ready) e então submete.
+   Requer FORM_RENDERER='django.forms.renderers.TemplatesSetting' no settings e o
+   widget_v3 renderizando o input ANTES deste include (o script roda com o input
+   já no DOM, e o api.js síncrono garante que window.grecaptcha existe aqui). {% endcomment %}
 <script src="https://{{ recaptcha_domain }}/recaptcha/api.js?render={{ public_key }}{% if api_params %}&{{ api_params }}{% endif %}"></script>
 <script>
 (function () {
@@ -12,10 +17,17 @@
         return document.querySelector('input[name="{{ widget.name }}"]');
     }
 
+    var el = getElement();
+    if (!el || !el.form) return;
+
+    var form = el.form;
+    var submittingWithToken = false;
+
+    function getOptions() {
+        return {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %};
+    }
+
     function showCaptchaError() {
-        var el = getElement();
-        if (!el || !el.form) return;
-        var form = el.form;
         var msg = form.querySelector('.captcha-error-msg');
         if (!msg) {
             msg = document.createElement('div');
@@ -31,28 +43,55 @@
         msg.textContent = 'Erro ao verificar o reCAPTCHA. Verifique sua conexão e tente novamente.';
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        var el = getElement();
-        if (!el || !el.form) return;
-
-        el.form.addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            function submitWithToken() {
-                grecaptcha.execute('{{ public_key }}', {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %})
-                    .then(function (token) {
-                        el.value = token;
-                        el.form.submit();
-                    })
-                    .catch(showCaptchaError);
-            }
-
-            if (window.grecaptcha && window.grecaptcha.execute) {
-                window.grecaptcha.ready(submitWithToken);
-            } else {
-                showCaptchaError();
-            }
+    function refreshToken() {
+        if (!window.grecaptcha || !window.grecaptcha.execute) return;
+        window.grecaptcha.ready(function () {
+            window.grecaptcha.execute('{{ public_key }}', getOptions())
+                .then(function (token) { el.value = token; })
+                .catch(function () {});
         });
-    });
+    }
+
+    var nativeSubmit = HTMLFormElement.prototype.submit;
+    HTMLFormElement.prototype.submit = function () {
+        if (this === form) {
+            if (submittingWithToken) {
+                return nativeSubmit.call(this);
+            }
+            return undefined;
+        }
+        return nativeSubmit.apply(this, arguments);
+    };
+
+    refreshToken();
+    setInterval(refreshToken, 90000);
+
+    function handleSubmit(event) {
+        event.preventDefault();
+
+        function submitWithToken() {
+            window.grecaptcha.execute('{{ public_key }}', getOptions())
+                .then(function (token) {
+                    el.value = token;
+                    submittingWithToken = true;
+                    nativeSubmit.call(form);
+                })
+                .catch(showCaptchaError);
+        }
+
+        if (window.grecaptcha && window.grecaptcha.execute) {
+            window.grecaptcha.ready(submitWithToken);
+        } else {
+            showCaptchaError();
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            form.addEventListener('submit', handleSubmit);
+        });
+    } else {
+        form.addEventListener('submit', handleSubmit);
+    }
 })();
 </script>
