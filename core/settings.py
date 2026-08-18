@@ -165,10 +165,14 @@ MAX_UPLOAD_SIZE = 1 * 1024 * 1024  # 1MB em bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
 FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
 
-# HTTPS - Desabilitado pois o Traefik já lida com HTTPS
+# HTTPS - Traefik encerra HTTPS, Django recebe via X-Forwarded-Proto
 SECURE_SSL_REDIRECT = False
-CSRF_COOKIE_SECURE = False  # Desabilitado pois o Traefik lida com HTTPS
-SESSION_COOKIE_SECURE = False  # Desabilitado pois o Traefik lida com HTTPS
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Configurações para proxy reverso
 USE_X_FORWARDED_HOST = True
@@ -274,7 +278,7 @@ SYSTEM_HIDDEN_EMAIL = os.getenv("SYSTEM_HIDDEN_EMAIL", "")
 # WhatsApp group URL (exposta em templates via context processor)
 WHATSAPP_GROUP_URL = os.getenv("WHATSAPP_GROUP_URL", "")
 
-# Recptcha Google
+# Recaptcha Google
 RECAPTCHA_PUBLIC_KEY = os.getenv("RECAPTCHA_PUBLIC_KEY")
 RECAPTCHA_PRIVATE_KEY = os.getenv("RECAPTCHA_PRIVATE_KEY")
 RECAPTCHA_DOMAIN = os.getenv("RECAPTCHA_DOMAIN")

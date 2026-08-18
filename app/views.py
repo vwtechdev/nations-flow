@@ -241,8 +241,6 @@ def change_password(request):
             return render(request, 'registration/redirect_to_login.html', {
                 'title': 'Redirecionando...'
             })
-        else:
-            print(f"DEBUG: Form errors: {form.errors}")
     else:
         form = ChangePasswordForm(request.user)
     
@@ -1383,6 +1381,7 @@ def transaction_view(request, pk):
     return render(request, 'pages/transaction_form.html', context)
 
 @admin_required
+@password_changed_required
 def transaction_edit(request, pk):
     """Editar transação - Apenas administradores"""
     transaction = get_object_or_404(Transaction, pk=pk)
@@ -1807,6 +1806,7 @@ def user_delete(request, pk):
     return render(request, 'pages/user_confirm_delete.html', context)
 
 @admin_required
+@password_changed_required
 def user_reset_password(request, pk):
     """Resetar senha do usuário para a senha padrão"""
     if request.method == 'POST':
@@ -1824,7 +1824,7 @@ def user_reset_password(request, pk):
             user.save()
             return JsonResponse({'success': True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({'success': False, 'error': 'Erro ao resetar senha. Tente novamente.'})
     return JsonResponse({'success': False, 'error': 'Método não permitido'})
 
 
@@ -2557,8 +2557,8 @@ def churches_by_field_api(request, field_id):
         
     except Field.DoesNotExist:
         return JsonResponse({'error': 'Campo não encontrado'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    except Exception:
+        return JsonResponse({'error': 'Erro ao buscar igrejas. Tente novamente.'}, status=500)
 
 
 @password_changed_required
@@ -2592,8 +2592,8 @@ def shepherds_by_field_api(request, field_id):
         
     except Field.DoesNotExist:
         return JsonResponse({'error': 'Campo não encontrado'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    except Exception:
+        return JsonResponse({'error': 'Erro ao buscar pastores. Tente novamente.'}, status=500)
 
 
 @password_changed_required
@@ -2611,8 +2611,8 @@ def category_info_api(request, category_id):
         
     except Category.DoesNotExist:
         return JsonResponse({'error': 'Categoria não encontrada'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    except Exception:
+        return JsonResponse({'error': 'Erro ao buscar categoria. Tente novamente.'}, status=500)
 
 # Views de Pastores (apenas admin)
 @password_changed_required
@@ -3038,11 +3038,11 @@ def health_check(request):
             'timestamp': timezone.now().isoformat(),
             'database': 'connected'
         })
-    except Exception as e:
+    except Exception:
         return JsonResponse({
             'status': 'unhealthy',
             'timestamp': timezone.now().isoformat(),
-            'error': str(e)
+            'error': 'Erro de conexão com o banco de dados'
         }, status=500)
 
 

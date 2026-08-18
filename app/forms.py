@@ -534,20 +534,20 @@ class EmailAuthenticationForm(AuthenticationForm):
             'placeholder': 'Digite sua senha'
         })
     )
-    captcha = ReCaptchaField(widget=ReCaptchaV3)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Usar email como campo de autenticação
         self.fields['username'].label = 'Email'
         self.fields['username'].widget.attrs['placeholder'] = 'Digite seu email'
+        
+        # reCAPTCHA apenas em produção (DEBUG=False)
+        if not settings.DEBUG:
+            self.fields['captcha'] = ReCaptchaField(widget=ReCaptchaV3)
     
     def clean_username(self):
         email = self.cleaned_data.get('username')
-        if email:
-            # Verificar se o email existe no sistema
-            if not User.objects.filter(email=email).exists():
-                raise ValidationError('Email não encontrado no sistema.')
+        # Não revelar se o email existe (prevenção de enumeração de usuários)
         return email
 
 class ShepherdForm(forms.ModelForm):

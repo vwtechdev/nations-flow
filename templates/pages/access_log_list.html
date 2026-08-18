@@ -12,14 +12,34 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-funnel"></i> {{ title }}
+                </h6>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm d-none d-md-inline-flex mobile-filters-toggle"
+                            data-bs-toggle="collapse" data-bs-target="#desktopFiltersCollapse"
+                            aria-expanded="true" aria-controls="desktopFiltersCollapse">
+                        <i class="bi bi-funnel"></i> Filtros
+                        <span class="badge bg-secondary ms-1" id="desktopFilterCountBadge">0</span>
+                        <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm d-md-none mobile-filters-toggle collapsed"
+                            data-bs-toggle="collapse" data-bs-target="#mobileFiltersCollapse"
+                            aria-expanded="false" aria-controls="mobileFiltersCollapse">
+                        <i class="bi bi-funnel"></i> Filtros
+                        <span class="badge bg-secondary ms-1" id="mobileFilterCountBadge">0</span>
+                        <i class="bi bi-chevron-down mobile-filters-chevron ms-1"></i>
+                    </button>
+                </div>
             </div>
             <div class="card-body">
-<form method="get" id="accessLogFilterForm" action="{% url 'access_log_list' %}" data-filter-page="access_log_list">
+                <form method="get" id="accessLogFilterForm" action="{% url 'access_log_list' %}" data-filter-page="access_log_list">
                     <!-- Desktop Layout -->
-                    <div class="row d-none d-md-flex">
-                        <div class="col-md-3">
+                    <div class="d-none d-md-block">
+                    <div class="collapse show" id="desktopFiltersCollapse">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search" placeholder=" ">
                                 <label for="search">
@@ -28,7 +48,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <select class="form-select" id="month_filter" aria-label="Mês">
                                     <option value="1" {% if selected_month == 1 %}selected{% endif %}>Janeiro</option>
@@ -50,7 +70,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_from" value="{% if date_from %}{{ date_from }}{% else %}{{ first_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_from">
                                 <label for="date_from">
@@ -59,7 +79,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_to" value="{% if date_to %}{{ date_to }}{% else %}{{ last_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_to">
                                 <label for="date_to">
@@ -68,8 +88,8 @@
                             </div>
                         </div>
 
-                        <div class="col-12 d-flex align-items-end">
-                            <div class="d-flex gap-2 justify-content-end w-100">
+                        <div class="col-auto ms-auto mb-3">
+                            <div class="d-flex gap-2 justify-content-end">
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
@@ -79,8 +99,11 @@
                             </div>
                         </div>
                     </div>
+                    </div>
+                    </div>
 
                     <!-- Mobile Layout -->
+                    <div class="collapse" id="mobileFiltersCollapse">
                     <div class="d-md-none">
                         <div class="row">
                             <div class="col-12">
@@ -148,6 +171,7 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </form>
             </div>
@@ -289,21 +313,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('accessLogFilterForm');
     if (!form) return;
 
-    const desktopFields = form.querySelectorAll('.d-md-flex input, .d-md-flex button[type="submit"]');
+    const desktopFields = form.querySelectorAll('.d-md-block input, .d-md-block button[type="submit"]');
     const mobileFields = form.querySelectorAll('.d-md-none input');
 
-    form.addEventListener('submit', function() {
+    function submitWithVisibleFields() {
         const isDesktop = window.matchMedia('(min-width: 769px)').matches;
         const toDisable = isDesktop ? mobileFields : desktopFields;
         const toEnable = isDesktop ? desktopFields : mobileFields;
         toDisable.forEach(el => { el.disabled = true; });
         toEnable.forEach(el => { el.disabled = false; });
+        form.submit();
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitWithVisibleFields();
     });
 
     // Inicializar seletor de mês
     if (typeof setupMonthFilter === 'function') {
         setupMonthFilter(form);
     }
+    
+    // Auto-submit ao mudar o mês
+    form.addEventListener('filters:applied', function() {
+        submitWithVisibleFields();
+    });
 });
 </script>
 {% endblock %}
