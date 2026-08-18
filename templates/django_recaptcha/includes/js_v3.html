@@ -1,8 +1,8 @@
-{# Override do js_v3 do django-recaptcha: registra o handler de submit no
+{% comment %} Override do js_v3 do django-recaptcha: registra o handler de submit no
    DOMContentLoaded (o input hidden já existe no DOM), sem depender do
    grecaptcha.ready para registrar o listener. O ready é usado apenas no momento
    do clique para aguardar o carregamento do api.js, evitando submit sem token
-   quando o api.js vem do cache e o callback dispara antes do DOM estar pronto. #}
+   quando o api.js vem do cache e o callback dispara antes do DOM estar pronto. {% endcomment %}
 <script src="https://{{ recaptcha_domain }}/recaptcha/api.js?render={{ public_key }}{% if api_params %}&{{ api_params }}{% endif %}"></script>
 <script>
 (function () {
