@@ -29,16 +29,43 @@
         msg.textContent = 'Erro ao verificar o reCAPTCHA. Verifique sua conexão e tente novamente.';
     }
 
+    function executeWithToken() {
+        return grecaptcha.execute('{{ public_key }}', {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %});
+    }
+
+    function refreshToken(el) {
+        executeWithToken()
+            .then(function (token) {
+                el.value = token;
+            })
+            .catch(function () {
+                // falha silenciosa: o fluxo de submit cobre
+            });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var el = getElement();
         if (!el || !el.form) return;
+
+        // Pré-token: o autofill de credenciais do Chrome mobile submete o form
+        // via form.submit() nativo (sem disparar o evento submit). Com o campo
+        // já preenchido, o POST chega com token mesmo sem o handler rodar.
+        grecaptcha.ready(function () {
+            refreshToken(el);
+        });
+
+        // Renova o pré-token para evitar expiração (>2 min) em autofill tardio.
+        setInterval(function () {
+            if (document.visibilityState === 'visible') {
+                refreshToken(el);
+            }
+        }, 90000);
 
         el.form.addEventListener('submit', function (event) {
             event.preventDefault();
 
             function submitWithToken() {
-                var options = {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %};
-                grecaptcha.execute('{{ public_key }}', options)
+                executeWithToken()
                     .then(function (token) {
                         el.value = token;
                         el.form.submit();
