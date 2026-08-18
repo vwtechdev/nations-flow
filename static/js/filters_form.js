@@ -463,11 +463,36 @@ function setupMonthFilter(form) {
     }
 }
 
+// Persiste o estado collapsed dos filtros (desktop e mobile) por página.
+// Chaves: filters_collapsed_<page> (desktop) e filters_collapsed_mobile_<page> (mobile).
+// '0' = expandido, '1' = recolhido.
+function setupFilterCollapse(form) {
+    const page = (form && form.dataset.filterPage) || 'transaction_list';
+    const pairs = [
+        { el: document.getElementById('desktopFiltersCollapse'), key: 'filters_collapsed_' + page },
+        { el: document.getElementById('mobileFiltersCollapse'), key: 'filters_collapsed_mobile_' + page }
+    ];
+
+    pairs.forEach(function(pair) {
+        if (!pair.el) return;
+        pair.el.addEventListener('shown.bs.collapse', function() {
+            try { localStorage.setItem(pair.key, '0'); } catch (e) {}
+        });
+        pair.el.addEventListener('hidden.bs.collapse', function() {
+            try { localStorage.setItem(pair.key, '1'); } catch (e) {}
+        });
+    });
+}
+
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
     const hasFilters = document.querySelector('#chartFilterForm');
     if (hasFilters) {
         window.filtersForm = new FiltersForm();
+    }
+    const filterForm = document.querySelector('[data-filter-page]');
+    if (filterForm) {
+        setupFilterCollapse(filterForm);
     }
     if (window.location.search) {
         // Página carregou com filtros → salvar estado
@@ -511,3 +536,4 @@ document.addEventListener('click', function(e) {
 // Exportar para uso global
 window.FiltersForm = FiltersForm;
 window.setupMonthFilter = setupMonthFilter;
+window.setupFilterCollapse = setupFilterCollapse;

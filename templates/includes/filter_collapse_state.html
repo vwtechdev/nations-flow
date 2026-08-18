@@ -1,0 +1,29 @@
+<script>
+// Aplica o estado collapsed salvo dos filtros antes do primeiro paint.
+// Deve ser incluído logo após o card de filtros (dentro do block content).
+// Chaves: filters_collapsed_<page> (desktop) e filters_collapsed_mobile_<page> (mobile).
+// '0' = expandido, '1' = recolhido. Ausente = usa o default do template.
+(function() {
+    try {
+        var form = document.querySelector('[data-filter-page]');
+        if (!form) return;
+        var isDesktop = window.matchMedia('(min-width: 769px)').matches;
+        var key = 'filters_collapsed' + (isDesktop ? '' : '_mobile') + '_' + form.dataset.filterPage;
+        var saved = localStorage.getItem(key);
+        if (saved === null) return;
+
+        var id = isDesktop ? 'desktopFiltersCollapse' : 'mobileFiltersCollapse';
+        var el = document.getElementById(id);
+        if (!el) return;
+
+        var collapsed = saved === '1';
+        el.classList.toggle('show', !collapsed);
+
+        var btn = document.querySelector('[data-bs-target="#' + id + '"]');
+        if (btn) {
+            btn.classList.toggle('collapsed', collapsed);
+            btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        }
+    } catch (e) {}
+})();
+</script>
