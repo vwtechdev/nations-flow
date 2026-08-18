@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_recaptcha',
     'app',
 ]
 
@@ -272,3 +273,9 @@ SYSTEM_HIDDEN_EMAIL = os.getenv("SYSTEM_HIDDEN_EMAIL", "")
 
 # WhatsApp group URL (exposta em templates via context processor)
 WHATSAPP_GROUP_URL = os.getenv("WHATSAPP_GROUP_URL", "")
+
+# Recptcha Google
+RECAPTCHA_PUBLIC_KEY = os.getenv("RECAPTCHA_PUBLIC_KEY")
+RECAPTCHA_PRIVATE_KEY = os.getenv("RECAPTCHA_PRIVATE_KEY")
+RECAPTCHA_DOMAIN = os.getenv("RECAPTCHA_DOMAIN")
+RECAPTCHA_REQUIRED_SCORE = os.getenv("RECAPTCHA_REQUIRED_SCORE")

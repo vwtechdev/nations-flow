@@ -4,6 +4,8 @@ from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.html import format_html
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
 from datetime import date
 import re
 from .models import Church, User, Field, Shepherd, Category, Transaction, Notification, ShepherdHistory
@@ -532,6 +534,7 @@ class EmailAuthenticationForm(AuthenticationForm):
             'placeholder': 'Digite sua senha'
         })
     )
+    captcha = ReCaptchaField(widget=ReCaptchaV3)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
