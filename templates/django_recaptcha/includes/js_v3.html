@@ -1,0 +1,57 @@
+{# Override do js_v3 do django-recaptcha: registra o handler de submit no
+   DOMContentLoaded (o input hidden já existe no DOM), sem depender do
+   grecaptcha.ready para registrar o listener. O ready é usado apenas no momento
+   do clique para aguardar o carregamento do api.js, evitando submit sem token
+   quando o api.js vem do cache e o callback dispara antes do DOM estar pronto. #}
+<script src="https://{{ recaptcha_domain }}/recaptcha/api.js?render={{ public_key }}{% if api_params %}&{{ api_params }}{% endif %}"></script>
+<script>
+(function () {
+    function getElement() {
+        return document.querySelector('.g-recaptcha[data-widget-uuid="{{ widget_uuid }}"]');
+    }
+
+    function showCaptchaError() {
+        var el = getElement();
+        if (!el || !el.form) return;
+        var form = el.form;
+        var msg = form.querySelector('.captcha-error-msg');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.className = 'alert alert-danger captcha-error-msg';
+            msg.setAttribute('role', 'alert');
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && submitBtn.parentNode) {
+                submitBtn.parentNode.insertBefore(msg, submitBtn);
+            } else {
+                form.appendChild(msg);
+            }
+        }
+        msg.textContent = 'Erro ao verificar o reCAPTCHA. Verifique sua conexão e tente novamente.';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var el = getElement();
+        if (!el || !el.form) return;
+
+        el.form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            function submitWithToken() {
+                var options = {% if action %}{action: '{{ action|escape }}'}{% else %}{}{% endif %};
+                grecaptcha.execute('{{ public_key }}', options)
+                    .then(function (token) {
+                        el.value = token;
+                        el.form.submit();
+                    })
+                    .catch(showCaptchaError);
+            }
+
+            if (window.grecaptcha && window.grecaptcha.execute) {
+                window.grecaptcha.ready(submitWithToken);
+            } else {
+                showCaptchaError();
+            }
+        });
+    });
+})();
+</script>
