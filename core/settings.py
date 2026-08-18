@@ -61,8 +61,8 @@ TEMPLATES = [
 ]
 
 # Usa o settings.TEMPLATES (incluindo o DIRS do projeto) para renderizar widgets
-# de forms. Sem isso, os widgets usam um engine próprio (DjangoTemplates) que só
-# olha APP_DIRS — impedindo o override de templates como o js_v3 do reCAPTCHA.
+# de forms. Sem isso, os widgets usam um engine próprio que só olha APP_DIRS,
+# impedindo os overrides de template do reCAPTCHA.
 FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 WSGI_APPLICATION = 'core.wsgi.application'
