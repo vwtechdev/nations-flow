@@ -397,6 +397,32 @@
         </div>
     </div>
 
+    <!-- Última página visitada (apenas admin/superuser): salva o path e restaura ao reabrir o app -->
+    {% if user.is_admin or user.is_superuser %}
+    <script>
+    (function() {
+        try {
+            if (document.body.classList.contains('login-page')) return;
+
+            var currentPath = window.location.pathname;
+            var lastPage = localStorage.getItem('nf_last_page');
+            var internal = sessionStorage.getItem('nf_internal');
+
+            // Abrir o app de novo (nova aba/PWA): caiu em "/" sem marcador de navegação interna
+            if (currentPath === '/' && internal !== '1' && lastPage &&
+                lastPage !== '/' && lastPage.charAt(0) === '/' && lastPage.charAt(1) !== '/') {
+                sessionStorage.setItem('nf_internal', '1');
+                window.location.replace(lastPage);
+                return;
+            }
+
+            sessionStorage.setItem('nf_internal', '1');
+            localStorage.setItem('nf_last_page', currentPath);
+        } catch (e) {}
+    })();
+    </script>
+    {% endif %}
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
