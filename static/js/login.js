@@ -8,6 +8,12 @@ $(function() {
     // Hide sidebar on login page
     $('.sidebar').hide();
     
+    // Limpa o marcador de navegação interna: ao fazer login, o "/" vê
+    // nf_internal ausente e restaura a última página visitada (admin/superuser)
+    try {
+        sessionStorage.removeItem('nf_internal');
+    } catch (e) {}
+    
     // Get current year
     const year = new Date().getFullYear();
     
