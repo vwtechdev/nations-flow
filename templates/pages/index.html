@@ -245,6 +245,7 @@
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
         <div class="container-fluid">
+            {% block messages %}
             {% if messages %}
                 <div class="row">
                     <div class="col-12">
@@ -257,6 +258,7 @@
                     </div>
                 </div>
             {% endif %}
+            {% endblock %}
             
             {% block content %}
             {% endblock %}

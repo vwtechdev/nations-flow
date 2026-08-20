@@ -8,7 +8,7 @@
 
    IMPORTANTE: ao alterar estáticos, incremente VERSION para forçar a
    limpeza do cache antigo nos clientes (o activate só apaga chaves != VERSION). */
-const VERSION = 'nationsflow-v3';
+const VERSION = 'nationsflow-v4';
 const OFFLINE_URL = '{% static "offline.html" %}';
 
 const PRECACHE_ASSETS = [
@@ -53,13 +53,19 @@ self.addEventListener('fetch', (event) => {
     const requestUrl = new URL(event.request.url);
     if (requestUrl.origin !== self.location.origin) return;
 
+    // Páginas de autenticação nunca são cacheadas: evita servir /login/ velho
+    // ou com mensagem de sessão em navegações offline/fallback
+    const AUTH_PATHS = ['/login/', '/logout/', '/change-password/'];
+
     // Navegação: network-first com fallback offline
     if (event.request.mode === 'navigate') {
         event.respondWith(
             fetch(event.request, { cache: 'no-cache' })
                 .then((response) => {
-                    const copy = response.clone();
-                    caches.open(VERSION).then((cache) => cache.put(event.request, copy));
+                    if (response && response.status === 200 && !AUTH_PATHS.includes(requestUrl.pathname)) {
+                        const copy = response.clone();
+                        caches.open(VERSION).then((cache) => cache.put(event.request, copy));
+                    }
                     return response;
                 })
                 .catch(() => caches.match(event.request).then((cached) => cached || caches.match(OFFLINE_URL)))
