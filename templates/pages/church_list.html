@@ -79,7 +79,7 @@
                                     <th>Campo</th>
                                     <th>Endereço</th>
                                     <th>Status</th>
-                                    <th>Ações</th>
+                                    <th class="text-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -100,7 +100,7 @@
                                                 <span class="badge bg-danger">Inativo</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             <a href="{% url 'shepherd_history' church.pk %}" class="btn btn-sm btn-outline-info" title="Histórico de Pastores">
                                                 <i class="bi bi-clock-history"></i>
                                             </a>

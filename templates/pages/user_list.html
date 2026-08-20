@@ -94,7 +94,7 @@
                                     <th>Função</th>
                                     <th>Campos</th>
                                     <th>Status</th>
-                                    <th>Ações</th>
+                                    <th class="text-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -125,7 +125,7 @@
                                                 {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
                                             </span>
                                         </td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             {% if user.role == 'admin' and user != request.user and not request.user.is_owner and not request.user.is_superuser %}
                                             <a class="btn btn-sm btn-outline-primary disabled" style="cursor: not-allowed;" aria-disabled="true" tabindex="-1" title="Editar">
                                                 <i class="bi bi-pencil"></i>

@@ -50,7 +50,7 @@
                                     <th>Repetir</th>
                                     <th>Criado por</th>
                                     <th>Data de Criação</th>
-                                    <th>Ações</th>
+                                    <th class="text-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -85,7 +85,7 @@
                                         </td>
                                         <td>{{ notification.created_by.get_full_name }}</td>
                                         <td>{{ notification.created_at|date:"d/m/Y H:i" }}</td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             <button type="button" class="btn btn-sm btn-outline-info" title="Visualizar"
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#viewModal" 

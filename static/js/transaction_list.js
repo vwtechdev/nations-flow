@@ -500,7 +500,7 @@ function renderTransactions(transactions) {
                         <th>Valor</th>
                         <th>Descrição</th>
                         ${canSeeUser ? '<th>Usuário</th>' : ''}
-                        <th>Ações</th>
+                        <th class="text-nowrap">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -538,7 +538,7 @@ function renderTransactions(transactions) {
                 </td>
                 <td>${truncateText(transaction.desc)}</td>
                 ${canSeeUser ? `<td>${transaction.user_name || '-'}</td>` : ''}
-                <td>
+                <td class="text-nowrap">
                     ${transaction.proof ? 
                         `<button type="button" class="btn btn-sm btn-outline-success me-1" 
                                 data-bs-toggle="modal" 
@@ -562,7 +562,7 @@ function renderTransactions(transactions) {
                         <a href="/transactions/${transaction.id}/edit/" class="btn btn-sm btn-outline-primary me-1" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                        <button type="button" class="btn btn-sm btn-outline-danger me-1" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#deleteModal" 
                                 data-transaction-id="${transaction.id}"

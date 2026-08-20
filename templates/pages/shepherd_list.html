@@ -48,7 +48,7 @@
                                     <th>Data de Entrada</th>
                                     <th>Data de Saída</th>
                                     <th>Status</th>
-                                    <th>Ações</th>
+                                    <th class="text-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -65,7 +65,7 @@
                                                 <span class="badge bg-danger">Inativo</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             {% if shepherd.contract %}
                                             <button type="button" class="btn btn-sm btn-outline-info" title="Visualizar Contrato"
                                                     data-bs-toggle="modal" data-bs-target="#contractModal"

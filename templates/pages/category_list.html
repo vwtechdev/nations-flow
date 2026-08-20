@@ -48,7 +48,7 @@
                                     <th>Data de Criação</th>
                                     <th>Última Atualização</th>
                                     <th>Status</th>
-                                    <th>Ações</th>
+                                    <th class="text-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -75,7 +75,7 @@
                                                 <span class="badge bg-danger">Inativo</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             <a href="{% url 'category_edit' category.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
