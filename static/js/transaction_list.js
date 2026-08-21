@@ -875,9 +875,7 @@ function updateFilterAlert(currentFilters) {
     if (currentFilters.user && currentFilters.user.length > 0) {
         badges.push(['Usuários', resolveNames('user', currentFilters.user)]);
     }
-    var urlParams = new URLSearchParams(window.location.search);
-    var hasExplicitDates = urlParams.has('date_from') || urlParams.has('date_to');
-    if (hasExplicitDates && (currentFilters.date_from || currentFilters.date_to)) {
+    if (datesExplicit && (currentFilters.date_from || currentFilters.date_to)) {
         var fromStr = currentFilters.date_from ? currentFilters.date_from.split('-').reverse().join('/') : '';
         var toStr = currentFilters.date_to ? currentFilters.date_to.split('-').reverse().join('/') : '';
         badges.push(['Período', [fromStr + ' a ' + toStr]]);
