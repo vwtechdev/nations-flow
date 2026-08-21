@@ -1,30 +1,13 @@
 # Nations Flow
 
-Sistema de gestão financeira para igrejas.
+Sistema de gestão financeira para igrejas (controle de entradas/saídas, categorização, relatórios PDF/XLSX, notificações recorrentes, controle de acesso hierárquico por campos geográficos). Django 5.2 monolítico (pt-BR, `America/Sao_Paulo`). Python 3.12 web / 3.11 cron.
 
 ## 🚀 Deploy
 
 ### Opção 1: Docker (Recomendado para Produção)
 Veja as instruções abaixo para deploy com Docker.
 
-### Opção 2: PythonAnywhere (Para Testes)
-Para fazer deploy no PythonAnywhere usando SQLite, consulte o [guia completo](README_PYTHONANYWHERE.md).
-
-**Resumo rápido para PythonAnywhere:**
-```bash
-# Clone o projeto
-git clone <url-do-repositorio>
-cd nations-flow
-
-# Execute o script de setup
-python pythonanywhere_setup.py
-
-# Configure o WSGI file com o conteúdo de pythonanywhere_wsgi.py
-# Ajuste o caminho para seu usuário
-# Recarregue o web app
-```
-
-### Opção 3: Desenvolvimento Local (SQLite)
+### Opção 2: Desenvolvimento Local (SQLite)
 Para desenvolvimento local sem Docker:
 
 ```bash
@@ -38,17 +21,17 @@ source venv/bin/activate  # Linux/Mac
 # ou
 venv\Scripts\activate     # Windows
 
-# Execute o script de desenvolvimento
-python run_local.py
-```
-
-**Ou manualmente:**
-```bash
+# Instale dependências
 pip install -r requirements.txt
-python manage.py makemigrations
-python manage.py migrate
-python manage.py collectstatic --noinput
-python manage.py runserver
+
+# Execute migrações
+DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py migrate
+
+# Coletar arquivos estáticos
+DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py collectstatic --noinput
+
+# Inicie o servidor de desenvolvimento
+DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py runserver
 ```
 
 ## 📋 Instalação e Configuração (Docker)
@@ -67,24 +50,22 @@ cd nations-flow
 
 2. **Configure as variáveis de ambiente**
 ```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
+# Crie o arquivo .env com as variáveis necessárias (não existe .env.example)
+# Variáveis obrigatórias: SECRET_KEY, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD,
+# POSTGRES_HOST, POSTGRES_PORT, REDIS_HOST, REDIS_PORT, REDIS_DB, ALLOWED_HOSTS,
+# DEBUG, DEFAULT_USER_PASSWORD, SYSTEM_HIDDEN_EMAIL, BACKUP_RETENTION_DAYS,
+# RECAPTCHA_PUBLIC_KEY, RECAPTCHA_PRIVATE_KEY, RECAPTCHA_DOMAIN, RECAPTCHA_REQUIRED_SCORE
+# Opcionais: DOMAIN, WHATSAPP_GROUP_URL
 ```
 
-3. **Inicialize o banco de dados (PRIMEIRA VEZ APENAS)**
-```bash
-# Inicializar com dados padrão
-./init-db.sh
-```
-
-4. **Inicie os containers**
+3. **Inicie os containers**
 ```bash
 docker-compose up -d
 ```
 
-### Execuções Subsequentes
+> **Nota**: O banco de dados é inicializado automaticamente pelo container `web` (aplica migrações via `wait-for-database.sh` + `gunicorn`). O comando `backup_postgres` roda diariamente às 02:00 no container `cron`.
 
-Para iniciar o sistema após a primeira configuração:
+### Execuções Subsequentes
 
 ```bash
 docker-compose up -d
@@ -92,13 +73,11 @@ docker-compose up -d
 
 ### Acessos Padrão
 
-Após a primeira inicialização:
-
-- **URL**: http://localhost:8000
-- **Admin**: `admin` / `nations123456`
-- **Tesoureiro**: `tesoureiro` / `nations123456`
-
-**IMPORTANTE**: Troque as senhas no primeiro login!
+- **URL**: http://localhost:8081 (nginx na porta 8081 do host)
+- **Login**: Use as credenciais definidas nas variáveis de ambiente ou crie um superusuário:
+  ```bash
+  docker compose exec web python manage.py createsuperuser
+  ```
 
 ### Comandos Úteis
 
@@ -117,6 +96,15 @@ docker-compose exec web bash
 
 # Executar comandos Django
 docker-compose exec web python manage.py shell
+
+# Aplicar migrações
+docker-compose exec web python manage.py migrate
+
+# Processar notificações recorrentes
+docker-compose exec web python manage.py process_repeat_notifications
+
+# Testar cache Redis
+docker-compose exec web python manage.py test_cache
 ```
 
 ### Estrutura do Projeto
@@ -125,35 +113,72 @@ docker-compose exec web python manage.py shell
 nations-flow/
 ├── app/                    # Aplicação principal
 │   ├── models.py          # Modelos do banco
-│   └── views.py           # Views do sistema
-├── core/                  # Configurações Django
-│   └── settings.py        # Configurações principais
+│   ├── views.py           # Views do sistema
+│   ├── forms.py           # Formulários
+│   ├── urls.py            # URLs da app
+│   ├── decorators.py      # Decorators de permissão
+│   ├── backends.py        # Backend de autenticação por email
+│   ├── middleware.py      # Middleware customizado
+│   ├── search.py          # Busca case/acento-insensível
+│   ├── templatetags/      # Template tags customizadas
+│   ├── management/commands/  # Comandos customizados
+│   └── migrations/        # Migrações do banco
+├── core/                  # Configurações Django (projeto)
+│   ├── settings.py        # Configurações produção (PostgreSQL + Redis)
+│   ├── settings_dev.py    # Configurações dev (SQLite + LocMemCache)
+│   ├── urls.py            # URLs raiz
+│   ├── wsgi.py            # WSGI entry point
+│   └── asgi.py            # ASGI entry point
 ├── static/                # Arquivos estáticos (fonte)
 ├── templates/             # Templates HTML
 ├── staticfiles/           # Arquivos estáticos coletados (gerado em runtime)
 ├── media/                 # Uploads (gerado em runtime)
-├── docker-compose.yml     # Configuração Docker
-├── Dockerfile            # Imagem Docker
-├── deploy-nginx.sh       # Script de deploy manual
-└── README.md            # Este arquivo
+├── nginx/                 # Configuração Nginx + Dockerfile
+├── cron/                  # Container cron (Dockerfile, scripts)
+├── docker-compose.yml     # Orquestração Docker (5 serviços)
+├── Dockerfile             # Imagem web (Python 3.12)
+├── wait-for-database.sh   # Aguarda DB antes de subir
+├── deploy-nginx.sh        # Script rebuild nginx + collectstatic
+├── deploy.yml             # GitHub Actions deploy (em .github/workflows/)
+├── requirements.txt       # Dependências Python
+└── README.md              # Este arquivo
 ```
 
 ### Funcionalidades
 
 - **Dashboard**: Visão geral das finanças (apenas admin)
-- **Transações**: Gestão de entradas e saídas
-- **Categorias**: Organização das transações
-- **Campos**: Divisão geográfica
-- **Igrejas**: Unidades locais
-- **Usuários**: Gestão de acessos
+- **Transações**: CRUD de entradas/saídas com comprovante (upload ≤1MB), validação por categoria
+- **Categorias**: CRUD com flag `mandatory_proof` (anexo obrigatório)
+- **Campos**: CRUD de divisão geográfica
+- **Igrejas**: CRUD vinculado a Campo + Pastor
+- **Pastores**: CRUD independente
+- **Usuários**: CRUD com roles (admin, treasurer, supervisor) + campos (M2M)
+- **Notificações**: Criação com repetição (daily/weekly/monthly/annually), reprocessamento automático
+- **Relatórios**: Exportação PDF (ReportLab) e XLSX (openpyxl)
+- **Logs de Acesso**: Auditoria de login/logout/ações (exceto superusers)
+- **Health Check**: Endpoint `/health/`
 
-### Permissões
+### Permissões (Roles)
 
-- **Administrador**: Acesso completo ao sistema
-- **Tesoureiro**: Acesso apenas às transações
+| Role | Acesso |
+|------|--------|
+| **Administrador** | Tudo, exceto gerenciar outros admins |
+| **Administrador Principal** (`is_owner`) | Tudo + gerenciar outros admins (protegido contra outros admins) |
+| **Tesoureiro** | Apenas próprias transações |
+| **Supervisor** | Próprias + de tesoureiros e supervisores no mesmo campo |
 
 ### Banco de Dados
 
-- **Desenvolvimento/Docker**: PostgreSQL
-- **PythonAnywhere**: SQLite (configurado automaticamente)
-- **Produção**: Configurável (PostgreSQL recomendado)
+- **Produção (Docker)**: PostgreSQL 15
+- **Desenvolvimento Local**: SQLite (via `core.settings_dev`)
+- **Migrações**: Aplicadas automaticamente no deploy (`docker compose run --rm web python manage.py migrate --noinput`)
+
+### Variáveis de Ambiente Obrigatórias
+
+Veja `core/settings.py` para a lista completa. Principais:
+- `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`
+- `DEFAULT_USER_PASSWORD`, `SYSTEM_HIDDEN_EMAIL`, `BACKUP_RETENTION_DAYS`
+- `RECAPTCHA_PUBLIC_KEY`, `RECAPTCHA_PRIVATE_KEY`, `RECAPTCHA_DOMAIN`, `RECAPTCHA_REQUIRED_SCORE`
+- `DOMAIN` (para `CSRF_TRUSTED_ORIGINS`), `WHATSAPP_GROUP_URL` (opcional)

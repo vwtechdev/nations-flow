@@ -185,7 +185,7 @@ Registra logins e logouts dos usuários.
 - Many-to-One com `User`
 
 **Métodos Especiais:**
-- `save()`: Sobrescrito para não salvar logs do superuser `vwtechdev@gmail.com`
+- `save()`: Sobrescrito para não salvar logs do superuser
 - `__str__()`: Retorna usuário, ação e timestamp formatado
 
 **Ordenação:** Por timestamp (mais recente primeiro)
@@ -281,12 +281,27 @@ Shepherd
 ### Migrações Principais
 1. `0001_initial.py`: Criação inicial de todos os modelos
 2. `0002_notification_repeat_notification_repeat_frequency_and_more.py`: Adição de campos de repetição em Notification
+3. `0003_basemodel.py`: Adição do modelo abstrato `BaseModel` (created_at, updated_at, is_active, created_by, updated_by)
+4. `0004_contract_shepherdhistory.py`: Criação de `ShepherdHistory` e `ChurchContract` (modelos de auditoria)
+5. `0005_shepherd_history_backfill.py`: Backfill de dados históricos de pastores
+6. `0006_alter_church_contract_alter_shepherd_contract_and_more.py`: Ajustes em contratos e relacionamentos
+7. `0007_alter_accesslog_options_remove_accesslog_ip_address_and_more.py`: Remoção de `ip_address` do AccessLog, ajustes de opções
+8. `0008_user_is_owner.py`: Adição do campo `is_owner` (BooleanField) ao User
+9. `0009_enable_unaccent.py`: Habilita extensão PostgreSQL `unaccent` para busca case/acento-insensível (no-op em SQLite)
 
 ### Comandos de Migração
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
+
+### Validar sem Criar
+```bash
+python manage.py makemigrations --check --dry-run
+```
+
+### Deploy Aplica Migrações Automaticamente
+Via `.github/workflows/deploy.yml`: `docker compose run --rm web python manage.py migrate --noinput`
 
 ## Auditoria
 

@@ -72,20 +72,6 @@ python manage.py process_repeat_notifications
 - Reagenda baseado em `repeat_frequency`
 - Reseta `is_read=False`
 
-### create_initial_data
-
-Cria dados iniciais do sistema.
-
-**Uso:**
-```bash
-python manage.py create_initial_data
-```
-
-**Funcionalidade:**
-- Cria categorias padrão
-- Cria campos, igrejas e pastores de exemplo
-- Cria usuários iniciais (admin, tesoureiro)
-
 ### test_cache
 
 Testa conexão com Redis.
@@ -99,6 +85,45 @@ python manage.py test_cache
 - Testa conexão com Redis
 - Testa escrita e leitura
 - Mostra informações de conexão
+
+### backup_postgres
+
+Realiza backup do PostgreSQL via pg_dump.
+
+**Uso:**
+```bash
+python manage.py backup_postgres
+```
+
+**Funcionalidade:**
+- Executa pg_dump via rede Docker
+- Salva em `/backups/` com timestamp
+- Usa variáveis de ambiente do container
+
+### cleanup_orphan_proofs
+
+Remove comprovantes órfãos em `media/proofs/`.
+
+**Uso:**
+```bash
+python manage.py cleanup_orphan_proofs
+```
+
+**Funcionalidade:**
+- Varre `media/proofs/` e remove arquivos não referenciados por nenhuma `Transaction`
+
+### random_data_dev
+
+Popula o banco com dados aleatórios (apenas desenvolvimento).
+
+**Uso:**
+```bash
+python manage.py random_data_dev
+```
+
+**Funcionalidade:**
+- Cria campos, igrejas, pastores, categorias, usuários, transações, notificações aleatórios
+- **Gitignored** — não existe em produção
 
 ## Comandos Docker
 
@@ -158,13 +183,15 @@ docker-compose exec -T db psql -U postgres nationsflow < backup.sql
 # 1. Clone e configure
 git clone <repo>
 cd nations-flow
-cp .env.example .env
-# Edite .env
 
-# 2. Inicialize banco (primeira vez)
-./init-db.sh
+# 2. Crie o arquivo .env com as variáveis obrigatórias (não existe .env.example)
+# SECRET_KEY, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST,
+# POSTGRES_PORT, REDIS_HOST, REDIS_PORT, REDIS_DB, ALLOWED_HOSTS, DEBUG,
+# DEFAULT_USER_PASSWORD, SYSTEM_HIDDEN_EMAIL, BACKUP_RETENTION_DAYS,
+# RECAPTCHA_PUBLIC_KEY, RECAPTCHA_PRIVATE_KEY, RECAPTCHA_DOMAIN, RECAPTCHA_REQUIRED_SCORE
+# Opcionais: DOMAIN, WHATSAPP_GROUP_URL
 
-# 3. Inicie containers
+# 3. Inicie containers (banco inicializado automaticamente via wait-for-database.sh + migrações)
 docker-compose up -d
 
 # 4. Verifique logs

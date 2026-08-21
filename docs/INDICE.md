@@ -71,7 +71,6 @@ Este diretório contém a documentação completa do sistema Nations Flow. Use e
 ### 8. [DEPLOY.md](DEPLOY.md)
 **Deploy e configuração**
 - Deploy com Docker
-- Deploy no PythonAnywhere
 - Desenvolvimento local
 - Variáveis de ambiente
 - Configuração do Nginx

@@ -328,9 +328,9 @@ if request.path.startswith('/admin/'):
 
 ## Proteções Especiais
 
-### Usuário `vwtechdev@gmail.com`
+### Usuário Protegido (`SYSTEM_HIDDEN_EMAIL`)
 
-Este usuário tem proteções especiais:
+O email definido na variável de ambiente `SYSTEM_HIDDEN_EMAIL` (ex.: `example@example.com`) tem proteções especiais:
 
 - ❌ Não aparece em listagens de usuários
 - ❌ Não pode ser editado
@@ -341,10 +341,11 @@ Este usuário tem proteções especiais:
 **Implementação:**
 ```python
 # Em views de usuários
-users = users.exclude(email='vwtechdev@gmail.com')
+from django.conf import settings
+users = users.exclude(email=settings.SYSTEM_HIDDEN_EMAIL)
 
 # Em AccessLog.save()
-if self.user.email == 'vwtechdev@gmail.com':
+if self.user.email == settings.SYSTEM_HIDDEN_EMAIL:
     return  # Não salva log
 ```
 

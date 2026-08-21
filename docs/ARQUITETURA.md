@@ -236,11 +236,12 @@ Field (Campo)
 ## Manutenção
 
 ### Tarefas Agendadas (Cron)
-- Processamento de notificações repetitivas
-- Limpeza de logs antigos (futuro)
-- Backup de banco de dados (futuro)
+- Processamento de notificações repetitivas (hourly)
+- Backup de banco de dados (diário 02:00)
 
 ### Comandos de Gerenciamento
-- `process_repeat_notifications`: Processa notificações
-- `create_initial_data`: Cria dados iniciais
+- `process_repeat_notifications`: Processa notificações recorrentes
+- `backup_postgres`: Backup do PostgreSQL
 - `test_cache`: Testa conexão com Redis
+- `cleanup_orphan_proofs`: Remove comprovantes órfãos
+- `random_data_dev`: Popula DB com dados aleatórios (dev only)
