@@ -10,6 +10,15 @@
     .mobile-cards {
         display: none !important;
     }
+    
+    /* Novas classes genéricas para listas AJAX */
+    .list-desktop {
+        display: block !important;
+    }
+    
+    .list-mobile {
+        display: none !important;
+    }
 }
 
 /* Mobile: transformar em cards */
@@ -22,6 +31,15 @@
     /* Mostrar cards no mobile */
     .mobile-cards {
         display: block;
+    }
+    
+    /* Novas classes genéricas para listas AJAX */
+    .list-desktop {
+        display: none !important;
+    }
+    
+    .list-mobile {
+        display: block !important;
     }
     
     /* Container dos cards */
