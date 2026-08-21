@@ -1,19 +1,15 @@
 /* =============================================================================
-   Search Input com Ícones Embutidos (form-floating compatível)
+   Search Input estilo transaction_list (form-floating simples)
+   O ícone fica dentro do label, não como elemento absoluto
    ============================================================================= */
 
-/* Wrapper base para search input com ícones */
 .search-input-wrapper {
-    position: relative;
     width: 100%;
 }
 
-/* Input padrão com padding para ícones */
 .search-input-wrapper .form-control {
-    padding-left: 44px;
-    padding-right: 44px;
+    /* Padding padrão do form-control, o ícone fica no label */
     transition: all 0.2s ease-in-out;
-    /* Garantir aparência de campo de busca */
     border: 1px solid #ced4da;
     background-color: #fff;
     border-radius: 0.375rem;
@@ -26,93 +22,32 @@
     outline: none;
 }
 
-/* Search icon (lupa) - lado esquerdo */
-.search-input-wrapper .search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6c757d;
-    font-size: 1.1rem;
-    pointer-events: none;
-    z-index: 3;
-    transition: color 0.2s ease-in-out;
-}
-
-/* Clear icon (X) - lado direito */
-.search-input-wrapper .clear-icon {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #adb5bd;
-    font-size: 1rem;
-    cursor: pointer;
-    z-index: 3;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease-in-out;
-    padding: 4px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    line-height: 1;
-}
-
-.search-input-wrapper .clear-icon:hover {
-    color: #dc3545;
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-.search-input-wrapper .clear-icon.visible {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Mostra clear icon quando há texto */
-.search-input-wrapper .form-control:not(:placeholder-shown) ~ .clear-icon {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Focus state para ícones */
-.search-input-wrapper .form-control:focus ~ .search-icon {
-    color: #0d6efd;
-}
-
 /* =============================================================================
-   Form-floating com ícones embutidos
-   Estrutura esperada:
-   <div class="form-floating search-input-wrapper">
-       <input class="form-control" placeholder=" " id="...">
-       <label for="...">Label</label>
-       <i class="bi bi-search search-icon"></i>
-       <button type="button" class="clear-icon" aria-label="Limpar"><i class="bi bi-x"></i></button>
+   Form-floating estilo transaction_list
+   Estrutura:
+   <div class="form-floating mb-3 search-input-wrapper">
+       <input class="form-control" type="search" placeholder=" " id="...">
+       <label for="..."><i class="bi bi-search"></i> Pesquisar</label>
    </div>
    ============================================================================= */
 
-.form-floating.search-input-wrapper {
-    position: relative;
-    /* Não usar flex-direction: column - mantém o layout padrão do form-floating */
+.search-input-wrapper.form-floating {
+    /* Layout padrão do form-floating do Bootstrap */
 }
 
-.form-floating.search-input-wrapper > .form-control {
+.search-input-wrapper.form-floating > .form-control {
     height: calc(3.5rem + 2px);
-    padding: 1rem 44px 0.5rem 44px;
+    padding: 1rem 0.75rem 0.5rem 0.75rem;
 }
 
-.form-floating.search-input-wrapper > .form-control::placeholder {
+.search-input-wrapper.form-floating > .form-control::placeholder {
     color: transparent;
 }
 
-/* Label do form-floating - posicionado pelo Bootstrap */
-.form-floating.search-input-wrapper > label {
+.search-input-wrapper.form-floating > label {
     position: absolute;
     top: 0;
-    left: 44px; /* Compensa o padding-left do input */
+    left: 0.75rem;
     height: 100%;
     padding: 1rem 0;
     pointer-events: none;
@@ -122,70 +57,28 @@
     color: #6c757d;
     font-size: .875rem;
     line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* Estados do label (controlados pelo Bootstrap via :placeholder-shown e :focus) */
-.form-floating.search-input-wrapper > .form-control:focus ~ label,
-.form-floating.search-input-wrapper > .form-control:not(:placeholder-shown) ~ label {
+.search-input-wrapper.form-floating > .form-control:focus ~ label,
+.search-input-wrapper.form-floating > .form-control:not(:placeholder-shown) ~ label {
     opacity: .65;
     transform: scale(.85) translateY(-.5rem) translateX(.15rem);
     color: #0d6efd;
 }
 
-/* Search icon dentro do form-floating */
-.form-floating.search-input-wrapper > .search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6c757d;
-    font-size: 1.1rem;
-    pointer-events: none;
-    z-index: 4;
-    transition: color 0.2s ease-in-out;
-}
-
-.form-floating.search-input-wrapper > .form-control:focus ~ .search-icon,
-.form-floating.search-input-wrapper > .form-control:not(:placeholder-shown) ~ .search-icon {
-    color: #0d6efd;
-}
-
-/* Clear icon dentro do form-floating */
-.form-floating.search-input-wrapper > .clear-icon {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #adb5bd;
+/* Ícone dentro do label */
+.search-input-wrapper.form-floating > label .search-icon {
     font-size: 1rem;
-    cursor: pointer;
-    z-index: 4;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease-in-out;
-    padding: 4px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    line-height: 1;
+    color: #6c757d;
+    flex-shrink: 0;
 }
 
-.form-floating.search-input-wrapper > .clear-icon:hover {
-    color: #dc3545;
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-.form-floating.search-input-wrapper > .clear-icon.visible {
-    opacity: 1;
-    visibility: visible;
-}
-
-.form-floating.search-input-wrapper > .form-control:not(:placeholder-shown) ~ .clear-icon {
-    opacity: 1;
-    visibility: visible;
+.search-input-wrapper.form-floating > .form-control:focus ~ label .search-icon,
+.search-input-wrapper.form-floating > .form-control:not(:placeholder-shown) ~ label .search-icon {
+    color: #0d6efd;
 }
 
 /* Container de busca genérico (sem form-floating) */

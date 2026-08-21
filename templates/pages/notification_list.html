@@ -28,13 +28,9 @@
                     <div class="col-12">
                         <div class="search-container">
                             <form method="GET" action="{% url 'notification_list' %}">
-                                <div class="search-input-wrapper form-floating">
+                                <div class="form-floating mb-3 search-input-wrapper">
                                     <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder=" " id="notificationSearch">
-                                    <label for="notificationSearch">Pesquisar</label>
-                                    <i class="bi bi-search search-icon"></i>
-                                    <button type="button" class="clear-icon" id="clearNotificationSearch" aria-label="Limpar busca" style="display:none;">
-                                        <i class="bi bi-x"></i>
-                                    </button>
+                                    <label for="notificationSearch"><i class="bi bi-search search-icon"></i> Pesquisar</label>
                                 </div>
                             </form>
                         </div>

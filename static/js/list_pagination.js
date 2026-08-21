@@ -61,27 +61,7 @@ class ListPagination {
     setupSearch() {
         const searchInput = document.getElementById(this.searchId);
         if (!searchInput) return;
-        
-        // Clear button handler
-        const clearBtnId = `clear${this.searchId.charAt(0).toUpperCase() + this.searchId.slice(1)}`;
-        const clearBtn = document.getElementById(clearBtnId);
-        if (clearBtn) {
-            clearBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                searchInput.value = '';
-                this.currentSearch = '';
-                this.currentPage = 1;
-                this.loadData();
-                clearBtn.style.display = 'none';
-                searchInput.focus();
-            });
-        }
-        
         searchInput.addEventListener('input', () => {
-            // Show/hide clear button based on input value
-            if (clearBtn) {
-                clearBtn.style.display = searchInput.value ? 'flex' : 'none';
-            }
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 this.currentSearch = searchInput.value.trim();
@@ -90,11 +70,6 @@ class ListPagination {
             }, 300);
         });
         searchInput.closest('form')?.addEventListener('submit', (e) => e.preventDefault());
-        
-        // Initialize clear button visibility
-        if (clearBtn) {
-            clearBtn.style.display = searchInput.value ? 'flex' : 'none';
-        }
     }
 
     setupPerPage() {
