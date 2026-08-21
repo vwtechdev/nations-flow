@@ -29,7 +29,7 @@
                         <div class="search-container">
                             <form method="GET" action="{% url 'shepherd_list' %}">
                                 <div class="form-floating mb-3 search-input-wrapper">
-                                    <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder=" " id="shepherdSearch">
+                                    <input type="text" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder=" " id="shepherdSearch">
                                     <label for="shepherdSearch"><i class="bi bi-search search-icon"></i> Pesquisar</label>
                                 </div>
                             </form>
