@@ -151,24 +151,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const dateTo = document.getElementById('date_to') || document.getElementById('date_to_mobile');
             if (dateTo) dateTo.value = urlParams.get('date_to');
         }
-        // Arrays: category, field, church, shepherd, user
-        ['category', 'field', 'church', 'shepherd', 'user'].forEach(name => {
-            const values = urlParams.getAll(name);
-            if (values.length > 0) {
-                const hiddenContainer = document.getElementById('advancedFiltersHidden');
-                if (hiddenContainer) {
-                    values.forEach(val => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = name;
-                        input.value = val;
-                        input.dataset.filter = name;
-                        hiddenContainer.appendChild(input);
-                    });
-                }
-            }
-        });
-        
         // Sincronizar seletor de mês com date_from/date_to
         if (urlParams.get('date_from') || urlParams.get('date_to')) {
             datesExplicit = true;
