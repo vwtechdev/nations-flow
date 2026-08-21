@@ -199,20 +199,33 @@ class ListPagination {
         if (pageInfo) pageInfo.textContent = info;
         if (pageInfoMobile) pageInfoMobile.textContent = info;
 
-        let html = '';
-        html += `<li class="page-item ${p.has_previous ? '' : 'disabled'}"><a class="page-link" href="#" data-page="1"><i class="bi bi-chevron-double-left"></i></a></li>`;
-        html += `<li class="page-item ${p.has_previous ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.previous_page || 1}"><i class="bi bi-chevron-left"></i></a></li>`;
+        const firstDisabled = !p.has_previous;
+        const prevDisabled = !p.has_previous;
+        const nextDisabled = !p.has_next;
+        const lastDisabled = !p.has_next;
 
-        let startPage = Math.max(1, p.current_page - 2);
-        let endPage = Math.min(p.total_pages, p.current_page + 2);
-        if (startPage > 1) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-        for (let i = startPage; i <= endPage; i++) {
-            html += `<li class="page-item ${i === p.current_page ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
-        }
-        if (endPage < p.total_pages) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-
-        html += `<li class="page-item ${p.has_next ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.next_page || p.total_pages}"><i class="bi bi-chevron-right"></i></a></li>`;
-        html += `<li class="page-item ${p.has_next ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.total_pages}"><i class="bi bi-chevron-double-right"></i></a></li>`;
+        let html = `
+            <li class="page-item ${firstDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="1" aria-label="Primeira página" ${firstDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item ${prevDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${p.previous_page || 1}" aria-label="Página anterior" ${prevDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item ${nextDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${p.next_page || p.total_pages}" aria-label="Próxima página" ${nextDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item ${lastDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${p.total_pages}" aria-label="Última página" ${lastDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+        `;
 
         container.innerHTML = html;
         container.querySelectorAll('a.page-link').forEach(a => {
