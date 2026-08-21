@@ -189,10 +189,7 @@ class ListPagination {
 
         if (!container) return;
 
-        if (p.total_pages <= 1) {
-            if (header) header.classList.add('d-none');
-            return;
-        }
+        // Sempre mostrar o header de paginação
         if (header) header.classList.remove('d-none');
 
         const info = `Página ${p.current_page} de ${p.total_pages}`;
