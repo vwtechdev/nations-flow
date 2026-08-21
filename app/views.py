@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, Min, Max
 from .search import search_q
 from django.db import connection
 from django.http import JsonResponse, HttpResponse
