@@ -162,13 +162,13 @@
             </div>
             <div class="card-body">
                 <div id="listPagination" data-api-url="{% url 'access_log_list_api' %}" data-list-type="access_log" data-search-id="search" data-extra-filters='{"date_from": "#date_from", "date_to": "#date_to"}'>
-                    <div class="list-desktop">
+                    <div class="list-desktop d-none d-md-block">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
                             <p class="mt-2 text-muted">Carregando logs...</p>
                         </div>
                     </div>
-                    <div class="list-mobile">
+                    <div class="list-mobile d-md-none">
                         <div class="text-center py-4">
                             <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
                             <p class="mt-2 text-muted">Carregando logs...</p>

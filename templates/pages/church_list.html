@@ -49,13 +49,13 @@
                 </form>
                 
                 <div id="listPagination" data-api-url="{% url 'church_list_api' %}" data-list-type="church" data-search-id="churchSearch" data-extra-filters='{"field": "#fieldFilter"}'>
-                    <div class="list-desktop">
+                    <div class="list-desktop d-none d-md-block">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
                             <p class="mt-2 text-muted">Carregando igrejas...</p>
                         </div>
                     </div>
-                    <div class="list-mobile">
+                    <div class="list-mobile d-md-none">
                         <div class="text-center py-4">
                             <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
                             <p class="mt-2 text-muted">Carregando igrejas...</p>

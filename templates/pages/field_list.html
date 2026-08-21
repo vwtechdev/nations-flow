@@ -40,13 +40,13 @@
                 </div>
                 
                 <div id="listPagination" data-api-url="{% url 'field_list_api' %}" data-list-type="field" data-search-id="fieldSearch">
-                    <div class="list-desktop">
+                    <div class="list-desktop d-none d-md-block">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
                             <p class="mt-2 text-muted">Carregando campos...</p>
                         </div>
                     </div>
-                    <div class="list-mobile">
+                    <div class="list-mobile d-md-none">
                         <div class="text-center py-4">
                             <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
                             <p class="mt-2 text-muted">Carregando campos...</p>
