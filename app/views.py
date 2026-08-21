@@ -3101,3 +3101,223 @@ def pwa_sw(request):
     return response
 
 
+# =============================================================================
+# Helper genérico para paginação AJAX
+# =============================================================================
+
+def _paginate_queryset(request, queryset, per_page_default=20):
+    """Helper genérico para paginação. Retorna (page_items, pagination_dict)."""
+    page = int(request.GET.get('page', 1))
+    try:
+        per_page = int(request.GET.get('per_page', per_page_default))
+    except (TypeError, ValueError):
+        per_page = per_page_default
+    if per_page not in (10, 20, 50):
+        per_page = per_page_default
+    total_items = queryset.count()
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    start = (page - 1) * per_page
+    end = start + per_page
+    pagination = {
+        'current_page': page,
+        'total_pages': total_pages,
+        'per_page': per_page,
+        'total_items': total_items,
+        'has_previous': page > 1,
+        'has_next': page < total_pages,
+        'previous_page': page - 1 if page > 1 else None,
+        'next_page': page + 1 if page < total_pages else None,
+    }
+    return queryset[start:end], pagination
+
+
+# =============================================================================
+# APIs de paginação AJAX para listas
+# =============================================================================
+
+@password_changed_required
+@admin_required
+def category_list_api(request):
+    """API para listar categorias com paginação AJAX"""
+    categories = Category.objects.all().order_by('-is_active', 'name')
+    search = request.GET.get('search', '').strip()
+    if search:
+        categories = categories.filter(search_q(search, 'name'))
+    page_items, pagination = _paginate_queryset(request, categories)
+    items_data = [{
+        'id': c.pk,
+        'name': c.name,
+        'mandatory_proof': c.mandatory_proof,
+        'created_at': c.created_at.strftime('%d/%m/%Y %H:%M'),
+        'updated_at': c.updated_at.strftime('%d/%m/%Y %H:%M'),
+        'is_active': c.is_active,
+    } for c in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+
+@password_changed_required
+@admin_required
+def field_list_api(request):
+    """API para listar campos com paginação AJAX"""
+    fields = Field.objects.annotate(
+        church_count=Count('church', distinct=True)
+    ).order_by('-is_active', 'name')
+    search = request.GET.get('search', '').strip()
+    if search:
+        fields = fields.filter(search_q(search, 'name'))
+    page_items, pagination = _paginate_queryset(request, fields)
+    items_data = [{
+        'id': f.pk,
+        'name': f.name,
+        'church_count': f.church_count,
+        'created_at': f.created_at.strftime('%d/%m/%Y %H:%M'),
+        'updated_at': f.updated_at.strftime('%d/%m/%Y %H:%M'),
+        'is_active': f.is_active,
+    } for f in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+
+@password_changed_required
+@admin_required
+def shepherd_list_api(request):
+    """API para listar pastores com paginação AJAX"""
+    shepherds = Shepherd.objects.annotate(
+        church_count=Count('shepherdhistory__church', distinct=True),
+        first_start_date=Min('shepherdhistory__start_date'),
+        last_end_date=Max('shepherdhistory__end_date'),
+    ).order_by('-is_active', 'name')
+    search = request.GET.get('search', '').strip()
+    if search:
+        shepherds = shepherds.filter(search_q(search, 'name'))
+    page_items, pagination = _paginate_queryset(request, shepherds)
+    items_data = [{
+        'id': s.pk,
+        'name': s.name,
+        'church_count': s.church_count,
+        'first_start_date': s.first_start_date.strftime('%d/%m/%Y') if s.first_start_date else None,
+        'last_end_date': s.last_end_date.strftime('%d/%m/%Y') if s.last_end_date else None,
+        'is_active': s.is_active,
+        'has_contract': bool(s.contract),
+    } for s in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+
+@password_changed_required
+@admin_required
+def church_list_api(request):
+    """API para listar igrejas com paginação AJAX"""
+    churches = Church.objects.select_related('shepherd', 'field').order_by('-is_active', 'name')
+    search = request.GET.get('search', '').strip()
+    if search:
+        churches = churches.filter(search_q(search, 'name', 'shepherd__name'))
+    field_filter = request.GET.get('field')
+    if field_filter:
+        churches = churches.filter(field_id=field_filter)
+    page_items, pagination = _paginate_queryset(request, churches)
+    items_data = [{
+        'id': c.pk,
+        'name': c.name,
+        'shepherd_name': c.shepherd.name if c.shepherd else None,
+        'field_name': c.field.name if c.field else None,
+        'address': c.address or None,
+        'is_active': c.is_active,
+    } for c in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+
+@password_changed_required
+@admin_required
+def user_list_api(request):
+    """API para listar usuários com paginação AJAX"""
+    users = User.objects.prefetch_related('fields').exclude(
+        email=settings.SYSTEM_HIDDEN_EMAIL
+    ).order_by('-is_active', 'first_name', 'last_name')
+    search = request.GET.get('search', '').strip()
+    if search:
+        users = users.filter(search_q(search, 'first_name', 'last_name', 'email', 'role'))
+    page_items, pagination = _paginate_queryset(request, users)
+    items_data = [{
+        'id': u.pk,
+        'full_name': u.get_full_name(),
+        'email': u.email,
+        'role': u.role,
+        'role_display': u.get_role_display(),
+        'fields': [{'id': f.id, 'name': f.name} for f in u.fields.all()],
+        'is_active': u.is_active,
+        'is_admin': u.role == 'admin',
+        'is_self': u.pk == request.user.pk,
+        'can_manage': _can_manage_user(request.user, u, 'edit'),
+        'can_toggle_active': _can_manage_user(request.user, u, 'toggle_active'),
+    } for u in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+
+@password_changed_required
+@admin_required
+def notification_list_api(request):
+    """API para listar notificações com paginação AJAX"""
+    notifications = Notification.objects.filter(
+        created_by=request.user
+    ).select_related('created_by').order_by('-created_at')
+    search = request.GET.get('search', '').strip()
+    if search:
+        notifications = notifications.filter(search_q(search, 'title', 'body'))
+    page_items, pagination = _paginate_queryset(request, notifications)
+    items_data = [{
+        'id': n.pk,
+        'title': n.title,
+        'body': n.body,
+        'date': n.date.strftime('%d/%m/%Y %H:%M'),
+        'is_read': n.is_read,
+        'repeat': n.repeat,
+        'repeat_frequency_display': n.get_repeat_frequency_display() if n.repeat else None,
+        'created_by_name': n.created_by.get_full_name() if n.created_by else None,
+        'created_at': n.created_at.strftime('%d/%m/%Y %H:%M'),
+    } for n in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+
+@password_changed_required
+@admin_required
+def access_log_list_api(request):
+    """API para listar logs de acesso com paginação AJAX"""
+    import calendar
+    today = date.today()
+    first_day_of_month = today.replace(day=1)
+    last_day_of_month = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+    logs = AccessLog.objects.select_related('user').exclude(
+        user__email=settings.SYSTEM_HIDDEN_EMAIL
+    ).order_by('-created_at')
+    search = request.GET.get('search', '').strip()
+    if search:
+        logs = logs.filter(search_q(search, 'user__first_name', 'user__last_name', 'user__email'))
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    date_from_obj = first_day_of_month
+    date_to_obj = last_day_of_month
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    logs = logs.filter(
+        created_at__date__gte=date_from_obj,
+        created_at__date__lte=date_to_obj,
+    )
+    page_items, pagination = _paginate_queryset(request, logs)
+    items_data = [{
+        'id': log.pk,
+        'created_at': log.created_at.strftime('%d/%m/%Y %H:%M:%S'),
+        'user_name': log.user.get_full_name() or log.user.email,
+        'description': log.description or '-',
+        'action': log.action,
+        'action_display': log.get_action_display(),
+    } for log in page_items]
+    return JsonResponse({'items': items_data, 'pagination': pagination})
+
+

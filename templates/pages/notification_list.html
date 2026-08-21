@@ -7,244 +7,78 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
+                <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
+                <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
+                        <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
+                        <select class="form-select per-page-select" aria-label="Itens por página">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <span class="small text-muted d-none d-md-inline order-2 order-md-3 page-info">Página 1 de 1</span>
+                    <ul class="pagination pagination-sm mb-0 order-3 order-md-4 pagination-list"></ul>
+                </div>
             </div>
             <div class="card-body">
-                <!-- Search Container -->
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="search-container">
                             <form method="GET" action="{% url 'notification_list' %}">
                                 <div class="form-floating">
                                     <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="notificationSearch">
-                                    <label for="notificationSearch">
-                                        <i class="bi bi-search"></i> Pesquisar
-                                    </label>
+                                    <label for="notificationSearch"><i class="bi bi-search"></i> Pesquisar</label>
                                 </div>
                             </form>
                         </div>
                     </div>
                 </div>
                 
-                {% if search_query %}
-                    <div class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-search"></i>
-                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
-                        <a href="{% url 'notification_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-x-circle"></i> Limpar busca
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if notifications %}
-                    <!-- Tabela Desktop -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="notificationsTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Título</th>
-                                    <th>Mensagem</th>
-                                    <th>Data e Hora</th>
-                                    <th>Status</th>
-                                    <th>Repetir</th>
-                                    <th>Criado por</th>
-                                    <th>Data de Criação</th>
-                                    <th class="text-nowrap">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for notification in notifications %}
-                                    <tr>
-                                        <td>{{ notification.title }}</td>
-                                        <td>
-                                            <div class="text-truncate" style="max-width: 200px;" title="{{ notification.body }}">
-                                                {{ notification.body }}
-                                            </div>
-                                        </td>
-                                        <td>{{ notification.date|date:"d/m/Y H:i" }}</td>
-                                        <td>
-                                            {% if notification.is_read %}
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check-circle"></i> Lida
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-warning">
-                                                    <i class="bi bi-exclamation-circle"></i> Não lida
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if notification.repeat %}
-                                                <span class="badge bg-info">
-                                                    <i class="bi bi-arrow-repeat"></i> {{ notification.get_repeat_frequency_display }}
-                                                </span>
-                                            {% else %}
-                                                <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ notification.created_by.get_full_name }}</td>
-                                        <td>{{ notification.created_at|date:"d/m/Y H:i" }}</td>
-                                        <td class="text-nowrap">
-                                            <button type="button" class="btn btn-sm btn-outline-info" title="Visualizar"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#viewModal" 
-                                                    data-notification-id="{{ notification.pk }}"
-                                                    data-notification-title="{{ notification.title }}"
-                                                    data-notification-body="{{ notification.body }}"
-                                                    data-notification-date="{{ notification.date|date:'d/m/Y H:i' }}"
-
-                                                    data-notification-status="{% if notification.is_read %}Lida{% else %}Não lida{% endif %}"
-                                                    data-notification-repeat="{% if notification.repeat %}{{ notification.get_repeat_frequency_display }}{% else %}Não{% endif %}"
-                                                    data-notification-created-by="{{ notification.created_by.get_full_name }}"
-                                                    data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <a href="{% url 'notification_edit' notification.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-notification-id="{{ notification.pk }}"
-                                                    data-notification-title="{{ notification.title }}"
-                                                    data-notification-date="{{ notification.date|date:'d/m/Y H:i' }}"
-                                                    data-notification-body="{{ notification.body }}">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Cards Mobile -->
-                    <div class="mobile-cards">
-                        <div class="mobile-cards-container">
-                            {% for notification in notifications %}
-                                <div class="mobile-card">
-                                    <div class="mobile-card-header">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Título:</span>
-                                            <span class="mobile-card-value">{{ notification.title }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Mensagem:</span>
-                                            <span class="mobile-card-value">{{ notification.body }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Data e Hora:</span>
-                                            <span class="mobile-card-value">{{ notification.date|date:"d/m/Y H:i" }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Status:</span>
-                                            <span class="mobile-card-value">
-                                                {% if notification.is_read %}
-                                                    <span class="badge bg-success">Lida</span>
-                                                {% else %}
-                                                    <span class="badge bg-warning">Não lida</span>
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Repetir:</span>
-                                            <span class="mobile-card-value">
-                                                {% if notification.repeat %}
-                                                    <span class="badge bg-info">
-                                                        <i class="bi bi-arrow-repeat"></i> {{ notification.get_repeat_frequency_display }}
-                                                    </span>
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Criado por:</span>
-                                            <span class="mobile-card-value">{{ notification.created_by.get_full_name }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Data de Criação:</span>
-                                            <span class="mobile-card-value">{{ notification.created_at|date:"d/m/Y H:i" }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-footer">
-                                        <button type="button" class="mobile-card-btn btn-outline-info" title="Visualizar"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#viewModal" 
-                                                data-notification-id="{{ notification.pk }}"
-                                                data-notification-title="{{ notification.title }}"
-                                                data-notification-body="{{ notification.body }}"
-                                                data-notification-date="{{ notification.date|date:'d/m/Y H:i' }}"
-                                                
-                                                data-notification-status="{% if notification.is_read %}Lida{% else %}Não lida{% endif %}"
-                                                data-notification-repeat="{% if notification.repeat %}{{ notification.get_repeat_frequency_display }}{% else %}Não{% endif %}"
-                                                data-notification-created-by="{{ notification.created_by.get_full_name }}"
-                                                data-notification-created-at="{{ notification.created_at|date:'d/m/Y H:i' }}">
-                                            <i class="bi bi-eye"></i> Visualizar
-                                        </button>
-                                        <a href="{% url 'notification_edit' notification.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
-                                            <i class="bi bi-pencil"></i> Editar
-                                        </a>
-                                        <button type="button" class="mobile-card-btn btn-outline-danger" title="Excluir"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal" 
-                                                data-notification-id="{{ notification.pk }}"
-                                                data-notification-title="{{ notification.title }}"
-                                                data-notification-date="{{ notification.date|date:'d/m/Y H:i' }}"
-                                                data-notification-body="{{ notification.body }}">
-                                            <i class="bi bi-trash"></i> Excluir
-                                        </button>
-                                    </div>
-                                </div>
-                            {% endfor %}
+                <div id="listPagination" data-api-url="{% url 'notification_list_api' %}" data-list-type="notification" data-search-id="notificationSearch">
+                    <div class="list-desktop">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando notificações...</p>
                         </div>
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
+                    <div class="list-mobile">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando notificações...</p>
+                        </div>
+                    </div>
+                    <div class="list-empty-state text-center py-4" style="display:none;">
                         <i class="bi bi-bell-slash display-1 text-muted"></i>
                         <h5 class="text-muted mt-3">Nenhuma notificação encontrada</h5>
-                        <p class="text-muted">
-                            {% if search_query %}
-                                Não foram encontradas notificações para "{{ search_query }}".
-                            {% else %}
-                                Comece criando sua primeira notificação.
-                            {% endif %}
-                        </p>
+                        <p class="text-muted">Comece criando sua primeira notificação.</p>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
-<!-- Botão Flutuante para Criar Notificação -->
 <a href="{% url 'notification_create' %}" class="floating-action-btn" title="Nova Notificação">
     <i class="bi bi-plus-lg"></i>
 </a>
 
-<!-- Modal de Confirmação de Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title text-danger" id="deleteModalLabel">
-                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
-                </h5>
+                <h5 class="modal-title text-danger" id="deleteModalLabel"><i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-3">
-                    <strong>Tem certeza que deseja excluir a notificação?</strong>
-                </p>
+                <p class="mb-3"><strong>Tem certeza que deseja excluir a notificação?</strong></p>
                 <div class="card border-warning mb-3">
                     <div class="card-body">
-                        <h6 class="card-title text-warning">
-                            <i class="bi bi-exclamation-triangle"></i> <span id="notificationTitle"></span>
-                        </h6>
+                        <h6 class="card-title text-warning"><i class="bi bi-exclamation-triangle"></i> <span id="notificationTitle"></span></h6>
                         <p class="card-text mb-1"><strong>Título:</strong> <span id="notificationTitleText"></span></p>
                         <p class="card-text mb-1"><strong>Data:</strong> <span id="notificationDate"></span></p>
                         <p class="card-text"><strong>Mensagem:</strong> <span id="notificationBody"></span></p>
@@ -256,300 +90,136 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <form id="deleteForm" method="POST" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash"></i> Confirmar Exclusão
-                    </button>
-                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Cancelar</button>
+                <form id="deleteForm" method="POST" style="display: inline;">{% csrf_token %}<button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Confirmar Exclusão</button></form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de Visualização da Notificação -->
 <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title text-info" id="viewModalLabel">
-                    <i class="bi bi-bell"></i> Visualizar Notificação
-                </h5>
+                <h5 class="modal-title text-info" id="viewModalLabel"><i class="bi bi-bell"></i> Visualizar Notificação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Token CSRF para requisições AJAX -->
                 {% csrf_token %}
-                
-                <!-- Informações Principais -->
                 <div class="row mb-4">
                     <div class="col-md-8">
                         <div class="card border-info">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-info-circle"></i> Detalhes da Notificação
-                                </h6>
-                            </div>
+                            <div class="card-header bg-info text-white"><h6 class="mb-0"><i class="bi bi-info-circle"></i> Detalhes</h6></div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-2"><strong>Título:</strong></p>
-                                        <p class="text-muted" id="viewNotificationTitle"></p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-2"><strong>Data e Hora:</strong></p>
-                                        <p class="text-muted" id="viewNotificationDate"></p>
-                                    </div>
+                                    <div class="col-md-6"><p class="mb-2"><strong>Título:</strong></p><p class="text-muted" id="viewNotificationTitle"></p></div>
+                                    <div class="col-md-6"><p class="mb-2"><strong>Data e Hora:</strong></p><p class="text-muted" id="viewNotificationDate"></p></div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-2"><strong>Status:</strong></p>
-                                        <p id="viewNotificationStatus"></p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-2"><strong>Repetir:</strong></p>
-                                        <p id="viewNotificationRepeat"></p>
-                                    </div>
+                                    <div class="col-md-6"><p class="mb-2"><strong>Status:</strong></p><p id="viewNotificationStatus"></p></div>
+                                    <div class="col-md-6"><p class="mb-2"><strong>Repetir:</strong></p><p id="viewNotificationRepeat"></p></div>
                                 </div>
-
-                                <div class="row">
-                                    <div class="col-12">
-                                        <p class="mb-2"><strong>Mensagem:</strong></p>
-                                        <div class="alert alert-light border" id="viewNotificationBody"></div>
-                                    </div>
-                                </div>
+                                <div class="row"><div class="col-12"><p class="mb-2"><strong>Mensagem:</strong></p><div class="alert alert-light border" id="viewNotificationBody"></div></div></div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-secondary">
-                            <div class="card-header bg-secondary text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-person"></i> Informações do Sistema
-                                </h6>
-                            </div>
+                            <div class="card-header bg-secondary text-white"><h6 class="mb-0"><i class="bi bi-person"></i> Sistema</h6></div>
                             <div class="card-body">
-                                <p class="mb-2"><strong>Criado por:</strong></p>
-                                <p class="text-muted" id="viewNotificationCreatedBy"></p>
-                                <p class="mb-2"><strong>Data de Criação:</strong></p>
-                                <p class="text-muted" id="viewNotificationCreatedAt"></p>
+                                <p class="mb-2"><strong>Criado por:</strong></p><p class="text-muted" id="viewNotificationCreatedBy"></p>
+                                <p class="mb-2"><strong>Data de Criação:</strong></p><p class="text-muted" id="viewNotificationCreatedAt"></p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Fechar
-                </button>
-                <button type="button" id="viewNotificationSaveStatusBtn" class="btn btn-success">
-                    <i class="bi bi-check-circle"></i> <span id="viewNotificationSaveStatusText">Marcar como Lida</span>
-                </button>
-
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Fechar</button>
+                <button type="button" id="viewNotificationSaveStatusBtn" class="btn btn-success"><i class="bi bi-check-circle"></i> <span id="viewNotificationSaveStatusText">Marcar como Lida</span></button>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block js %}
+<script src="{% static 'js/list_pagination.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Captura os dados da notificação quando o modal é aberto
     const deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const notificationId = button.getAttribute('data-notification-id');
-        const notificationTitle = button.getAttribute('data-notification-title');
-        const notificationDate = button.getAttribute('data-notification-date');
-        const notificationBody = button.getAttribute('data-notification-body');
-        
-        // Preenche os dados no modal
-        document.getElementById('notificationTitle').textContent = notificationTitle;
-        document.getElementById('notificationTitleText').textContent = notificationTitle;
-        document.getElementById('notificationDate').textContent = notificationDate;
-        document.getElementById('notificationBody').textContent = notificationBody;
-        
-        // Atualiza a action do formulário
-        document.getElementById('deleteForm').action = `/notifications/${notificationId}/delete/`;
-    });
-    
-    // Configurar modal de visualização
     const viewModal = document.getElementById('viewModal');
-    if (viewModal) {
-        viewModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const notificationId = button.getAttribute('data-notification-id');
-            const notificationTitle = button.getAttribute('data-notification-title');
-            const notificationBody = button.getAttribute('data-notification-body');
-            const notificationDate = button.getAttribute('data-notification-date');
 
-            const notificationStatus = button.getAttribute('data-notification-status');
-            const notificationRepeat = button.getAttribute('data-notification-repeat');
-            const notificationCreatedBy = button.getAttribute('data-notification-created-by');
-            const notificationCreatedAt = button.getAttribute('data-notification-created-at');
-            
-            // Preencher os dados no modal
-            document.getElementById('viewNotificationTitle').textContent = notificationTitle;
-            document.getElementById('viewNotificationBody').textContent = notificationBody;
-            document.getElementById('viewNotificationDate').textContent = notificationDate;
-
-            document.getElementById('viewNotificationCreatedBy').textContent = notificationCreatedBy;
-            document.getElementById('viewNotificationCreatedAt').textContent = notificationCreatedAt;
-            
-            // Configurar status com badge
-            const statusElement = document.getElementById('viewNotificationStatus');
-            if (notificationStatus === 'Lida') {
-                statusElement.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Lida</span>';
-            } else {
-                statusElement.innerHTML = '<span class="badge bg-warning"><i class="bi bi-exclamation-circle"></i> Não lida</span>';
-            }
-            
-            // Configurar repetição com badge
-            const repeatElement = document.getElementById('viewNotificationRepeat');
-            if (notificationRepeat && notificationRepeat !== 'Não') {
-                repeatElement.innerHTML = '<span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> ' + notificationRepeat + '</span>';
-            } else {
-                repeatElement.innerHTML = '<span class="text-muted">Não</span>';
-            }
-            
-            // Configurar texto do botão baseado no status atual
-            const saveStatusText = document.getElementById('viewNotificationSaveStatusText');
-            if (notificationStatus === 'Lida') {
-                saveStatusText.textContent = 'Marcar como Não Lida';
-            } else {
-                saveStatusText.textContent = 'Marcar como Lida';
-            }
-            
-
-            
-            // Armazenar ID da notificação e status para uso posterior
-            viewModal.setAttribute('data-notification-id', notificationId);
-            viewModal.setAttribute('data-notification-status', notificationStatus);
-        });
-        
-        // Configurar botão de salvar status
-        const saveStatusBtn = document.getElementById('viewNotificationSaveStatusBtn');
-        if (saveStatusBtn) {
-            saveStatusBtn.addEventListener('click', function() {
-                const notificationId = viewModal.getAttribute('data-notification-id');
-                
-                if (!notificationId) {
-                    alert('Erro: ID da notificação não encontrado.');
-                    return;
-                }
-                
-                // Determinar o novo status (sempre alterna o atual)
-                const currentStatus = viewModal.getAttribute('data-notification-status') || 'Não lida';
-                const newStatus = currentStatus === 'Lida' ? false : true; // false = não lida, true = lida
-                
-                // Mostrar loading no botão
-                const originalText = this.innerHTML;
-                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
-                this.disabled = true;
-                
-                // Fazer requisição AJAX para atualizar o status
-                fetch(`/notifications/${notificationId}/mark-read/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({
-                        is_read: newStatus
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {                        
-                        // Atualizar o status visual (com verificação de segurança)
-                        const statusElement = document.getElementById('viewNotificationStatus');
-                        if (statusElement) {
-                            if (newStatus) {
-                                statusElement.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Lida</span>';
-                            } else {
-                                statusElement.innerHTML = '<span class="badge bg-warning"><i class="bi bi-exclamation-circle"></i> Não lida</span>';
-                            }
-                        }
-                        
-                        // Atualizar o texto do botão (com verificação de segurança)
-                        const saveStatusText = document.getElementById('viewNotificationSaveStatusText');
-                        if (saveStatusText) {
-                            if (newStatus) {
-                                saveStatusText.textContent = 'Marcar como Não Lida';
-                            } else {
-                                saveStatusText.textContent = 'Marcar como Lida';
-                            }
-                        }
-                        
-                        // Atualizar o status armazenado no modal
-                        viewModal.setAttribute('data-notification-status', newStatus ? 'Lida' : 'Não lida');
-                        
-                        // Atualizar o botão que abriu o modal (se existir)
-                        const originalButton = document.querySelector(`[data-notification-id="${notificationId}"]`);
-                        if (originalButton) {
-                            originalButton.setAttribute('data-notification-status', newStatus ? 'Lida' : 'Não lida');
-                        }
-                        
-                        // Método direto para fechar o modal
-                        const modalElement = document.getElementById('viewModal');
-                        if (modalElement) {
-                            // Remover foco de qualquer elemento dentro do modal
-                            const focusedElement = modalElement.querySelector(':focus');
-                            if (focusedElement) {
-                                focusedElement.blur();
-                            }
-                            
-                            // Usar o atributo data-bs-dismiss diretamente
-                            const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
-                            if (closeButton) {
-                                closeButton.click();
-                            } else {
-                                // Método alternativo: remover classes do modal
-                                modalElement.classList.remove('show');
-                                modalElement.style.display = 'none';
-                                modalElement.setAttribute('aria-hidden', 'true');
-                                document.body.classList.remove('modal-open');
-                                
-                                // Remover backdrop se existir
-                                const backdrop = document.querySelector('.modal-backdrop');
-                                if (backdrop) {
-                                    backdrop.remove();
-                                }
-                            }
-                        }
-                        
-                        // Verificar se o modal foi fechado antes de recarregar
-                        const checkModalClosed = setInterval(() => {
-                            const modalElement = document.getElementById('viewModal');
-                            if (modalElement && !modalElement.classList.contains('show')) {
-                                clearInterval(checkModalClosed);
-                                window.location.reload();
-                            }
-                        }, 100);
-                        
-                        // Fallback: recarregar após 2 segundos se o modal não fechar
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
-                        
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                })
-                .finally(() => {
-                    // Restaurar botão
-                    this.innerHTML = originalText;
-                    this.disabled = false;
-                });
-            });
+    document.addEventListener('click', function(e) {
+        const delBtn = e.target.closest('.btn-delete-notification');
+        if (delBtn) {
+            document.getElementById('notificationTitle').textContent = delBtn.dataset.title;
+            document.getElementById('notificationTitleText').textContent = delBtn.dataset.title;
+            document.getElementById('notificationDate').textContent = delBtn.dataset.date;
+            document.getElementById('notificationBody').textContent = delBtn.dataset.body;
+            document.getElementById('deleteForm').action = '/notifications/' + delBtn.dataset.id + '/delete/';
+            new bootstrap.Modal(deleteModal).show();
         }
-    }
+
+        const viewBtn = e.target.closest('.btn-view-notification');
+        if (viewBtn) {
+            const id = viewBtn.dataset.id;
+            const status = viewBtn.dataset.status;
+            document.getElementById('viewNotificationTitle').textContent = viewBtn.dataset.title;
+            document.getElementById('viewNotificationBody').textContent = viewBtn.dataset.body;
+            document.getElementById('viewNotificationDate').textContent = viewBtn.dataset.date;
+            document.getElementById('viewNotificationCreatedBy').textContent = viewBtn.dataset.createdBy;
+            document.getElementById('viewNotificationCreatedAt').textContent = viewBtn.dataset.createdAt;
+
+            const statusEl = document.getElementById('viewNotificationStatus');
+            statusEl.innerHTML = status === 'Lida'
+                ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Lida</span>'
+                : '<span class="badge bg-warning"><i class="bi bi-exclamation-circle"></i> Não lida</span>';
+
+            const repeat = viewBtn.dataset.repeat;
+            const repeatEl = document.getElementById('viewNotificationRepeat');
+            repeatEl.innerHTML = (repeat && repeat !== 'Não')
+                ? '<span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> ' + repeat + '</span>'
+                : '<span class="text-muted">Não</span>';
+
+            document.getElementById('viewNotificationSaveStatusText').textContent = status === 'Lida' ? 'Marcar como Não Lida' : 'Marcar como Lida';
+            viewModal.setAttribute('data-notification-id', id);
+            viewModal.setAttribute('data-notification-status', status);
+            new bootstrap.Modal(viewModal).show();
+        }
+    });
+
+    document.getElementById('viewNotificationSaveStatusBtn').addEventListener('click', function() {
+        const id = viewModal.getAttribute('data-notification-id');
+        const currentStatus = viewModal.getAttribute('data-notification-status') || 'Não lida';
+        const newStatus = currentStatus === 'Lida' ? false : true;
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+        btn.disabled = true;
+
+        fetch('/notifications/' + id + '/mark-read/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ is_read: newStatus })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(viewModal).hide();
+                setTimeout(() => { if (window.listPagination) window.listPagination.loadData(); }, 300);
+            }
+        })
+        .catch(err => console.error('Erro:', err))
+        .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
+    });
+
+    deleteModal.addEventListener('hidden.bs.modal', function() {
+        setTimeout(() => { if (window.listPagination) window.listPagination.loadData(); }, 300);
+    });
 });
 </script>
 {% endblock %}

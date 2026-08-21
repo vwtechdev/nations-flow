@@ -30,12 +30,14 @@ urlpatterns = [
     
     # Categorias
     path('categories/', views.category_list, name='category_list'),
+    path('categories/api/', views.category_list_api, name='category_list_api'),
     path('categories/create/', views.category_create, name='category_create'),
     path('categories/<int:pk>/edit/', views.category_edit, name='category_edit'),
     path('categories/<int:pk>/delete/', views.category_delete, name='category_delete'),
     
     # Igrejas
     path('churches/', views.church_list, name='church_list'),
+    path('churches/api/', views.church_list_api, name='church_list_api'),
     path('churches/create/', views.church_create, name='church_create'),
     path('churches/<int:pk>/edit/', views.church_edit, name='church_edit'),
     path('churches/<int:pk>/delete/', views.church_delete, name='church_delete'),
@@ -43,6 +45,7 @@ urlpatterns = [
     
     # Usuários
     path('users/', views.user_list, name='user_list'),
+    path('users/api/', views.user_list_api, name='user_list_api'),
     path('users/create/', views.user_create, name='user_create'),
     path('users/<int:pk>/edit/', views.user_edit, name='user_edit'),
     path('users/<int:pk>/delete/', views.user_delete, name='user_delete'),
@@ -51,9 +54,11 @@ urlpatterns = [
     
     # Logs de Acesso
     path('access-logs/', views.access_log_list, name='access_log_list'),
+    path('access-logs/api/', views.access_log_list_api, name='access_log_list_api'),
     
     # Notificações
     path('notifications/', views.notification_list, name='notification_list'),
+    path('notifications/api/', views.notification_list_api, name='notification_list_api'),
     path('notifications/create/', views.notification_create, name='notification_create'),
     path('notifications/<int:pk>/edit/', views.notification_edit, name='notification_edit'),
     path('notifications/<int:pk>/delete/', views.notification_delete, name='notification_delete'),
@@ -62,12 +67,14 @@ urlpatterns = [
     
     # Campos
     path('fields/', views.field_list, name='field_list'),
+    path('fields/api/', views.field_list_api, name='field_list_api'),
     path('fields/create/', views.field_create, name='field_create'),
     path('fields/<int:pk>/edit/', views.field_edit, name='field_edit'),
     path('fields/<int:pk>/delete/', views.field_delete, name='field_delete'),
     
     # Pastores
     path('shepherds/', views.shepherd_list, name='shepherd_list'),
+    path('shepherds/api/', views.shepherd_list_api, name='shepherd_list_api'),
     path('shepherds/create/', views.shepherd_create, name='shepherd_create'),
     path('shepherds/<int:pk>/edit/', views.shepherd_edit, name='shepherd_edit'),
     path('shepherds/<int:pk>/delete/', views.shepherd_delete, name='shepherd_delete'),

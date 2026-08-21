@@ -7,222 +7,73 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
+                <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
+                <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
+                        <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
+                        <select class="form-select per-page-select" aria-label="Itens por página">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <span class="small text-muted d-none d-md-inline order-2 order-md-3 page-info">Página 1 de 1</span>
+                    <ul class="pagination pagination-sm mb-0 order-3 order-md-4 pagination-list"></ul>
+                </div>
             </div>
             <div class="card-body">
-                <!-- Filtros e Busca -->
                 <form method="get" id="churchFilterForm" action="{% url 'church_list' %}">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <!-- Filtro por Campo -->
                             <div class="form-floating">
-                                <select name="field" id="fieldFilter" class="form-control" onchange="this.form.submit()">
+                                <select name="field" id="fieldFilter" class="form-control">
                                     <option value="">Todos os campos</option>
                                     {% for field in fields %}
-                                        <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ field.name }}
-                                        </option>
+                                        <option value="{{ field.id }}" {% if selected_field == field.id|stringformat:"s" %}selected{% endif %}>{{ field.name }}</option>
                                     {% endfor %}
                                 </select>
-                                <label for="fieldFilter">
-                                    <i class="bi bi-geo-alt"></i> Filtrar por Campo
-                                </label>
+                                <label for="fieldFilter"><i class="bi bi-geo-alt"></i> Filtrar por Campo</label>
                             </div>
                         </div>
-                        
                         <div class="col-md-6">
-                            <!-- Busca -->
                             <div class="search-container">
                                 <div class="form-floating">
                                     <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar igrejas..." id="churchSearch">
-                                    <label for="churchSearch">
-                                        <i class="bi bi-search"></i> Pesquisar
-                                    </label>
+                                    <label for="churchSearch"><i class="bi bi-search"></i> Pesquisar</label>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </form>
                 
-                <!-- Informações do filtro -->
-                {% if selected_field_obj %}
-                    <div class="alert alert-info" role="alert">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Filtro ativo:</strong> Mostrando igrejas do campo 
-                        <strong>{{ selected_field_obj.name }}</strong>
-                        <span class="badge bg-primary ms-2">{{ churches|length }} igreja{{ churches|length|pluralize:"s" }}</span>
-                        <a href="{% url 'church_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-file-earmark-x"></i> Limpar filtro
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if search_query %}
-                    <div class="alert alert-info" role="alert">
-                        <i class="bi bi-search"></i>
-                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
-                        <a href="{% url 'church_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-file-earmark-x"></i> Limpar busca
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if churches %}
-                    <!-- Tabela Desktop -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="churchesTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Pastor Responsável</th>
-                                    <th>Campo</th>
-                                    <th>Endereço</th>
-                                    <th>Status</th>
-                                    <th class="text-nowrap">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for church in churches %}
-                                    <tr>
-                                        <td>{{ church.name }}</td>
-                                        <td>{{ church.shepherd }}</td>
-                                        <td>
-                                            <span class="badge bg-secondary me-1 mb-1">
-                                                <i class="bi bi-geo-alt"></i> {{ church.field.name }}
-                                            </span>
-                                        </td>
-                                        <td>{{ church.address|default:"-" }}</td>
-                                        <td>
-                                            {% if church.is_active %}
-                                                <span class="badge bg-success">Ativo</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inativo</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="{% url 'shepherd_history' church.pk %}" class="btn btn-sm btn-outline-info" title="Histórico de Pastores">
-                                                <i class="bi bi-clock-history"></i>
-                                            </a>
-                                            <a href="{% url 'church_edit' church.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            {% if church.is_active %}
-                                            <button type="button" class="btn btn-sm btn-outline-warning" title="Inativar"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-church-id="{{ church.pk }}"
-                                                    data-church-name="{{ church.name }}"
-                                                    data-church-shepherd="{{ church.shepherd }}"
-                                                    data-church-field="{{ church.field.name }}"
-                                                    data-church-address="{{ church.address|default:'Não informado' }}">
-                                                <i class="bi bi-file-earmark-x"></i>
-                                            </button>
-                                            {% else %}
-                                            <button type="button" class="btn btn-sm btn-outline-success" title="Ativar"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-church-id="{{ church.pk }}"
-                                                    data-church-name="{{ church.name }}"
-                                                    data-church-shepherd="{{ church.shepherd }}"
-                                                    data-church-field="{{ church.field.name }}"
-                                                    data-church-address="{{ church.address|default:'Não informado' }}">
-                                                <i class="bi bi-file-earmark"></i>
-                                            </button>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Cards Mobile -->
-                    <div class="mobile-cards">
-                        <div class="mobile-cards-container">
-                            {% for church in churches %}
-                                <div class="mobile-card">
-                                    <div class="mobile-card-header">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Nome:</span>
-                                            <span class="mobile-card-value">{{ church.name }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Pastor:</span>
-                                            <span class="mobile-card-value">{{ church.shepherd }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-body">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Campo:</span>
-                                            <span class="mobile-card-badge secondary">
-                                                <i class="bi bi-geo-alt"></i> {{ church.field.name }}
-                                            </span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Endereço:</span>
-                                            <span class="mobile-card-value">{{ church.address|default:"-" }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-footer">
-                                        <a href="{% url 'shepherd_history' church.pk %}" class="mobile-card-btn btn-outline-info" title="Histórico de Pastores">
-                                            <i class="bi bi-clock-history"></i> Histórico
-                                        </a>
-                                        <a href="{% url 'church_edit' church.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
-                                            <i class="bi bi-pencil"></i> Editar
-                                        </a>
-                                        {% if church.is_active %}
-                                        <button type="button" class="mobile-card-btn btn-outline-warning" title="Inativar"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal" 
-                                                data-church-id="{{ church.pk }}"
-                                                data-church-name="{{ church.name }}"
-                                                data-church-shepherd="{{ church.shepherd }}"
-                                                data-church-field="{{ church.field.name }}"
-                                                data-church-address="{{ church.address|default:'Não informado' }}">
-                                            <i class="bi bi-file-earmark-x"></i> Inativar
-                                        </button>
-                                        {% else %}
-                                        <button type="button" class="mobile-card-btn btn-outline-success" title="Ativar"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal" 
-                                                data-church-id="{{ church.pk }}"
-                                                data-church-name="{{ church.name }}"
-                                                data-church-shepherd="{{ church.shepherd }}"
-                                                data-church-field="{{ church.field.name }}"
-                                                data-church-address="{{ church.address|default:'Não informado' }}">
-                                            <i class="bi bi-file-earmark"></i> Ativar
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
+                <div id="listPagination" data-api-url="{% url 'church_list_api' %}" data-list-type="church" data-search-id="churchSearch" data-extra-filters='{"field": "#fieldFilter"}'>
+                    <div class="list-desktop">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando igrejas...</p>
                         </div>
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
+                    <div class="list-mobile">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando igrejas...</p>
+                        </div>
+                    </div>
+                    <div class="list-empty-state text-center py-4" style="display:none;">
                         <i class="bi bi-building display-1 text-muted"></i>
                         <h5 class="text-muted mt-3">Nenhuma igreja encontrada</h5>
-                        <p class="text-muted">
-                            {% if search_query %}
-                                Não foram encontradas igrejas para "{{ search_query }}".
-                            {% elif selected_field_obj %}
-                                Não há igrejas cadastradas no campo "{{ selected_field_obj.name }}".
-                            {% else %}
-                                Comece cadastrando sua primeira igreja.
-                            {% endif %}
-                        </p>
+                        <p class="text-muted">Comece cadastrando sua primeira igreja.</p>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
-<!-- Modal de Confirmação de Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -233,14 +84,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-3">
-                    <strong id="toggleQuestion">Tem certeza que deseja inativar a igreja?</strong>
-                </p>
+                <p class="mb-3"><strong id="toggleQuestion">Tem certeza que deseja inativar a igreja?</strong></p>
                 <div class="card border-warning mb-3">
                     <div class="card-body">
-                        <h6 class="card-title text-warning">
-                            <i class="bi bi-exclamation-triangle"></i> <span id="churchName"></span>
-                        </h6>
+                        <h6 class="card-title text-warning"><i class="bi bi-exclamation-triangle"></i> <span id="churchName"></span></h6>
                         <div class="row">
                             <div class="col-md-6">
                                 <p class="card-text mb-1"><strong>Nome:</strong> <span id="churchNameText"></span></p>
@@ -257,14 +104,10 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-file-earmark-x"></i> Cancelar
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-file-earmark-x"></i> Cancelar</button>
                 <form id="deleteForm" method="post" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-warning" id="confirmToggleBtn">
-                        <i class="bi bi-file-earmark-x"></i> Confirmar Inativação
-                    </button>
+                    <button type="submit" class="btn btn-warning" id="confirmToggleBtn"><i class="bi bi-file-earmark-x"></i> Confirmar Inativação</button>
                 </form>
             </div>
         </div>
@@ -273,29 +116,37 @@
 {% endblock %}
 
 {% block js %}
+<script src="{% static 'js/list_pagination.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Captura os dados da igreja quando o modal é aberto
     const deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const churchId = button.getAttribute('data-church-id');
-        const churchName = button.getAttribute('data-church-name');
-        const churchShepherd = button.getAttribute('data-church-shepherd');
-        const churchField = button.getAttribute('data-church-field');
-        const churchAddress = button.getAttribute('data-church-address');
-        
-        // Preenche os dados no modal
-        document.getElementById('churchName').textContent = churchName;
-        document.getElementById('churchNameText').textContent = churchName;
-        document.getElementById('churchShepherd').textContent = churchShepherd;
-        document.getElementById('churchField').textContent = churchField;
-        document.getElementById('churchAddress').textContent = churchAddress;
-        
-        // Atualiza a action do formulário
-        document.getElementById('deleteForm').action = `/churches/${churchId}/delete/`;
-        
-        const isActive = button.classList.contains('btn-outline-warning');
+    const fieldFilter = document.getElementById('fieldFilter');
+
+    fieldFilter.addEventListener('change', function() {
+        if (window.listPagination) {
+            window.listPagination.currentPage = 1;
+            window.listPagination.loadData();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-toggle-item');
+        if (!btn || btn.dataset.type !== 'church') return;
+
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        const shepherd = btn.dataset.shepherd;
+        const field = btn.dataset.field;
+        const address = btn.dataset.address;
+        const isActive = btn.dataset.active === 'true';
+
+        document.getElementById('churchName').textContent = name;
+        document.getElementById('churchNameText').textContent = name;
+        document.getElementById('churchShepherd').textContent = shepherd;
+        document.getElementById('churchField').textContent = field;
+        document.getElementById('churchAddress').textContent = address;
+        document.getElementById('deleteForm').action = `/churches/${id}/delete/`;
+
         const toggleBtn = document.getElementById('confirmToggleBtn');
         const toggleQuestion = document.getElementById('toggleQuestion');
         if (isActive) {
@@ -307,9 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleBtn.innerHTML = '<i class="bi bi-file-earmark-check"></i> Reativar';
             toggleQuestion.innerHTML = '<strong>Tem certeza que deseja reativar a igreja?</strong>';
         }
+        new bootstrap.Modal(deleteModal).show();
+    });
+
+    deleteModal.addEventListener('hidden.bs.modal', function() {
+        setTimeout(() => { if (window.listPagination) window.listPagination.loadData(); }, 300);
     });
 });
-
-
 </script>
-{% endblock %} 
+{% endblock %}

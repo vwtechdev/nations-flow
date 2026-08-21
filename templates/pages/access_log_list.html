@@ -8,7 +8,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- Filtros -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow">
@@ -35,19 +34,15 @@
             </div>
             <div class="card-body">
                 <form method="get" id="accessLogFilterForm" action="{% url 'access_log_list' %}" data-filter-page="access_log_list">
-                    <!-- Desktop Layout -->
                     <div class="d-none d-md-block">
                     <div class="collapse show" id="desktopFiltersCollapse">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search" placeholder=" ">
-                                <label for="search">
-                                    <i class="bi bi-search"></i> Pesquisar
-                                </label>
+                                <label for="search"><i class="bi bi-search"></i> Pesquisar</label>
                             </div>
                         </div>
-
                         <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <select class="form-select" id="month_filter" aria-label="Mês">
@@ -64,58 +59,40 @@
                                     <option value="11" {% if selected_month == 11 %}selected{% endif %}>Novembro</option>
                                     <option value="12" {% if selected_month == 12 %}selected{% endif %}>Dezembro</option>
                                 </select>
-                                <label for="month_filter">
-                                    <i class="bi bi-calendar-month"></i> Mês
-                                </label>
+                                <label for="month_filter"><i class="bi bi-calendar-month"></i> Mês</label>
                             </div>
                         </div>
-
                         <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_from" value="{% if date_from %}{{ date_from }}{% else %}{{ first_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_from">
-                                <label for="date_from">
-                                    <i class="bi bi-calendar-date"></i> Data Inicial
-                                </label>
+                                <label for="date_from"><i class="bi bi-calendar-date"></i> Data Inicial</label>
                             </div>
                         </div>
-
                         <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
                                 <input class="form-control" type="date" name="date_to" value="{% if date_to %}{{ date_to }}{% else %}{{ last_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_to">
-                                <label for="date_to">
-                                    <i class="bi bi-calendar-date"></i> Data Final
-                                </label>
+                                <label for="date_to"><i class="bi bi-calendar-date"></i> Data Final</label>
                             </div>
                         </div>
-
                         <div class="col-auto ms-auto mb-3">
                             <div class="d-flex gap-2 justify-content-end">
-                                <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;">
-                                    <i class="bi bi-search"></i> Filtrar
-                                </button>
-                                <a href="?clear" class="btn btn-secondary btn-sm" style="width: 120px;">
-                                    <i class="bi bi-x-circle"></i> Limpar
-                                </a>
+                                <button type="submit" class="btn btn-primary btn-sm" style="width: 120px;"><i class="bi bi-search"></i> Filtrar</button>
+                                <a href="?clear" class="btn btn-secondary btn-sm" style="width: 120px;"><i class="bi bi-x-circle"></i> Limpar</a>
                             </div>
                         </div>
                     </div>
                     </div>
                     </div>
-
-                    <!-- Mobile Layout -->
                     <div class="collapse" id="mobileFiltersCollapse">
                     <div class="d-md-none">
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-floating mb-3">
                                     <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search_mobile" placeholder=" ">
-                                    <label for="search_mobile">
-                                        <i class="bi bi-search"></i> Pesquisar
-                                    </label>
+                                    <label for="search_mobile"><i class="bi bi-search"></i> Pesquisar</label>
                                 </div>
                             </div>
                         </div>
-
                         <div class="row">
                             <div class="col-12">
                                 <div class="form-floating mb-3">
@@ -133,43 +110,27 @@
                                         <option value="11" {% if selected_month == 11 %}selected{% endif %}>Novembro</option>
                                         <option value="12" {% if selected_month == 12 %}selected{% endif %}>Dezembro</option>
                                     </select>
-                                    <label for="month_filter_mobile">
-                                        <i class="bi bi-calendar-month"></i> Mês
-                                    </label>
+                                    <label for="month_filter_mobile"><i class="bi bi-calendar-month"></i> Mês</label>
                                 </div>
                             </div>
                         </div>
-
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-floating mb-3">
                                     <input class="form-control" type="date" name="date_from" value="{% if date_from %}{{ date_from }}{% else %}{{ first_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_from_mobile">
-                                    <label for="date_from_mobile">
-                                        <i class="bi bi-calendar-date"></i> Data Inicial
-                                    </label>
+                                    <label for="date_from_mobile"><i class="bi bi-calendar-date"></i> Data Inicial</label>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="form-floating mb-3">
                                     <input class="form-control" type="date" name="date_to" value="{% if date_to %}{{ date_to }}{% else %}{{ last_day_of_month|date:'Y-m-d' }}{% endif %}" id="date_to_mobile">
-                                    <label for="date_to_mobile">
-                                        <i class="bi bi-calendar-date"></i> Data Final
-                                    </label>
+                                    <label for="date_to_mobile"><i class="bi bi-calendar-date"></i> Data Final</label>
                                 </div>
                             </div>
                         </div>
-
                         <div class="row g-2">
-                            <div class="col-6">
-                                <a href="?clear" class="btn btn-secondary w-100">
-                                    <i class="bi bi-x-circle"></i> Limpar
-                                </a>
-                            </div>
-                            <div class="col-6">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="bi bi-search"></i> Filtrar
-                                </button>
-                            </div>
+                            <div class="col-6"><a href="?clear" class="btn btn-secondary w-100"><i class="bi bi-x-circle"></i> Limpar</a></div>
+                            <div class="col-6"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar</button></div>
                         </div>
                     </div>
                     </div>
@@ -180,165 +141,92 @@
 </div>
 {% include 'includes/filter_collapse_state.html' %}
 
-<!-- Tabela de Logs -->
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
+                <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
+                <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
+                        <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
+                        <select class="form-select per-page-select" aria-label="Itens por página">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <span class="small text-muted d-none d-md-inline order-2 order-md-3 page-info">Página 1 de 1</span>
+                    <ul class="pagination pagination-sm mb-0 order-3 order-md-4 pagination-list"></ul>
+                </div>
             </div>
             <div class="card-body">
-                
-                {% if search_query %}
-                    <div class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-search"></i>
-                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
-                        <a href="{% url 'access_log_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-file-earmark-x"></i> Limpar busca
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if date_filter_active %}
-                    <div class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-calendar-range"></i>
-                        <strong>Filtro ativo:</strong> Mostrando logs de
-                        <strong>{{ date_from_obj|date:'d/m/Y' }}</strong> até
-                        <strong>{{ date_to_obj|date:'d/m/Y' }}</strong>
-                        <a href="{% url 'access_log_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-file-earmark-x"></i> Limpar filtro
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if logs %}
-                    <!-- Tabela Desktop -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="accessLogsTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Data e Hora</th>
-                                    <th>Usuário</th>
-                                    <th>Descrição</th>
-                                    <th>Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for log in logs %}
-                                    <tr>
-                                        <td>{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
-                                        <td>
-                                            {% if log.user.get_full_name %}
-                                                {{ log.user.get_full_name }}
-                                            {% else %}
-                                                {{ log.user.email }}
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ log.description|default:'-' }}</td>
-                                        <td>
-                                            <span class="badge bg-{% if log.action == 'login' %}success{% elif log.action == 'logout' %}warning{% elif log.action == 'create' %}primary{% elif log.action == 'update' %}info{% else %}danger{% endif %}">
-                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% elif log.action == 'logout' %}box-arrow-left{% elif log.action == 'create' %}plus-circle{% elif log.action == 'update' %}pencil{% else %}trash{% endif %}"></i>
-                                                {{ log.get_action_display }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Cards Mobile -->
-                    <div class="mobile-cards">
-                        <div class="mobile-cards-container">
-                            {% for log in logs %}
-                                <div class="mobile-card">
-                                    <div class="mobile-card-header">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Data e Hora:</span>
-                                            <span class="mobile-card-value">{{ log.created_at|date:"d/m/Y H:i:s" }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Usuário:</span>
-                                            <span class="mobile-card-value">
-                                                {% if log.user.get_full_name %}
-                                                    {{ log.user.get_full_name }}
-                                                {% else %}
-                                                    {{ log.user.email }}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-body">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Descrição:</span>
-                                            <span class="mobile-card-value">{{ log.description|default:'-' }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Ação:</span>
-                                            <span class="mobile-card-badge {% if log.action == 'login' %}income{% elif log.action == 'create' %}income{% elif log.action == 'update' %}income{% else %}expense{% endif %}">
-                                                <i class="bi bi-{% if log.action == 'login' %}box-arrow-in-right{% elif log.action == 'logout' %}box-arrow-left{% elif log.action == 'create' %}plus-circle{% elif log.action == 'update' %}pencil{% else %}trash{% endif %}"></i>
-                                                {{ log.get_action_display }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
+                <div id="listPagination" data-api-url="{% url 'access_log_list_api' %}" data-list-type="access_log" data-search-id="search" data-extra-filters='{"date_from": "#date_from", "date_to": "#date_to"}'>
+                    <div class="list-desktop">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando logs...</p>
                         </div>
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
+                    <div class="list-mobile">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando logs...</p>
+                        </div>
+                    </div>
+                    <div class="list-empty-state text-center py-4" style="display:none;">
                         <i class="bi bi-clock-history display-1 text-muted"></i>
                         <h5 class="text-muted mt-3">Nenhum log de acesso encontrado</h5>
-                        <p class="text-muted">
-                            {% if search_query %}
-                                Não foram encontrados logs para "{{ search_query }}".
-                            {% else %}
-                                Não há registros de acesso no mês atual.
-                            {% endif %}
-                        </p>
+                        <p class="text-muted">Não há registros de acesso no período selecionado.</p>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/filters_form.js' %}"></script>
+<script src="{% static 'js/list_pagination.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('accessLogFilterForm');
     if (!form) return;
 
-    const desktopFields = form.querySelectorAll('.d-md-block input, .d-md-block button[type="submit"]');
-    const mobileFields = form.querySelectorAll('.d-md-none input');
-
-    function submitWithVisibleFields() {
-        const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-        const toDisable = isDesktop ? mobileFields : desktopFields;
-        const toEnable = isDesktop ? desktopFields : mobileFields;
-        toDisable.forEach(el => { el.disabled = true; });
-        toEnable.forEach(el => { el.disabled = false; });
-        form.submit();
+    if (typeof setupMonthFilter === 'function') {
+        setupMonthFilter(form);
     }
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        submitWithVisibleFields();
+        if (window.listPagination) {
+            window.listPagination.currentPage = 1;
+            window.listPagination.loadData();
+        }
     });
 
-    // Inicializar seletor de mês
-    if (typeof setupMonthFilter === 'function') {
-        setupMonthFilter(form);
-    }
-    
-    // Auto-submit ao mudar o mês
     form.addEventListener('filters:applied', function() {
-        submitWithVisibleFields();
+        if (window.listPagination) {
+            window.listPagination.currentPage = 1;
+            window.listPagination.loadData();
+        }
+    });
+
+    document.querySelector('a[href="?clear"]')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        form.querySelectorAll('input[type="text"], input[type="date"]').forEach(i => i.value = '');
+        const monthSelect = form.querySelector('select[id^="month_filter"]');
+        if (monthSelect) monthSelect.value = new Date().getMonth() + 1;
+        if (window.listPagination) {
+            window.listPagination.currentSearch = '';
+            const searchInput = document.getElementById('search');
+            if (searchInput) searchInput.value = '';
+            window.listPagination.currentPage = 1;
+            window.listPagination.loadData();
+        }
     });
 });
 </script>

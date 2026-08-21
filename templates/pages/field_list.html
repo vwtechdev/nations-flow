@@ -7,11 +7,23 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
+                <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
+                <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
+                        <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
+                        <select class="form-select per-page-select" aria-label="Itens por página">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <span class="small text-muted d-none d-md-inline order-2 order-md-3 page-info">Página 1 de 1</span>
+                    <ul class="pagination pagination-sm mb-0 order-3 order-md-4 pagination-list"></ul>
+                </div>
             </div>
             <div class="card-body">
-                <!-- Search Container -->
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="search-container">
@@ -27,177 +39,32 @@
                     </div>
                 </div>
                 
-                {% if search_query %}
-                    <div class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-search"></i>
-                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
-                        <a href="{% url 'field_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-file-earmark-x"></i> Limpar busca
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if fields %}
-                    <!-- Tabela Desktop -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="fieldsTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Igrejas</th>
-                                    <th>Data de Criação</th>
-                                    <th>Última Atualização</th>
-                                    <th>Status</th>
-                                    <th class="text-nowrap">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for field in fields %}
-                                    <tr>
-                                        <td>{{ field.name }}</td>
-                                        <td>
-                                            {% if field.church_count == 0 %}
-                                                <span class="badge bg-secondary me-1 mb-1">
-                                                    {{ field.church_count }}
-                                                </span>
-                                            {% else %}
-                                            <span class="badge bg-primary me-1 mb-1">
-                                                {{ field.church_count }}
-                                            </span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ field.created_at|date:"d/m/Y H:i" }}</td>
-                                        <td>{{ field.updated_at|date:"d/m/Y H:i" }}</td>
-                                        <td>
-                                            {% if field.is_active %}
-                                                <span class="badge bg-success">Ativo</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inativo</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-nowrap">
-                                            <a href="{% url 'field_edit' field.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            {% if field.is_active %}
-                                            <button type="button" class="btn btn-sm btn-outline-warning" title="Inativar"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-field-id="{{ field.pk }}"
-                                                    data-field-name="{{ field.name }}"
-                                                    data-field-churches="{{ field.church_count }}"
-                                                    data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
-                                                    data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}"
-                                                    data-field-active="{{ field.is_active|lower }}">
-                                                <i class="bi bi-file-earmark-x"></i>
-                                            </button>
-                                            {% else %}
-                                            <button type="button" class="btn btn-sm btn-outline-success" title="Ativar"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-field-id="{{ field.pk }}"
-                                                    data-field-name="{{ field.name }}"
-                                                    data-field-churches="{{ field.church_count }}"
-                                                    data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
-                                                    data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}"
-                                                    data-field-active="{{ field.is_active|lower }}">
-                                                <i class="bi bi-file-earmark"></i>
-                                            </button>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Cards Mobile -->
-                    <div class="mobile-cards">
-                        <div class="mobile-cards-container">
-                            {% for field in fields %}
-                                <div class="mobile-card">
-                                    <div class="mobile-card-header">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Nome:</span>
-                                            <span class="mobile-card-value">{{ field.name }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Igrejas:</span>
-                                            {% if field.church_count == 0 %}
-                                                <span class="mobile-card-badge secondary">
-                                                    {{ field.church_count }}
-                                                </span>
-                                            {% else %}
-                                                <span class="mobile-card-badge primary">
-                                                    {{ field.church_count }}
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-body">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Criado em:</span>
-                                            <span class="mobile-card-value">{{ field.created_at|date:"d/m/Y H:i" }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Atualizado em:</span>
-                                            <span class="mobile-card-value">{{ field.updated_at|date:"d/m/Y H:i" }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-footer">
-                                        <a href="{% url 'field_edit' field.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
-                                            <i class="bi bi-pencil"></i> Editar
-                                        </a>
-                                        {% if field.is_active %}
-                                        <button type="button" class="mobile-card-btn btn-outline-warning" title="Inativar"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal" 
-                                                data-field-id="{{ field.pk }}"
-                                                data-field-name="{{ field.name }}"
-                                                data-field-churches="{{ field.church_count }}"
-                                                data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
-                                                data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
-                                            <i class="bi bi-file-earmark-x"></i> Inativar
-                                        </button>
-                                        {% else %}
-                                        <button type="button" class="mobile-card-btn btn-outline-success" title="Ativar"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal" 
-                                                data-field-id="{{ field.pk }}"
-                                                data-field-name="{{ field.name }}"
-                                                data-field-churches="{{ field.church_count }}"
-                                                data-field-created="{{ field.created_at|date:'d/m/Y H:i' }}"
-                                                data-field-updated="{{ field.updated_at|date:'d/m/Y H:i' }}">
-                                            <i class="bi bi-file-earmark"></i> Ativar
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
+                <div id="listPagination" data-api-url="{% url 'field_list_api' %}" data-list-type="field" data-search-id="fieldSearch">
+                    <div class="list-desktop">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando campos...</p>
                         </div>
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
+                    <div class="list-mobile">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando campos...</p>
+                        </div>
+                    </div>
+                    <div class="list-empty-state text-center py-4" style="display:none;">
                         <i class="bi bi-geo-alt display-1 text-muted"></i>
                         <h5 class="text-muted mt-3">Nenhum campo encontrado</h5>
-                        <p class="text-muted">
-                            {% if search_query %}
-                                Não foram encontrados campos para "{{ search_query }}".
-                            {% else %}
-                                Comece criando seu primeiro campo.
-                            {% endif %}
-                        </p>
+                        <p class="text-muted">Comece criando seu primeiro campo.</p>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
-<!-- Modal de Confirmação de Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -244,41 +111,27 @@
 {% endblock %}
 
 {% block js %}
+<script src="{% static 'js/list_pagination.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Captura os dados do campo quando o modal é aberto
     const deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const fieldId = button.getAttribute('data-field-id');
-        const fieldName = button.getAttribute('data-field-name');
-        const fieldChurches = button.getAttribute('data-field-churches');
-        const fieldCreated = button.getAttribute('data-field-created');
-        const fieldUpdated = button.getAttribute('data-field-updated');
-        
-        // Preenche os dados no modal
-        document.getElementById('fieldName').textContent = fieldName;
-        document.getElementById('fieldNameText').textContent = fieldName;
-        
-        // Formata a contagem de igrejas
-        let churchesText = '';
-        if (fieldChurches === '0') {
-            churchesText = 'Nenhuma igreja';
-        } else if (fieldChurches === '1') {
-            churchesText = '1 igreja';
-        } else {
-            churchesText = `${fieldChurches} igrejas`;
-        }
-        document.getElementById('fieldChurches').textContent = churchesText;
-        
-        document.getElementById('fieldCreated').textContent = fieldCreated;
-        document.getElementById('fieldUpdated').textContent = fieldUpdated;
-        
-        // Atualiza a action do formulário
-        document.getElementById('deleteForm').action = `/fields/${fieldId}/delete/`;
-        
-        // Ajusta modal para Inativar ou Reativar
-        const isActive = button.classList.contains('btn-outline-warning');
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-toggle-item');
+        if (!btn || btn.dataset.type !== 'field') return;
+
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        const created = btn.dataset.created;
+        const updated = btn.dataset.updated;
+        const isActive = btn.dataset.active === 'true';
+
+        document.getElementById('fieldName').textContent = name;
+        document.getElementById('fieldNameText').textContent = name;
+        document.getElementById('fieldCreated').textContent = created;
+        document.getElementById('fieldUpdated').textContent = updated;
+        document.getElementById('deleteForm').action = `/fields/${id}/delete/`;
+
         const toggleBtn = document.getElementById('confirmToggleBtn');
         const toggleQuestion = document.getElementById('toggleQuestion');
         if (isActive) {
@@ -290,7 +143,18 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleBtn.innerHTML = '<i class="bi bi-file-earmark-check"></i> Reativar';
             toggleQuestion.innerHTML = '<strong>Tem certeza que deseja reativar o campo?</strong>';
         }
+
+        fetch(`/fields/api/?search=&per_page=1&page=1`)
+            .then(r => r.json())
+            .then(() => {})
+            .catch(() => {});
+
+        new bootstrap.Modal(deleteModal).show();
+    });
+
+    deleteModal.addEventListener('hidden.bs.modal', function() {
+        setTimeout(() => { if (window.listPagination) window.listPagination.loadData(); }, 300);
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}

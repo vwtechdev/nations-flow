@@ -5,358 +5,118 @@
 
 {% block content %}
 <style>
-    /* Estilos para a lista de usuários */
-    .user-fields {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.25rem;
-    }
-    
-    .user-fields .badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-    }
-    
-    /* Destaque para administradores */
-    .badge.bg-info {
-        background-color: #0dcaf0 !important;
-        color: white !important;
-    }
-    
-    /* Destaque para supervisores */
-    .badge.bg-warning {
-        background-color: #ffc107 !important;
-        color: #000 !important;
-    }
-    
-    /* Melhorar aparência da tabela */
-    .table th {
-        background-color: #f8f9fa;
-        border-color: #dee2e6;
-        font-weight: 600;
-    }
-    
-    .table td {
-        vertical-align: middle;
-    }
-    
-    /* Estilos para os modais */
-    .modal-body .card {
-        border-radius: 8px;
-    }
-    
-    .modal-body .card-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
+    .user-fields { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .user-fields .badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+    .badge.bg-info { background-color: #0dcaf0 !important; color: white !important; }
+    .badge.bg-warning { background-color: #ffc107 !important; color: #000 !important; }
+    .table th { background-color: #f8f9fa; border-color: #dee2e6; font-weight: 600; }
+    .table td { vertical-align: middle; }
 </style>
 <div class="row">
     <div class="col-12">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
+                <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
+                <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
+                        <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
+                        <select class="form-select per-page-select" aria-label="Itens por página">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <span class="small text-muted d-none d-md-inline order-2 order-md-3 page-info">Página 1 de 1</span>
+                    <ul class="pagination pagination-sm mb-0 order-3 order-md-4 pagination-list"></ul>
+                </div>
             </div>
             <div class="card-body">
-                <!-- Search Container -->
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="search-container">
                             <form method="GET" action="{% url 'user_list' %}">
                                 <div class="form-floating">
                                     <input type="search" name="search" value="{{ search_query|default:'' }}" class="form-control" placeholder="Pesquisar" id="userSearch">
-                                    <label for="userSearch">
-                                        <i class="bi bi-search"></i> Pesquisar
-                                    </label>
+                                    <label for="userSearch"><i class="bi bi-search"></i> Pesquisar</label>
                                 </div>
                             </form>
                         </div>
                     </div>
                 </div>
                 
-                {% if search_query %}
-                    <div class="alert alert-info mb-3" role="alert">
-                        <i class="bi bi-search"></i>
-                        <strong>Busca ativa:</strong> Resultados para "{{ search_query }}"
-                        <a href="{% url 'user_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                            <i class="bi bi-x-circle"></i> Limpar busca
-                        </a>
-                    </div>
-                {% endif %}
-                
-                {% if users %}
-                    <!-- Tabela Desktop -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Email</th>
-                                    <th>Função</th>
-                                    <th>Campos</th>
-                                    <th>Status</th>
-                                    <th class="text-nowrap">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in users %}
-                                    <tr>
-                                        <td>{{ user.get_full_name }}</td>
-                                        <td>{{ user.email }}</td>
-                                        <td>
-                                            <span class="badge {% if user.role == 'admin' %}bg-info{% elif user.role == 'supervisor' %}bg-warning{% else %}bg-primary{% endif %}">
-                                                {{ user.get_role_display }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {% if user.fields.exists %}
-                                                <div class="user-fields">
-                                                    {% for field in user.fields.all %}
-                                                        <span class="badge bg-secondary me-1 mb-1">
-                                                            <i class="bi bi-geo-alt"></i> {{ field.name }}
-                                                        </span>
-                                                    {% endfor %}
-                                                </div>
-                                            {% else %}
-                                                <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-{% if user.is_active %}success{% else %}danger{% endif %}">
-                                                {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
-                                            </span>
-                                        </td>
-                                        <td class="text-nowrap">
-                                            {% if user.role == 'admin' and user != request.user and not request.user.is_owner and not request.user.is_superuser %}
-                                            <a class="btn btn-sm btn-outline-primary disabled" style="cursor: not-allowed;" aria-disabled="true" tabindex="-1" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            {% else %}
-                                            <a href="{% url 'user_edit' user.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            {% endif %}
-                                            {% if user.is_active %}
-                                            <button type="button" class="btn btn-sm btn-outline-warning {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled{% endif %}" title="Inativar"
-                                                    {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled style="cursor: not-allowed;"{% endif %}
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteModal" 
-                                                    data-user-id="{{ user.pk }}"
-                                                    data-user-name="{{ user.get_full_name }}"
-                                                    data-user-email="{{ user.email }}"
-                                                    data-user-role="{{ user.get_role_display }}"
-                                                    data-user-fields="{% for field in user.fields.all %}{{ field.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
-                                                    data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
-                                                <i class="bi bi-file-earmark-x"></i>
-                                            </button>
-                                            {% else %}
-                                            <button type="button" class="btn btn-sm btn-outline-success {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled{% endif %}" title="Ativar"
-                                                    {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled style="cursor: not-allowed;"{% endif %}
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#activateModal" 
-                                                    data-user-id="{{ user.pk }}"
-                                                    data-user-name="{{ user.get_full_name }}"
-                                                    data-user-email="{{ user.email }}"
-                                                    data-user-role="{{ user.get_role_display }}"
-                                                    data-user-fields="{% for field in user.fields.all %}{{ field.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
-                                                    data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
-                                                <i class="bi bi-file-earmark"></i>
-                                            </button>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Cards Mobile -->
-                    <div class="mobile-cards">
-                        <div class="mobile-cards-container">
-                            {% for user in users %}
-                                <div class="mobile-card">
-                                    <div class="mobile-card-header">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Nome:</span>
-                                            <span class="mobile-card-value">{{ user.get_full_name }}</span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Email:</span>
-                                            <span class="mobile-card-value">{{ user.email }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-body">
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Função:</span>
-                                            <span class="mobile-card-badge {% if user.role == 'admin' %}info{% elif user.role == 'supervisor' %}warning{% else %}primary{% endif %}">
-                                                {{ user.get_role_display }}
-                                            </span>
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Campos:</span>
-                                            {% if user.fields.exists %}
-                                                <div class="mobile-card-fields">
-                                                    {% for field in user.fields.all %}
-                                                        <span class="mobile-card-badge secondary">
-                                                            <i class="bi bi-geo-alt"></i> {{ field.name }}
-                                                        </span>
-                                                    {% endfor %}
-                                                </div>
-                                            {% else %}
-                                                <span class="mobile-card-value text-muted">-</span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="mobile-card-row">
-                                            <span class="mobile-card-label">Status:</span>
-                                            <span class="mobile-card-badge {% if user.is_active %}success{% else %}danger{% endif %}">
-                                                {% if user.is_active %}Ativo{% else %}Inativo{% endif %}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="mobile-card-footer">
-                                        {% if user.role == 'admin' and user != request.user and not request.user.is_owner and not request.user.is_superuser %}
-                                        <a class="mobile-card-btn btn-outline-primary disabled" style="cursor: not-allowed;" aria-disabled="true" tabindex="-1" title="Editar">
-                                            <i class="bi bi-pencil"></i> Editar
-                                        </a>
-                                        {% else %}
-                                        <a href="{% url 'user_edit' user.pk %}" class="mobile-card-btn btn-outline-primary" title="Editar">
-                                            <i class="bi bi-pencil"></i> Editar
-                                        </a>
-                                        {% endif %}
-                                        {% if user.is_active %}
-                                        <button type="button" class="mobile-card-btn btn-outline-warning {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled{% endif %}" title="Inativar"
-                                                {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled style="cursor: not-allowed;"{% endif %}
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal" 
-                                                data-user-id="{{ user.pk }}"
-                                                data-user-name="{{ user.get_full_name }}"
-                                                data-user-email="{{ user.email }}"
-                                                data-user-role="{{ user.get_role_display }}"
-                                                data-user-fields="{% for field in user.fields.all %}{{ field.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
-                                                data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
-                                            <i class="bi bi-file-earmark-x"></i> Inativar
-                                        </button>
-                                        {% else %}
-                                        <button type="button" class="mobile-card-btn btn-outline-success {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled{% endif %}" title="Ativar"
-                                                {% if user.role == 'admin' and user == request.user or user.role == 'admin' and not request.user.is_owner and not request.user.is_superuser %}disabled style="cursor: not-allowed;"{% endif %}
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#activateModal" 
-                                                data-user-id="{{ user.pk }}"
-                                                data-user-name="{{ user.get_full_name }}"
-                                                data-user-email="{{ user.email }}"
-                                                data-user-role="{{ user.get_role_display }}"
-                                                data-user-fields="{% for field in user.fields.all %}{{ field.name }}{% if not forloop.last %}, {% endif %}{% endfor %}"
-                                                data-user-status="{% if user.is_active %}Ativo{% else %}Inativo{% endif %}">
-                                            <i class="bi bi-file-earmark"></i> Ativar
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
+                <div id="listPagination" data-api-url="{% url 'user_list_api' %}" data-list-type="user" data-search-id="userSearch">
+                    <div class="list-desktop">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando usuários...</p>
                         </div>
                     </div>
-                {% else %}
-                    <div class="text-center py-4">
+                    <div class="list-mobile">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div>
+                            <p class="mt-2 text-muted">Carregando usuários...</p>
+                        </div>
+                    </div>
+                    <div class="list-empty-state text-center py-4" style="display:none;">
                         <i class="bi bi-people display-1 text-muted"></i>
                         <h5 class="text-muted mt-3">Nenhum usuário encontrado</h5>
-                        <p class="text-muted">
-                            {% if search_query %}
-                                Não foram encontrados usuários para "{{ search_query }}".
-                            {% else %}
-                                Comece criando o primeiro usuário do sistema.
-                            {% endif %}
-                        </p>
+                        <p class="text-muted">Comece criando o primeiro usuário do sistema.</p>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Espaçamento para o botão flutuante -->
 <div style="height: 100px;"></div>
 
-
-
-<!-- Modal de Confirmação de Desativação -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title text-warning" id="deleteModalLabel">
-                    <i class="bi bi-file-earmark-x"></i> Confirmar Desativação
-                </h5>
+                <h5 class="modal-title text-warning" id="deleteModalLabel"><i class="bi bi-file-earmark-x"></i> Confirmar Desativação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-3">
-                    <strong>Tem certeza que deseja desativar o usuário?</strong>
-                </p>
+                <p class="mb-3"><strong>Tem certeza que deseja desativar o usuário?</strong></p>
                 <div class="card border-warning mb-3">
                     <div class="card-body">
-                        <h6 class="card-title text-warning">
-                            <i class="bi bi-file-earmark-x"></i> <span id="userName"></span>
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="userFullName"></span></p>
-                                <p class="card-text mb-1"><strong>Email:</strong> <span id="userEmail"></span></p>
-                                <p class="card-text mb-1"><strong>Status:</strong> <span id="userStatus"></span></p>
-                                <p class="card-text mb-1"><strong>Função:</strong> <span id="userRole"></span></p>
-                                <p class="card-text mb-1" id="userFieldsRow"><strong>Campos:</strong> <span id="userFields"></span></p>
-                            </div>
-                        </div>
+                        <h6 class="card-title text-warning"><i class="bi bi-file-earmark-x"></i> <span id="userName"></span></h6>
+                        <p class="card-text mb-1"><strong>Nome:</strong> <span id="userFullName"></span></p>
+                        <p class="card-text mb-1"><strong>Email:</strong> <span id="userEmail"></span></p>
+                        <p class="card-text mb-1"><strong>Função:</strong> <span id="userRole"></span></p>
+                        <p class="card-text mb-1"><strong>Campos:</strong> <span id="userFields"></span></p>
                     </div>
                 </div>
                 <div class="alert alert-warning mb-0" role="alert">
                     <i class="bi bi-info-circle"></i>
-                    <strong>Informação:</strong> O usuário será desativado e não poderá mais acessar o sistema, mas os dados serão preservados.
+                    <strong>Informação:</strong> O usuário será desativado e não poderá mais acessar o sistema.
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-file-earmark-x"></i> Confirmar Desativação
-                    </button>
-                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Cancelar</button>
+                <form id="deleteForm" method="post" style="display: inline;">{% csrf_token %}<button type="submit" class="btn btn-warning"><i class="bi bi-file-earmark-x"></i> Confirmar Desativação</button></form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de Confirmação de Reativação -->
 <div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title text-success" id="activateModalLabel">
-                    <i class="bi bi-person-check"></i> Confirmar Reativação
-                </h5>
+                <h5 class="modal-title text-success" id="activateModalLabel"><i class="bi bi-person-check"></i> Confirmar Reativação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-3">
-                    <strong>Tem certeza que deseja reativar o usuário?</strong>
-                </p>
+                <p class="mb-3"><strong>Tem certeza que deseja reativar o usuário?</strong></p>
                 <div class="card border-success mb-3">
                     <div class="card-body">
-                        <h6 class="card-title text-success">
-                            <i class="bi bi-person-check"></i> <span id="activateUserName"></span>
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="card-text mb-1"><strong>Nome:</strong> <span id="activateUserFullName"></span></p>
-                                <p class="card-text mb-1"><strong>Email:</strong> <span id="activateUserEmail"></span></p>
-                                <p class="card-text mb-1"><strong>Função:</strong> <span id="activateUserRole"></span></p>
-                                <p class="card-text mb-1" id="activateUserFieldRow" style="display: none;"><strong>Campo:</strong> <span id="activateUserField"></span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="card-text mb-1"><strong>Status:</strong> <span id="activateUserStatus"></span></p>
-                            </div>
-                        </div>
+                        <h6 class="card-title text-success"><i class="bi bi-person-check"></i> <span id="activateUserName"></span></h6>
+                        <p class="card-text mb-1"><strong>Nome:</strong> <span id="activateUserFullName"></span></p>
+                        <p class="card-text mb-1"><strong>Email:</strong> <span id="activateUserEmail"></span></p>
+                        <p class="card-text mb-1"><strong>Função:</strong> <span id="activateUserRole"></span></p>
                     </div>
                 </div>
                 <div class="alert alert-success mb-0" role="alert">
@@ -365,15 +125,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <form id="activateForm" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-person-check"></i> Confirmar Reativação
-                    </button>
-                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Cancelar</button>
+                <form id="activateForm" method="post" style="display: inline;">{% csrf_token %}<button type="submit" class="btn btn-success"><i class="bi bi-person-check"></i> Confirmar Reativação</button></form>
             </div>
         </div>
     </div>
@@ -381,57 +134,47 @@
 {% endblock %}
 
 {% block js %}
+<script src="{% static 'js/list_pagination.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Captura os dados do usuário quando o modal de desativação é aberto
     const deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const userId = button.getAttribute('data-user-id');
-        const userName = button.getAttribute('data-user-name');
-        const userEmail = button.getAttribute('data-user-email');
-        const userRole = button.getAttribute('data-user-role');
-        const userFields = button.getAttribute('data-user-fields');
-        const userStatus = button.getAttribute('data-user-status');
-        
-        // Preenche os dados no modal
-        document.getElementById('userName').textContent = userName;
-        document.getElementById('userFullName').textContent = userName;
-        document.getElementById('userEmail').textContent = userEmail;
-        document.getElementById('userRole').textContent = userRole;
-        document.getElementById('userFields').textContent = userFields || 'Nenhum campo vinculado';
-        document.getElementById('userStatus').textContent = userStatus;
-        
-        // Atualiza a action do formulário
-        document.getElementById('deleteForm').action = `/users/${userId}/delete/`;
-    });
-    
-    // Captura os dados do usuário quando o modal de reativação é aberto
     const activateModal = document.getElementById('activateModal');
-    activateModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const userId = button.getAttribute('data-user-id');
-        const userName = button.getAttribute('data-user-name');
-        const userEmail = button.getAttribute('data-user-email');
-        const userRole = button.getAttribute('data-user-role');
-        const userFields = button.getAttribute('data-user-fields');
-        const userStatus = button.getAttribute('data-user-status');
-        
-        // Preenche os dados no modal
-        document.getElementById('activateUserName').textContent = userName;
-        document.getElementById('activateUserFullName').textContent = userName;
-        document.getElementById('activateUserEmail').textContent = userEmail;
-        document.getElementById('activateUserRole').textContent = userRole;
-        document.getElementById('activateUserField').textContent = userFields || 'Nenhum campo vinculado';
-        document.getElementById('activateUserStatus').textContent = userStatus;
-        
-        // Atualiza a action do formulário
-        document.getElementById('activateForm').action = `/users/${userId}/activate/`;
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-toggle-user');
+        if (!btn) return;
+
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        const email = btn.dataset.email;
+        const role = btn.dataset.role;
+        const fields = btn.dataset.fields;
+        const action = btn.dataset.action;
+
+        if (action === 'deactivate') {
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userFullName').textContent = name;
+            document.getElementById('userEmail').textContent = email;
+            document.getElementById('userRole').textContent = role;
+            document.getElementById('userFields').textContent = fields || 'Nenhum campo vinculado';
+            document.getElementById('deleteForm').action = `/users/${id}/delete/`;
+            new bootstrap.Modal(deleteModal).show();
+        } else {
+            document.getElementById('activateUserName').textContent = name;
+            document.getElementById('activateUserFullName').textContent = name;
+            document.getElementById('activateUserEmail').textContent = email;
+            document.getElementById('activateUserRole').textContent = role;
+            document.getElementById('activateForm').action = `/users/${id}/activate/`;
+            new bootstrap.Modal(activateModal).show();
+        }
     });
-    
 
+    deleteModal.addEventListener('hidden.bs.modal', function() {
+        setTimeout(() => { if (window.listPagination) window.listPagination.loadData(); }, 300);
+    });
+    activateModal.addEventListener('hidden.bs.modal', function() {
+        setTimeout(() => { if (window.listPagination) window.listPagination.loadData(); }, 300);
+    });
 });
-
-
 </script>
-{% endblock %} 
+{% endblock %}
