@@ -182,3 +182,9 @@ Veja `core/settings.py` para a lista completa. Principais:
 - `DEFAULT_USER_PASSWORD`, `SYSTEM_HIDDEN_EMAIL`, `BACKUP_RETENTION_DAYS`
 - `RECAPTCHA_PUBLIC_KEY`, `RECAPTCHA_PRIVATE_KEY`, `RECAPTCHA_DOMAIN`, `RECAPTCHA_REQUIRED_SCORE`
 - `DOMAIN` (para `CSRF_TRUSTED_ORIGINS`), `WHATSAPP_GROUP_URL` (opcional)
+
+---
+
+## 👨‍💻 Desenvolvido por
+
+**VWTech Dev | Soluções em Tecnologia**
