@@ -210,7 +210,7 @@ Todas requerem `@admin_required`.
 - **Rota**: `/users/`
 - **Funcionalidade**: 
   - Lista usuários
-  - Exclui `vwtechdev@gmail.com`
+  - Exclui `example@example.com`
   - Busca por nome, email ou função
 
 #### `user_create(request)`
@@ -224,13 +224,13 @@ Todas requerem `@admin_required`.
 - **Rota**: `/users/<pk>/edit/`
 - **Funcionalidade**: 
   - Edita usuário
-  - Bloqueia edição de `vwtechdev@gmail.com`
+  - Bloqueia edição de `example@example.com`
 
 #### `user_delete(request, pk)`
 - **Rota**: `/users/<pk>/delete/`
 - **Funcionalidade**: 
   - Desativa usuário (não exclui)
-  - Bloqueia desativação de `vwtechdev@gmail.com`
+  - Bloqueia desativação de `example@example.com`
 
 #### `user_activate(request, pk)`
 - **Rota**: `/users/<pk>/activate/`
@@ -243,7 +243,7 @@ Todas requerem `@admin_required`.
 - **Funcionalidade**: 
   - Reseta senha para padrão
   - Força troca de senha
-  - Bloqueia reset de `vwtechdev@gmail.com`
+  - Bloqueia reset de `example@example.com`
 
 ---
 
@@ -306,7 +306,7 @@ Todas requerem `@admin_required`.
   - Lista logs do mês atual
   - Busca por usuário
   - Filtro por data (limitado ao mês atual)
-  - Exclui logs de `vwtechdev@gmail.com`
+  - Exclui logs de `example@example.com`
 
 ---
 
