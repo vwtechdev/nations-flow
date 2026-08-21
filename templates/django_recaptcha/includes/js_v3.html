@@ -52,11 +52,30 @@
         });
     }
 
+    // Toast quando Chrome autofill tenta submit sem token
+    function showAutofillToast() {
+        if (document.querySelector('.autofill-toast')) return;
+        var toast = document.createElement('div');
+        toast.className = 'autofill-toast alert alert-info alert-dismissible fade show position-fixed';
+        toast.style.cssText = 'bottom: 20px; right: 20px; z-index: 9999; min-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = '<i class="bi bi-info-circle me-2"></i>Toque em <strong>Entrar</strong> para continuar<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fechar"></button>';
+        document.body.appendChild(toast);
+        setTimeout(function () {
+            toast.classList.remove('show');
+            setTimeout(function () { toast.remove(); }, 150);
+        }, 3000);
+    }
+
     var nativeSubmit = HTMLFormElement.prototype.submit;
     HTMLFormElement.prototype.submit = function () {
         if (this === form) {
             if (submittingWithToken) {
                 return nativeSubmit.call(this);
+            }
+            // Bloqueia autosubmit do Chrome autofill sem token
+            if (typeof showAutofillToast === 'function') {
+                showAutofillToast();
             }
             return undefined;
         }
@@ -76,13 +95,26 @@
                     submittingWithToken = true;
                     nativeSubmit.call(form);
                 })
-                .catch(showCaptchaError);
+                .catch(function () {
+                    submittingWithToken = false;
+                    showCaptchaError();
+                    resetLoginButton();
+                });
         }
 
         if (window.grecaptcha && window.grecaptcha.execute) {
             window.grecaptcha.ready(submitWithToken);
         } else {
             showCaptchaError();
+            resetLoginButton();
+        }
+    }
+
+    function resetLoginButton() {
+        var submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Entrar';
         }
     }
 

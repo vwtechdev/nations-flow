@@ -30,30 +30,7 @@ $(function() {
         $(this).removeClass('shadow-sm');
     });
     
-    // Add loading state to submit button
-    $('form').on('submit', function() {
-        const submitBtn = $(this).find('button[type="submit"]');
-        const originalText = submitBtn.html();
-        
-        submitBtn.prop('disabled', true);
-        submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Entrando...');
-        
-        // Re-enable button after 5 seconds if form submission fails
-        setTimeout(function() {
-            submitBtn.prop('disabled', false);
-            submitBtn.html(originalText);
-        }, 5000);
-    });
-    
-    // Add enter key support for form submission
-    $('input').on('keypress', function(e) {
-        if (e.which === 13) { // Enter key
-            e.preventDefault();
-            $(this).closest('form').submit();
-        }
-    });
-    
-    // Initialize password toggle functionality
+// Initialize password toggle functionality
     initPasswordToggle();
 });
 

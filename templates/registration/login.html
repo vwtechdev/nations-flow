@@ -127,7 +127,7 @@
                 </div>
             {% endif %}
             
-            <form method="post" action="{% url 'login' %}" class="login-form">
+            <form method="post" action="{% url 'login' %}" class="login-form" id="loginForm" autocomplete="off">
                 {% csrf_token %}
                 
                 <div class="mb-3">
