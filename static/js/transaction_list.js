@@ -332,7 +332,8 @@ window.loadTransactions = function() {
         church: getHiddenArray('church'),
         shepherd: getHiddenArray('shepherd'),
         user: getHiddenArray('user'),
-        page: currentPage
+        page: currentPage,
+        per_page: currentPerPage
     };
     
     updateUrl(currentFilters);
