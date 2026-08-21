@@ -817,7 +817,6 @@ function updateUrl(currentFilters) {
     try {
         var params = new URLSearchParams();
         for (var k in currentFilters) {
-            if (k === 'page') continue;
             if (!datesExplicit && (k === 'date_from' || k === 'date_to')) continue;
             var v = currentFilters[k];
             if (Array.isArray(v)) {
