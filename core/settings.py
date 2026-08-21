@@ -275,7 +275,7 @@ CACHES = {
 # Session Configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
-SESSION_COOKIE_AGE = 28800  # 8 horas
+SESSION_COOKIE_AGE = 86400  # 24 horas
 
 # Default user settings and password
 DEFAULT_USER_PASSWORD = os.getenv("DEFAULT_USER_PASSWORD", "change-me")
