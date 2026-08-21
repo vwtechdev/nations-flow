@@ -401,10 +401,11 @@ window.loadTransactions = function() {
             saveFiltersToStorage();
         })
         .catch(error => {
+            console.error('Transaction list error:', error);
             transactionsTable.innerHTML = `
-                <div class="alert alert-danger" role="alert">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    Erro ao carregar transações: ${error.message}
+                <div class="text-center py-4">
+                    <i class="bi bi-exclamation-triangle display-1 text-danger"></i>
+                    <h5 class="text-muted mt-3">Erro ao carregar dados</h5>
                 </div>
             `;
         });
