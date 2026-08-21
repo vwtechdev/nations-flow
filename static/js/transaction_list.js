@@ -843,9 +843,13 @@ function clearFilters() {
 function updateUrl(currentFilters) {
     try {
         var params = new URLSearchParams();
-        for (var k in currentFilters) {
+        // Ordem padrão: page, per_page, date_from, date_to, depois os demais filtros
+        var order = ['page', 'per_page', 'date_from', 'date_to', 'search', 'category', 'type', 'field', 'church', 'shepherd', 'user'];
+        for (var i = 0; i < order.length; i++) {
+            var k = order[i];
             if (!datesExplicit && (k === 'date_from' || k === 'date_to')) continue;
             var v = currentFilters[k];
+            if (v === undefined) continue;
             if (Array.isArray(v)) {
                 v.forEach(function(x) { if (x) params.append(k, x); });
             } else if (v) {
