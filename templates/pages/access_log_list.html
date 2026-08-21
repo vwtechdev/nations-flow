@@ -39,8 +39,14 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="form-floating mb-3">
-                                <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search" placeholder=" ">
-                                <label for="search"><i class="bi bi-search"></i> Pesquisar</label>
+                                <div class="search-input-wrapper">
+                                    <input class="form-control" type="text" name="search" value="{{ search_query|default:'' }}" id="search" placeholder=" ">
+                                    <label for="search"><i class="bi bi-search"></i> Pesquisar</label>
+                                    <i class="bi bi-search search-icon"></i>
+                                    <button type="button" class="clear-icon" id="clearAccessLogSearch" aria-label="Limpar busca" style="display:none;">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-4 col-lg-3 col-xl-2">

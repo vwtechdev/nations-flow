@@ -1,4 +1,138 @@
-/* Estilos personalizados para os filtros dos formulários */
+/* =============================================================================
+   Search Input com Ícones Embutidos
+   ============================================================================= */
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper .form-control {
+    padding-left: 44px;
+    padding-right: 44px;
+    transition: all 0.2s ease-in-out;
+}
+
+.search-input-wrapper .form-control:focus {
+    padding-left: 44px;
+    padding-right: 44px;
+}
+
+.search-input-wrapper .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-size: 1.1rem;
+    pointer-events: none;
+    z-index: 2;
+    transition: color 0.2s ease-in-out;
+}
+
+.search-input-wrapper .form-control:focus ~ .search-icon {
+    color: #0d6efd;
+}
+
+.search-input-wrapper .clear-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #adb5bd;
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease-in-out;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-input-wrapper .clear-icon:hover {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.search-input-wrapper .clear-icon.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.search-input-wrapper .form-control:not(:placeholder-shown) ~ .clear-icon {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Input search com form-floating */
+.search-input-wrapper.form-floating {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.search-input-wrapper.form-floating .form-control {
+    height: calc(3.5rem + 2px);
+    padding: 1rem 44px 0.5rem 44px;
+}
+
+.search-input-wrapper.form-floating .form-control::placeholder {
+    color: transparent;
+}
+
+.search-input-wrapper.form-floating .form-control:not(:placeholder-shown) ~ label {
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+}
+
+.search-input-wrapper.form-floating .form-control:focus ~ label,
+.search-input-wrapper.form-floating .form-control:not(:placeholder-shown) ~ label {
+    color: #0d6efd;
+}
+
+.search-input-wrapper.form-floating .search-icon {
+    left: 14px;
+    top: auto;
+    bottom: calc(50% - 0.25rem);
+    transform: none;
+}
+
+.search-input-wrapper.form-floating .clear-icon {
+    right: 12px;
+    top: auto;
+    bottom: calc(50% - 0.25rem);
+    transform: none;
+}
+
+.search-input-wrapper.form-floating .form-control:focus ~ .search-icon,
+.search-input-wrapper.form-floating .form-control:not(:placeholder-shown) ~ .search-icon {
+    color: #0d6efd;
+}
+
+/* Estilo para label no form-floating com search input */
+.search-input-wrapper.form-floating > label {
+    left: 44px;
+    color: #6c757d;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.875rem;
+}
+
+.search-input-wrapper.form-floating > label::after {
+    display: none;
+}
+
+/* Estilo para container de busca sem form-floating */
+.search-container .search-input-wrapper {
+    width: 100%;
+}
+
+/* =============================================================================
+   Estilos personalizados para os filtros dos formulários
+   ============================================================================= */
 
 /* Container dos filtros */
 .filters-container {
