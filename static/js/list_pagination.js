@@ -73,7 +73,7 @@ class ListPagination {
     }
 
     setupPerPage() {
-        const select = this.root.querySelector('.per-page-select');
+        const select = document.querySelector('.per-page-select');
         if (!select) return;
         select.value = this.perPage;
         select.addEventListener('change', () => {
@@ -182,10 +182,10 @@ class ListPagination {
     }
 
     renderPagination(p) {
-        const container = this.root.querySelector('.pagination-list');
-        const pageInfo = this.root.querySelector('.page-info');
-        const pageInfoMobile = this.root.querySelector('.page-info-mobile');
-        const header = this.root.querySelector('.pagination-header');
+        const container = document.getElementById('paginationList');
+        const pageInfo = document.getElementById('pageInfo');
+        const pageInfoMobile = document.getElementById('pageInfoMobile');
+        const header = document.getElementById('paginationHeader');
 
         if (!container) return;
 
