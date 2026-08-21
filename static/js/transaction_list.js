@@ -109,8 +109,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Restaurar filtros salvos ao voltar para a página (URL limpa)
-    if (!window.location.search) {
+    // Restaurar filtros salvos ao voltar para a página (URL limpa) OU inicializar de URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasUrlFilters = urlParams.toString().length > 0;
+    
+    if (!hasUrlFilters) {
+        // URL limpa: restaurar de localStorage se houver
         const saved = localStorage.getItem(FILTER_STORAGE_KEY);
         if (saved) {
             try {
@@ -128,6 +132,46 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) {
                 localStorage.removeItem(FILTER_STORAGE_KEY);
             }
+        }
+    } else {
+        // URL tem filtros: inicializar estado a partir da URL
+        if (urlParams.get('search')) {
+            const searchInput = document.getElementById('searchFilter') || document.getElementById('searchFilter_mobile');
+            if (searchInput) searchInput.value = urlParams.get('search');
+        }
+        if (urlParams.get('type')) {
+            const typeFilter = document.getElementById('typeFilter') || document.getElementById('typeFilter_mobile');
+            if (typeFilter) typeFilter.value = urlParams.get('type');
+        }
+        if (urlParams.get('date_from')) {
+            const dateFrom = document.getElementById('date_from') || document.getElementById('date_from_mobile');
+            if (dateFrom) dateFrom.value = urlParams.get('date_from');
+        }
+        if (urlParams.get('date_to')) {
+            const dateTo = document.getElementById('date_to') || document.getElementById('date_to_mobile');
+            if (dateTo) dateTo.value = urlParams.get('date_to');
+        }
+        // Arrays: category, field, church, shepherd, user
+        ['category', 'field', 'church', 'shepherd', 'user'].forEach(name => {
+            const values = urlParams.getAll(name);
+            if (values.length > 0) {
+                const hiddenContainer = document.getElementById('advancedFiltersHidden');
+                if (hiddenContainer) {
+                    values.forEach(val => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = val;
+                        input.dataset.filter = name;
+                        hiddenContainer.appendChild(input);
+                    });
+                }
+            }
+        });
+        
+        // Sincronizar seletor de mês com date_from/date_to
+        if (urlParams.get('date_from') || urlParams.get('date_to')) {
+            datesExplicit = true;
         }
     }
 
