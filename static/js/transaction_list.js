@@ -474,19 +474,28 @@ function exportWithLoading(url, type) {
             return response.blob().then(blob => ({ blob, filename }));
         })
         .then(({ blob, filename }) => {
+            // Criar blob com tipo MIME correto para forçar download
+            const mimeType = type === 'pdf' 
+                ? 'application/pdf' 
+                : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const correctBlob = new Blob([blob], { type: mimeType });
+            
             // Criar URL do blob
-            const blobUrl = window.URL.createObjectURL(blob);
+            const blobUrl = window.URL.createObjectURL(correctBlob);
             
             // Criar link temporário para download
             const a = document.createElement('a');
             a.href = blobUrl;
             a.download = filename;
+            a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
             
-            // Limpar
-            window.URL.revokeObjectURL(blobUrl);
-            document.body.removeChild(a);
+            // Limpar após um delay para garantir que o download iniciou
+            setTimeout(() => {
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(a);
+            }, 100);
             
             // Fechar modal com pequeno delay para garantir que o download iniciou
             setTimeout(() => {
