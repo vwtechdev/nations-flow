@@ -432,7 +432,6 @@ window.loadTransactions = function() {
 // Função para exportar com loading
 function exportWithLoading(url, type) {
     const modalEl = document.getElementById('exportLoadingModal');
-    const modal = new bootstrap.Modal(modalEl);
     const messageEl = document.getElementById('exportLoadingMessage');
     
     // Definir mensagem
@@ -446,6 +445,12 @@ function exportWithLoading(url, type) {
         btn.classList.add('disabled');
         btn.style.pointerEvents = 'none';
     });
+    
+    // Obter ou criar instância do modal
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) {
+        modal = new bootstrap.Modal(modalEl);
+    }
     
     // Mostrar modal
     modal.show();
@@ -473,8 +478,22 @@ function exportWithLoading(url, type) {
             window.URL.revokeObjectURL(blobUrl);
             document.body.removeChild(a);
             
-            // Fechar modal
-            modal.hide();
+            // Fechar modal com pequeno delay para garantir que o download iniciou
+            setTimeout(() => {
+                console.log('Fechando modal de exportação...');
+                modal.hide();
+                
+                // Garantir que o backdrop foi removido
+                setTimeout(() => {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('overflow');
+                    document.body.style.removeProperty('padding-right');
+                }, 300);
+            }, 500);
         })
         .catch(error => {
             console.error('Erro ao exportar:', error);
