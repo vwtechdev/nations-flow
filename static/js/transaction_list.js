@@ -459,18 +459,28 @@ function exportWithLoading(url, type) {
     fetch(url)
         .then(response => {
             if (!response.ok) throw new Error('Erro na exportação');
-            return response.blob();
+            
+            // Extrair nome do arquivo do header Content-Disposition
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = type === 'pdf' ? 'transacoes.pdf' : 'transacoes.xlsx';
+            
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            return response.blob().then(blob => ({ blob, filename }));
         })
-        .then(blob => {
+        .then(({ blob, filename }) => {
             // Criar URL do blob
             const blobUrl = window.URL.createObjectURL(blob);
             
             // Criar link temporário para download
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = type === 'pdf' 
-                ? 'transacoes.pdf' 
-                : 'transacoes.xlsx';
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             
