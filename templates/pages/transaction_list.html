@@ -600,6 +600,23 @@
     </div>
 </div>
 
+<!-- Modal de Loading para Exportação -->
+<div class="modal fade" id="exportLoadingModal" tabindex="-1" aria-labelledby="exportLoadingModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <h5 class="modal-title mb-2" id="exportLoadingModalLabel">
+                    <i class="bi bi-download"></i> <span id="exportLoadingMessage">Exportando...</span>
+                </h5>
+                <p class="text-muted mb-0">Aguarde enquanto o arquivo é gerado.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}

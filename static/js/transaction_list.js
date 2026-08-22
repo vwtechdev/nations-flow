@@ -192,6 +192,24 @@ document.addEventListener('DOMContentLoaded', function() {
     updateExportButton();
     updateMaisFiltrosBadge();
     
+    // Interceptar cliques nos botões de exportação
+    document.getElementById('exportPdfButton')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        exportWithLoading(this.href, 'pdf');
+    });
+    document.getElementById('exportPdfButton_mobile')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        exportWithLoading(this.href, 'pdf');
+    });
+    document.getElementById('exportXlsxButton')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        exportWithLoading(this.href, 'xlsx');
+    });
+    document.getElementById('exportXlsxButton_mobile')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        exportWithLoading(this.href, 'xlsx');
+    });
+    
     // Adicionar listener para o formulário de filtros
     const filterForm = document.getElementById('chartFilterForm');
     if (filterForm) {
@@ -408,6 +426,67 @@ window.loadTransactions = function() {
                     <h5 class="text-muted mt-3">Erro ao carregar dados</h5>
                 </div>
             `;
+        });
+}
+
+// Função para exportar com loading
+function exportWithLoading(url, type) {
+    const modalEl = document.getElementById('exportLoadingModal');
+    const modal = new bootstrap.Modal(modalEl);
+    const messageEl = document.getElementById('exportLoadingMessage');
+    
+    // Definir mensagem
+    messageEl.textContent = type === 'pdf' 
+        ? 'Exportando para PDF...' 
+        : 'Exportando para XLSX...';
+    
+    // Desabilitar todos os botões de exportação
+    const buttons = document.querySelectorAll('#exportPdfButton, #exportPdfButton_mobile, #exportXlsxButton, #exportXlsxButton_mobile');
+    buttons.forEach(btn => {
+        btn.classList.add('disabled');
+        btn.style.pointerEvents = 'none';
+    });
+    
+    // Mostrar modal
+    modal.show();
+    
+    // Fazer requisição
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Erro na exportação');
+            return response.blob();
+        })
+        .then(blob => {
+            // Criar URL do blob
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            // Criar link temporário para download
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = type === 'pdf' 
+                ? 'transacoes.pdf' 
+                : 'transacoes.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Limpar
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+            
+            // Fechar modal
+            modal.hide();
+        })
+        .catch(error => {
+            console.error('Erro ao exportar:', error);
+            alert('Erro ao exportar. Tente novamente.');
+            modal.hide();
+        })
+        .finally(() => {
+            // Reabilitar botões
+            buttons.forEach(btn => {
+                btn.classList.remove('disabled');
+                btn.style.pointerEvents = 'auto';
+            });
         });
 }
 
