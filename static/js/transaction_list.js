@@ -474,14 +474,12 @@ function exportWithLoading(url, type) {
             return response.blob().then(blob => ({ blob, filename }));
         })
         .then(({ blob, filename }) => {
-            // Criar blob com tipo MIME correto para forçar download
-            const mimeType = type === 'pdf' 
-                ? 'application/pdf' 
-                : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-            const correctBlob = new Blob([blob], { type: mimeType });
+            // Usar application/octet-stream para forçar download em todos os navegadores
+            // (Firefox pode abrir PDF com visualizador embutido mesmo com attachment)
+            const downloadBlob = new Blob([blob], { type: 'application/octet-stream' });
             
             // Criar URL do blob
-            const blobUrl = window.URL.createObjectURL(correctBlob);
+            const blobUrl = window.URL.createObjectURL(downloadBlob);
             
             // Criar link temporário para download
             const a = document.createElement('a');
