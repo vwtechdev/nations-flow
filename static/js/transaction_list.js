@@ -481,17 +481,31 @@ function exportWithLoading(url, type) {
             // Fechar modal com pequeno delay para garantir que o download iniciou
             setTimeout(() => {
                 console.log('Fechando modal de exportação...');
-                modal.hide();
+                console.log('Modal instance:', modal);
+                console.log('Modal element:', modalEl);
+                
+                // Tentar fechar o modal
+                if (modal && typeof modal.hide === 'function') {
+                    modal.hide();
+                }
                 
                 // Garantir que o backdrop foi removido
                 setTimeout(() => {
                     const backdrop = document.querySelector('.modal-backdrop');
                     if (backdrop) {
+                        console.log('Removendo backdrop manualmente');
                         backdrop.remove();
                     }
                     document.body.classList.remove('modal-open');
                     document.body.style.removeProperty('overflow');
                     document.body.style.removeProperty('padding-right');
+                    
+                    // Verificar se o modal ainda está visível
+                    if (modalEl.classList.contains('show')) {
+                        console.log('Modal ainda está visível, forçando fechamento');
+                        modalEl.classList.remove('show');
+                        modalEl.style.display = 'none';
+                    }
                 }, 300);
             }, 500);
         })
