@@ -184,12 +184,9 @@ docker-compose exec -T db psql -U postgres nationsflow < backup.sql
 git clone <repo>
 cd nations-flow
 
-# 2. Crie o arquivo .env com as variáveis obrigatórias (não existe .env.example)
-# SECRET_KEY, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST,
-# POSTGRES_PORT, REDIS_HOST, REDIS_PORT, REDIS_DB, ALLOWED_HOSTS, DEBUG,
-# DEFAULT_USER_PASSWORD, SYSTEM_HIDDEN_EMAIL, BACKUP_RETENTION_DAYS,
-# RECAPTCHA_PUBLIC_KEY, RECAPTCHA_PRIVATE_KEY, RECAPTCHA_DOMAIN, RECAPTCHA_REQUIRED_SCORE
-# Opcionais: DOMAIN, WHATSAPP_GROUP_URL
+# 2. Copie o exemplo e preencha as variáveis (cp .env.example .env)
+#    O arquivo .env é gitignored (nunca commitar). Veja .env.example
+#    para a lista completa de variáveis obrigatórias e opcionais.
 
 # 3. Inicie containers (banco inicializado automaticamente via wait-for-database.sh + migrações)
 docker-compose up -d

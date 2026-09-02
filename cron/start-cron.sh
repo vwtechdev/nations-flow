@@ -15,7 +15,9 @@ chmod 666 /var/log/cron.log /var/log/backup.log
 echo "PATH=/usr/local/bin:/usr/bin:/bin" >> /etc/cron.env
 
 # Lista de variáveis essenciais para o Django e PostgreSQL
-ESSENTIAL_VARS="DJANGO_SETTINGS_MODULE POSTGRES_HOST POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SECRET_KEY DEBUG ALLOWED_HOSTS REDIS_HOST REDIS_PORT REDIS_DB BACKUP_RETENTION_DAYS TZ"
+# IMPORTANTE: o cron não herda env; toda variável lida pelo core.settings deve estar aqui,
+# senão o django_recaptcha (e outras) derrubam o manage.py no container cron com ImproperlyConfigured.
+ESSENTIAL_VARS="DJANGO_SETTINGS_MODULE POSTGRES_HOST POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SECRET_KEY DEBUG ALLOWED_HOSTS REDIS_HOST REDIS_PORT REDIS_DB BACKUP_RETENTION_DAYS TZ RECAPTCHA_PUBLIC_KEY RECAPTCHA_PRIVATE_KEY RECAPTCHA_DOMAIN RECAPTCHA_REQUIRED_SCORE SYSTEM_HIDDEN_EMAIL DEFAULT_USER_PASSWORD WHATSAPP_GROUP_URL DOMAIN"
 
 for var in $ESSENTIAL_VARS; do
     if [ -n "${!var}" ]; then

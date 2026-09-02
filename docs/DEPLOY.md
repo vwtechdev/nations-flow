@@ -20,13 +20,11 @@ cd nations-flow
 
 2. **Configure variáveis de ambiente**
 ```bash
-# Crie o arquivo .env com as variáveis necessárias (não existe .env.example)
-# Variáveis obrigatórias: SECRET_KEY, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD,
-# POSTGRES_HOST, POSTGRES_PORT, REDIS_HOST, REDIS_PORT, REDIS_DB, ALLOWED_HOSTS,
-# DEBUG, DEFAULT_USER_PASSWORD, SYSTEM_HIDDEN_EMAIL, BACKUP_RETENTION_DAYS,
-# RECAPTCHA_PUBLIC_KEY, RECAPTCHA_PRIVATE_KEY, RECAPTCHA_DOMAIN, RECAPTCHA_REQUIRED_SCORE
-# Opcionais: DOMAIN, WHATSAPP_GROUP_URL
+# Copie o exemplo e preencha os valores
+cp .env.example .env
+# O arquivo .env é gitignored (nunca commitar)
 ```
+Veja `.env.example` para a lista completa de variáveis obrigatórias e opcionais.
 
 3. **Inicie os containers**
 ```bash
