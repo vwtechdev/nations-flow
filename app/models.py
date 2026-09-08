@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -298,3 +298,32 @@ class ShepherdHistory(BaseModel):
 def delete_transaction_proof(sender, instance, **kwargs):
     if instance.proof:
         instance.proof.delete(save=False)
+
+
+def _delete_old_file_field(instance, field_name):
+    """Remove o arquivo antigo do storage quando um FileField é substituído no update."""
+    if not instance.pk:
+        return
+    try:
+        old = instance.__class__.objects.get(pk=instance.pk)
+    except instance.__class__.DoesNotExist:
+        return
+    old_file = getattr(old, field_name)
+    new_file = getattr(instance, field_name)
+    if old_file and old_file != new_file:
+        old_file.delete(save=False)
+
+
+@receiver(pre_save, sender=Transaction)
+def delete_old_transaction_proof(sender, instance, **kwargs):
+    _delete_old_file_field(instance, 'proof')
+
+
+@receiver(pre_save, sender=Church)
+def delete_old_church_contract(sender, instance, **kwargs):
+    _delete_old_file_field(instance, 'contract')
+
+
+@receiver(pre_save, sender=Shepherd)
+def delete_old_shepherd_contract(sender, instance, **kwargs):
+    _delete_old_file_field(instance, 'contract')

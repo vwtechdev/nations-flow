@@ -100,21 +100,22 @@ python manage.py backup_postgres
 - Salva em `/backups/` com timestamp
 - Usa variáveis de ambiente do container
 
-### cleanup_orphan_proofs
+### cleanup_orphan_files
 
-Remove comprovantes órfãos em `media/proofs/`.
+Remove arquivos de mídia órfãos em `media/` (comprovantes e contratos).
 
 **Uso:**
 ```bash
 # Prévia (não remove nada)
-python manage.py cleanup_orphan_proofs --dry-run
+python manage.py cleanup_orphan_files --dry-run
 
 # Remover de fato (sem --delete nada é apagado)
-python manage.py cleanup_orphan_proofs --delete
+python manage.py cleanup_orphan_files --delete
 ```
 
 **Funcionalidade:**
-- Varre `media/proofs/` e remove arquivos não referenciados por nenhuma `Transaction`
+- Varre `media/proofs/` (comprovantes), `media/churches/` e `media/shepherds/` (contratos)
+- Remove arquivos não referenciados por nenhuma `Transaction`/`Church`/`Shepherd`
 - Sem `--delete`, apenas lista o que seria removido (não apaga nada)
 
 ## Comandos Docker

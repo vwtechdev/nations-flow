@@ -243,4 +243,4 @@ Field (Campo)
 - `process_repeat_notifications`: Processa notificações recorrentes
 - `backup_postgres`: Backup do PostgreSQL
 - `test_cache`: Testa conexão com Redis
-- `cleanup_orphan_proofs`: Remove comprovantes órfãos
+- `cleanup_orphan_files`: Remove arquivos de mídia órfãos (comprovantes e contratos)
