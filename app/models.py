@@ -162,6 +162,7 @@ class Transaction(BaseModel):
         null=True,
         verbose_name="Comprovante"
     )
+    is_checked = models.BooleanField(default=False, verbose_name="Conferido")
 
     class Meta(BaseModel.Meta):
         verbose_name = "Transação"

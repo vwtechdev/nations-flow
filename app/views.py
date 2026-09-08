@@ -643,6 +643,7 @@ def transaction_list(request):
     search = request.GET.get('search', '')
     selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
+    checked_filter = request.GET.get('checked', '')
     date_from_raw = request.GET.get('date_from', '')
     date_to_raw = request.GET.get('date_to', '')
     date_from = date_from_raw
@@ -674,6 +675,11 @@ def transaction_list(request):
     
     if transaction_type:
         transactions = transactions.filter(type=transaction_type)
+
+    if checked_filter == 'checked':
+        transactions = transactions.filter(is_checked=True)
+    elif checked_filter == 'pending':
+        transactions = transactions.filter(is_checked=False)
     
     if date_from:
         transactions = transactions.filter(date__gte=date_from)
@@ -777,6 +783,8 @@ def transaction_list(request):
     active_filters = []
     if transaction_type:
         active_filters.append(('Tipo', ['Entrada' if transaction_type == 'income' else 'Saída']))
+    if checked_filter:
+        active_filters.append(('Status', ['Conferido' if checked_filter == 'checked' else 'Pendente']))
     if search:
         active_filters.append(('Busca', [search]))
     if selected_categories:
@@ -811,6 +819,7 @@ def transaction_list(request):
         'selected_categories': selected_categories,
         'transaction_type': transaction_type,
         'selected_type': transaction_type,
+        'selected_checked': checked_filter,
         'date_from': date_from,
         'date_to': date_to,
         'selected_fields': selected_fields,
@@ -863,6 +872,7 @@ def transaction_list_api(request):
     search = request.GET.get('search', '')
     selected_categories = request.GET.getlist('category')
     transaction_type = request.GET.get('type', '')
+    checked_filter = request.GET.get('checked', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     selected_fields = request.GET.getlist('field')
@@ -897,6 +907,11 @@ def transaction_list_api(request):
     
     if transaction_type:
         transactions = transactions.filter(type=transaction_type)
+
+    if checked_filter == 'checked':
+        transactions = transactions.filter(is_checked=True)
+    elif checked_filter == 'pending':
+        transactions = transactions.filter(is_checked=False)
     
     if date_from:
         transactions = transactions.filter(date__gte=date_from)
@@ -963,6 +978,7 @@ def transaction_list_api(request):
             'desc': transaction.desc or '-',
             'value': float(transaction.value),
             'proof': transaction.proof.url if transaction.proof else None,
+            'is_checked': transaction.is_checked,
             'user_name': (transaction.user.get_full_name() or transaction.user.username) if transaction.user else None,
             'can_edit': request.user.is_admin(),
             'can_view': True,
@@ -1514,6 +1530,33 @@ def transaction_bulk_delete(request):
     deleted_count = transactions.count()
     transactions.delete()
     return JsonResponse({'deleted': deleted_count})
+
+@require_http_methods(["POST"])
+@password_changed_required
+@admin_required
+def transaction_bulk_check(request):
+    """Marcar/desmarcar transações como conferidas em lote - Apenas administradores"""
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    ids = data.get('ids', [])
+    checked = bool(data.get('checked', False))
+    try:
+        ids = [int(i) for i in ids if str(i).strip().isdigit()]
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'IDs inválidos'}, status=400)
+
+    if not ids:
+        return JsonResponse({'updated': 0})
+
+    transactions = Transaction.objects.filter(id__in=ids)
+    action_label = 'Conferiu' if checked else 'Desconferiu'
+    for transaction in transactions:
+        log_action(request.user, 'update', transaction, f'{action_label} transação ID: {transaction.id}, {transaction.get_type_display()}, {transaction.get_formatted_value()}, {transaction.category.name}', request)
+    updated_count = transactions.update(is_checked=checked)
+    return JsonResponse({'updated': updated_count})
 
 # Views de Categorias (apenas admin)
 @password_changed_required

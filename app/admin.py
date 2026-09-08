@@ -170,8 +170,8 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     form = TransactionAdminForm
-    list_display = ['type', 'category', 'value', 'date', 'user', 'church', 'shepherd', 'proof', 'created_at']
-    list_filter = ['type', 'category', 'date', 'user', 'church__name', 'church__field', 'church__shepherd', 'created_at']
+    list_display = ['type', 'category', 'value', 'date', 'user', 'church', 'shepherd', 'is_checked', 'proof', 'created_at']
+    list_filter = ['type', 'category', 'date', 'user', 'is_checked', 'church__name', 'church__field', 'church__shepherd', 'created_at']
     search_fields = ['desc', 'category__name', 'user__email', 'church__name', 'church__shepherd__name']
     date_hierarchy = 'date'
     readonly_fields = ['created_at', 'updated_at']

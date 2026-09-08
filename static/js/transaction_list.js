@@ -248,6 +248,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateExportButton();
             });
         }
+
+        // Auto-aplicar ao mudar o status (desktop)
+        const statusDesktop = document.getElementById('statusFilter');
+        if (statusDesktop) {
+            statusDesktop.addEventListener('change', function() {
+                currentPage = 1;
+                loadTransactions();
+                updateExportButton();
+            });
+        }
         
         // Atualizar quando o modal aplicar filtros
         filterForm.addEventListener('filters:applied', function(e) {
@@ -323,6 +333,54 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmBtn.disabled = false;
             }
         });
+
+        // Marcar como conferidas em lote
+        const bulkCheckBtn = document.getElementById('bulkCheckBtn');
+        if (bulkCheckBtn) {
+            bulkCheckBtn.addEventListener('click', async function() {
+                const ids = [...document.querySelectorAll('.transaction-checkbox:checked')].map(cb => cb.value);
+                if (ids.length === 0) return;
+                try {
+                    const response = await fetch('/transactions/bulk-check/', {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json'},
+                        body: JSON.stringify({ids, checked: true})
+                    });
+                    if (!response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        throw new Error(data.error || 'Erro ao marcar transações como conferidas');
+                    }
+                    loadTransactions();
+                    updateBulkActions();
+                } catch (error) {
+                    alert('Erro ao marcar transações: ' + error.message);
+                }
+            });
+        }
+
+        // Desmarcar conferência em lote
+        const bulkUncheckBtn = document.getElementById('bulkUncheckBtn');
+        if (bulkUncheckBtn) {
+            bulkUncheckBtn.addEventListener('click', async function() {
+                const ids = [...document.querySelectorAll('.transaction-checkbox:checked')].map(cb => cb.value);
+                if (ids.length === 0) return;
+                try {
+                    const response = await fetch('/transactions/bulk-check/', {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json'},
+                        body: JSON.stringify({ids, checked: false})
+                    });
+                    if (!response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        throw new Error(data.error || 'Erro ao desmarcar conferência');
+                    }
+                    loadTransactions();
+                    updateBulkActions();
+                } catch (error) {
+                    alert('Erro ao desmarcar conferência: ' + error.message);
+                }
+            });
+        }
     }
 
 });
@@ -650,6 +708,7 @@ function renderTransactions(transactions) {
                         <th>Valor</th>
                         <th>Descrição</th>
                         ${canSeeUser ? '<th>Usuário</th>' : ''}
+                        <th>Conferido</th>
                         <th class="text-nowrap">Ações</th>
                     </tr>
                 </thead>
@@ -688,6 +747,11 @@ function renderTransactions(transactions) {
                 </td>
                 <td>${truncateText(transaction.desc)}</td>
                 ${canSeeUser ? `<td>${transaction.user_name || '-'}</td>` : ''}
+                <td>
+                    ${transaction.is_checked
+                        ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Conferido</span>'
+                        : '<span class="badge bg-secondary"><i class="bi bi-circle"></i> Pendente</span>'}
+                </td>
                 <td class="text-nowrap">
                     ${transaction.proof ? 
                         `<button type="button" class="btn btn-sm btn-outline-success me-1" 
@@ -785,6 +849,12 @@ function renderTransactions(transactions) {
                             <span class="mobile-card-value">${transaction.user_name}</span>
                         </div>
                     ` : ''}
+                    <div class="mobile-card-row">
+                        <span class="mobile-card-label">Conferido:</span>
+                        <span class="mobile-card-value">${transaction.is_checked
+                            ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Conferido</span>'
+                            : '<span class="badge bg-secondary"><i class="bi bi-circle"></i> Pendente</span>'}</span>
+                    </div>
                 </div>
                 <div class="mobile-card-footer" style="flex-wrap: nowrap; justify-content: flex-end; gap: 0.5rem;">
                     ${transaction.proof ? 

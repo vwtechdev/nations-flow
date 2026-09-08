@@ -338,7 +338,8 @@ class FiltersForm {
 
     syncNonSelect2Fields() {
         const nonSelect2Fields = [
-            { desktop: 'typeFilter', mobile: 'typeFilter_mobile' }
+            { desktop: 'typeFilter', mobile: 'typeFilter_mobile' },
+            { desktop: 'statusFilter', mobile: 'statusFilter_mobile' }
         ];
 
         nonSelect2Fields.forEach(({ desktop, mobile }) => {

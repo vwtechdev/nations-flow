@@ -100,6 +100,18 @@
                             </div>
                         </div>
                         <div class="col-md-4 col-lg-3 col-xl-2">
+                            <div class="form-floating mb-3">
+                                <select name="checked" id="statusFilter" class="form-control">
+                                    <option value="">Todos os status</option>
+                                    <option value="checked" {% if selected_checked == 'checked' %}selected{% endif %}>Conferido</option>
+                                    <option value="pending" {% if selected_checked == 'pending' %}selected{% endif %}>Pendente</option>
+                                </select>
+                                <label for="statusFilter">
+                                    <i class="bi bi-check2-square"></i> Status
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-lg-3 col-xl-2">
                             <div class="mb-3">
                                 <label class="form-label text-muted small">
                                     <i class="bi bi-funnel"></i> Mais Filtros
@@ -174,6 +186,18 @@
                                     </select>
                                     <label for="month_filter_mobile">
                                         <i class="bi bi-calendar-month"></i> Mês
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="checked" id="statusFilter_mobile" class="form-control" placeholder=" ">
+                                        <option value="">Todos os status</option>
+                                        <option value="checked" {% if selected_checked == 'checked' %}selected{% endif %}>Conferido</option>
+                                        <option value="pending" {% if selected_checked == 'pending' %}selected{% endif %}>Pendente</option>
+                                    </select>
+                                    <label for="statusFilter_mobile">
+                                        <i class="bi bi-check2-square"></i> Status
                                     </label>
                                 </div>
                             </div>
@@ -472,6 +496,12 @@
                     <button type="button" id="bulkDeleteBtn" class="btn btn-sm btn-outline-danger"
                             data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
                         <i class="bi bi-trash"></i> Excluir selecionadas
+                    </button>
+                    <button type="button" id="bulkCheckBtn" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-check2-square"></i> Marcar como conferidas
+                    </button>
+                    <button type="button" id="bulkUncheckBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-square"></i> Desmarcar conferência
                     </button>
                 </div>
                 {% endif %}
