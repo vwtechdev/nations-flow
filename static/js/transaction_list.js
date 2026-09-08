@@ -143,6 +143,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const typeFilter = document.getElementById('typeFilter') || document.getElementById('typeFilter_mobile');
             if (typeFilter) typeFilter.value = urlParams.get('type');
         }
+        if (urlParams.get('checked')) {
+            const statusFilter = document.getElementById('statusFilter') || document.getElementById('statusFilter_mobile');
+            if (statusFilter) statusFilter.value = urlParams.get('checked');
+        }
         if (urlParams.get('date_from')) {
             const dateFrom = document.getElementById('date_from') || document.getElementById('date_from_mobile');
             if (dateFrom) dateFrom.value = urlParams.get('date_from');
@@ -428,6 +432,7 @@ window.loadTransactions = function() {
         search: document.getElementById('searchFilter')?.value || document.getElementById('searchFilter_mobile')?.value || '',
         category: getHiddenArray('category'),
         type: document.getElementById('typeFilter')?.value || document.getElementById('typeFilter_mobile')?.value || '',
+        checked: document.getElementById('statusFilter')?.value || document.getElementById('statusFilter_mobile')?.value || '',
         date_from: document.getElementById('date_from')?.value || document.getElementById('date_from_mobile')?.value || '',
         date_to: document.getElementById('date_to')?.value || document.getElementById('date_to_mobile')?.value || '',
         field: getHiddenArray('field'),
@@ -1039,7 +1044,7 @@ function updateUrl(currentFilters) {
     try {
         var params = new URLSearchParams();
         // Ordem padrão: page, per_page, date_from, date_to, depois os demais filtros
-        var order = ['page', 'per_page', 'date_from', 'date_to', 'search', 'category', 'type', 'field', 'church', 'shepherd', 'user'];
+        var order = ['page', 'per_page', 'date_from', 'date_to', 'search', 'category', 'type', 'checked', 'field', 'church', 'shepherd', 'user'];
         for (var i = 0; i < order.length; i++) {
             var k = order[i];
             if (!datesExplicit && (k === 'date_from' || k === 'date_to')) continue;
@@ -1084,6 +1089,9 @@ function updateFilterAlert(currentFilters) {
     }
     if (currentFilters.type) {
         badges.push(['Tipo', [currentFilters.type === 'income' ? 'Entrada' : 'Saída']]);
+    }
+    if (currentFilters.checked) {
+        badges.push(['Status', [currentFilters.checked === 'checked' ? 'Conferido' : 'Pendente']]);
     }
     if (currentFilters.category && currentFilters.category.length > 0) {
         badges.push(['Categorias', resolveNames('category', currentFilters.category)]);
