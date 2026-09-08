@@ -70,9 +70,6 @@ docker-compose exec web python manage.py migrate
 
 # Processar notificações recorrentes
 docker-compose exec web python manage.py process_repeat_notifications
-
-# Testar cache Redis
-docker-compose exec web python manage.py test_cache
 ```
 
 ### Estrutura do Projeto

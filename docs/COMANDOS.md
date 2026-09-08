@@ -72,20 +72,6 @@ python manage.py process_repeat_notifications
 - Reagenda baseado em `repeat_frequency`
 - Reseta `is_read=False`
 
-### test_cache
-
-Testa conexão com Redis.
-
-**Uso:**
-```bash
-python manage.py test_cache
-```
-
-**Funcionalidade:**
-- Testa conexão com Redis
-- Testa escrita e leitura
-- Mostra informações de conexão
-
 ### backup_postgres
 
 Realiza backup do PostgreSQL via pg_dump.
@@ -208,7 +194,7 @@ docker-compose exec web python manage.py process_repeat_notifications
 docker-compose exec web python manage.py dbshell
 
 # Testar cache
-docker-compose exec web python manage.py test_cache
+docker-compose exec redis redis-cli ping
 
 # Verificar migrações pendentes
 docker-compose exec web python manage.py showmigrations
