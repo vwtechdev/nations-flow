@@ -167,7 +167,19 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="col-6" id="month_filter_mobile_container">
+                            <div class="col-6">
+                                <div class="form-floating mb-3">
+                                    <select name="checked" id="statusFilter_mobile" class="form-control" placeholder=" ">
+                                        <option value="">Todos os status</option>
+                                        <option value="checked" {% if selected_checked == 'checked' %}selected{% endif %}>Conferido</option>
+                                        <option value="pending" {% if selected_checked == 'pending' %}selected{% endif %}>Pendente</option>
+                                    </select>
+                                    <label for="statusFilter_mobile">
+                                        <i class="bi bi-check2-square"></i> Status
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6 mx-auto" id="month_filter_mobile_container">
                                 <div class="form-floating mb-3">
                                     {% now "n" as current_month_mobile %}
                                     <select class="form-select" id="month_filter_mobile" aria-label="Mês">
@@ -186,18 +198,6 @@
                                     </select>
                                     <label for="month_filter_mobile">
                                         <i class="bi bi-calendar-month"></i> Mês
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-floating mb-3">
-                                    <select name="checked" id="statusFilter_mobile" class="form-control" placeholder=" ">
-                                        <option value="">Todos os status</option>
-                                        <option value="checked" {% if selected_checked == 'checked' %}selected{% endif %}>Conferido</option>
-                                        <option value="pending" {% if selected_checked == 'pending' %}selected{% endif %}>Pendente</option>
-                                    </select>
-                                    <label for="statusFilter_mobile">
-                                        <i class="bi bi-check2-square"></i> Status
                                     </label>
                                 </div>
                             </div>
