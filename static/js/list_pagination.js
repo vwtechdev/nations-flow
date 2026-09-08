@@ -243,10 +243,11 @@ class ListPagination {
     // =========================================================================
 
     renderDesktop_category(items) {
-        let html = '<table class="table table-bordered" width="100%" cellspacing="0"><thead><tr><th>Nome</th><th>Comprovante Obrigatório</th><th>Data de Criação</th><th>Última Atualização</th><th>Status</th><th class="text-nowrap">Ações</th></tr></thead><tbody>';
+        let html = '<table class="table table-bordered" width="100%" cellspacing="0"><thead><tr><th>Nome</th><th>PIX</th><th>Comprovante Obrigatório</th><th>Data de Criação</th><th>Última Atualização</th><th>Status</th><th class="text-nowrap">Ações</th></tr></thead><tbody>';
         items.forEach(c => {
             html += `<tr>
                 <td>${c.name}</td>
+                <td>${c.is_pix ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Sim</span>' : '<span class="badge bg-secondary"><i class="bi bi-file-earmark-x"></i> Não</span>'}</td>
                 <td>${c.mandatory_proof ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Sim</span>' : '<span class="badge bg-secondary"><i class="bi bi-file-earmark-x"></i> Não</span>'}</td>
                 <td>${c.created_at}</td>
                 <td>${c.updated_at}</td>
@@ -269,6 +270,7 @@ class ListPagination {
             html += `<div class="mobile-card">
                 <div class="mobile-card-header">
                     <div class="mobile-card-row"><span class="mobile-card-label">Nome:</span><span class="mobile-card-value">${c.name}</span></div>
+                    <div class="mobile-card-row"><span class="mobile-card-label">PIX:</span><span class="mobile-card-value">${c.is_pix ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Sim</span>' : '<span class="badge bg-secondary"><i class="bi bi-file-earmark-x"></i> Não</span>'}</span></div>
                     <div class="mobile-card-row"><span class="mobile-card-label">Comprovante:</span><span class="mobile-card-value">${c.mandatory_proof ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Sim</span>' : '<span class="badge bg-secondary"><i class="bi bi-file-earmark-x"></i> Não</span>'}</span></div>
                 </div>
                 <div class="mobile-card-body">
