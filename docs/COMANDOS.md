@@ -112,19 +112,6 @@ python manage.py cleanup_orphan_proofs
 **Funcionalidade:**
 - Varre `media/proofs/` e remove arquivos não referenciados por nenhuma `Transaction`
 
-### random_data_dev
-
-Popula o banco com dados aleatórios (apenas desenvolvimento).
-
-**Uso:**
-```bash
-python manage.py random_data_dev
-```
-
-**Funcionalidade:**
-- Cria campos, igrejas, pastores, categorias, usuários, transações, notificações aleatórios
-- **Gitignored** — não existe em produção
-
 ## Comandos Docker
 
 ### Iniciar/Parar

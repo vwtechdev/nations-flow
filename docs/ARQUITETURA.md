@@ -244,4 +244,3 @@ Field (Campo)
 - `backup_postgres`: Backup do PostgreSQL
 - `test_cache`: Testa conexão com Redis
 - `cleanup_orphan_proofs`: Remove comprovantes órfãos
-- `random_data_dev`: Popula DB com dados aleatórios (dev only)

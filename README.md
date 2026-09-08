@@ -4,37 +4,7 @@ Sistema de gestão financeira para igrejas (controle de entradas/saídas, catego
 
 ## 🚀 Deploy
 
-### Opção 1: Docker (Recomendado para Produção)
-Veja as instruções abaixo para deploy com Docker.
-
-### Opção 2: Desenvolvimento Local (SQLite)
-Para desenvolvimento local sem Docker:
-
-```bash
-# Clone o projeto
-git clone <url-do-repositorio>
-cd nations-flow
-
-# Crie um ambiente virtual (recomendado)
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate     # Windows
-
-# Instale dependências
-pip install -r requirements.txt
-
-# Execute migrações
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py migrate
-
-# Coletar arquivos estáticos
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py collectstatic --noinput
-
-# Inicie o servidor de desenvolvimento
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py runserver
-```
-
-## 📋 Instalação e Configuração (Docker)
+### Instalação e Configuração (Docker)
 
 ### Pré-requisitos
 - Docker
@@ -123,7 +93,6 @@ nations-flow/
 │   └── migrations/        # Migrações do banco
 ├── core/                  # Configurações Django (projeto)
 │   ├── settings.py        # Configurações produção (PostgreSQL + Redis)
-│   ├── settings_dev.py    # Configurações dev (SQLite + LocMemCache)
 │   ├── urls.py            # URLs raiz
 │   ├── wsgi.py            # WSGI entry point
 │   └── asgi.py            # ASGI entry point
@@ -168,7 +137,6 @@ nations-flow/
 ### Banco de Dados
 
 - **Produção (Docker)**: PostgreSQL 15
-- **Desenvolvimento Local**: SQLite (via `core.settings_dev`)
 - **Migrações**: Aplicadas automaticamente no deploy (`docker compose run --rm web python manage.py migrate --noinput`)
 
 ### Variáveis de Ambiente Obrigatórias

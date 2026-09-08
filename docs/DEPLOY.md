@@ -69,43 +69,6 @@ docker-compose exec web python manage.py process_repeat_notifications
 docker-compose exec web python manage.py test_cache
 ```
 
-## Desenvolvimento Local
-
-### Setup
-
-```bash
-# Criar ambiente virtual
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate     # Windows
-
-# Instalar dependências
-pip install -r requirements.txt
-
-# Executar migrações
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py migrate
-
-# Coletar arquivos estáticos
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py collectstatic --noinput
-
-# Criar superusuário (opcional)
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py createsuperuser
-
-# Executar servidor
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py runserver
-```
-
-### Validação de Mudanças
-
-```bash
-# Verificar sintaxe e configuração
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py check
-
-# Verificar se há migrações pendentes (sem criar)
-DJANGO_SETTINGS_MODULE=core.settings_dev python manage.py makemigrations --check --dry-run
-```
-
 ## Variáveis de Ambiente
 
 ### Obrigatórias
