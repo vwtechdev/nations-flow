@@ -299,9 +299,10 @@ class ChangePasswordForm(forms.Form):
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ['name', 'mandatory_proof']
+        fields = ['name', 'is_pix', 'mandatory_proof']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_pix': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'mandatory_proof': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

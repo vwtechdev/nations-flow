@@ -127,6 +127,7 @@ class User(AbstractUser):
 class Category(BaseModel):
     name = models.CharField(max_length=100, verbose_name="Nome da Categoria")
     mandatory_proof = models.BooleanField(default=True, verbose_name="Anexo de Comprovante Obrigatório")
+    is_pix = models.BooleanField(default=False, verbose_name="Categoria PIX")
 
     class Meta(BaseModel.Meta):
         verbose_name = "Categoria"

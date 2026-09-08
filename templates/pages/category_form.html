@@ -43,6 +43,27 @@
                     <div class="row">
                         <div class="col-12">
                             <div class="form-check mb-3">
+                                {{ form.is_pix }}
+                                <label class="form-check-label" for="{{ form.is_pix.id_for_label }}">
+                                    <i class="bi bi-qr-code-scan"></i> {{ form.is_pix.label }}
+                                </label>
+                                <small class="form-text text-muted d-block ms-4">
+                                    Transações desta categoria somam/subtraem do saldo em PIX no dashboard.
+                                </small>
+                                {% if form.is_pix.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.is_pix.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check mb-3">
                                 {{ form.mandatory_proof }}
                                 <label class="form-check-label" for="{{ form.mandatory_proof.id_for_label }}">
                                     <i class="bi bi-file-earmark-check"></i> {{ form.mandatory_proof.label }}

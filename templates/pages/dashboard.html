@@ -411,17 +411,35 @@
     </div>
     
     <div class="col-xl-3 col-md-6 col-6 mb-4">
+        <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #28a745;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #28a745;">
+                            Saldo em Caixa
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #28a745;">R$ <span id="balanceCashValue">0,00</span></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-cash-coin fa-2x" style="color: #28a745;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 col-6 mb-4">
         <div class="card dashboard-card shadow h-100 py-2" style="border-left: 4px solid #673ab7;">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-uppercase mb-1" style="color: #673ab7;">
-                            Saldo
+                            Saldo em PIX
                         </div>
-                        <div class="h5 mb-0 font-weight-bold" style="color: #673ab7;">R$ <span id="balanceValue">0,00</span></div>
+                        <div class="h5 mb-0 font-weight-bold" style="color: #673ab7;">R$ <span id="balancePixValue">0,00</span></div>
                     </div>
                     <div class="col-auto">
-                        <i class="bi bi-calculator fa-2x" style="color: #673ab7;"></i>
+                        <i class="bi bi-qr-code-scan fa-2x" style="color: #673ab7;"></i>
                     </div>
                 </div>
             </div>
@@ -572,11 +590,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const elTx = document.getElementById('totalTransactionsValue');
         const elIn = document.getElementById('totalIncomeValue');
         const elEx = document.getElementById('totalExpenseValue');
-        const elBa = document.getElementById('balanceValue');
+        const elBaCash = document.getElementById('balanceCashValue');
+        const elBaPix = document.getElementById('balancePixValue');
         if (elTx) elTx.textContent = Number(totals.total_transactions || 0).toLocaleString('pt-BR');
         if (elIn) elIn.textContent = toCurrencyBR(totals.total_income || 0);
         if (elEx) elEx.textContent = toCurrencyBR(totals.total_expense || 0);
-        if (elBa) elBa.textContent = toCurrencyBR(totals.balance || 0);
+        if (elBaCash) elBaCash.textContent = toCurrencyBR(totals.balance_cash || 0);
+        if (elBaPix) elBaPix.textContent = toCurrencyBR(totals.balance_pix || 0);
 
         const monthlyData = data.monthly_data || [];
         const monthlyCtx = document.getElementById('monthlyChart');

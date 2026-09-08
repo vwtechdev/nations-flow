@@ -393,6 +393,10 @@ def index(request):
     total_income = filtered_transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
     total_expense = filtered_transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
     balance = total_income - total_expense
+
+    # Separar saldo em caixa (dinheiro) e PIX (categorias com is_pix)
+    balance_pix = _calc_balance_pix(filtered_transactions)
+    balance_cash = float(balance) - balance_pix
     
     # Dados para o gráfico por categoria
     categories_data = []
@@ -591,6 +595,8 @@ def index(request):
         'total_income': total_income,
         'total_expense': total_expense,
         'balance': balance,
+        'balance_cash': balance_cash,
+        'balance_pix': balance_pix,
         'categories_data': categories_data,
         'churches_data': churches_data,
         'churches_individual_data': churches_individual_data,
@@ -702,7 +708,11 @@ def transaction_list(request):
     total_transactions = transactions.count()
     total_income = transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
     total_expense = transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
-    balance = total_income - total_expense  
+    balance = total_income - total_expense
+
+    # Separar saldo em caixa (dinheiro) e PIX (categorias com is_pix)
+    balance_pix = _calc_balance_pix(transactions)
+    balance_cash = float(balance) - balance_pix
     
     # Preparar dados para os filtros
     if request.user.is_admin():
@@ -811,6 +821,8 @@ def transaction_list(request):
         'total_income': total_income,
         'total_expense': total_expense,
         'balance': balance,
+        'balance_cash': balance_cash,
+        'balance_pix': balance_pix,
         'user': request.user,
         'active_filters': active_filters,
     }
@@ -917,6 +929,10 @@ def transaction_list_api(request):
     total_income = transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
     total_expense = transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
     balance = total_income - total_expense
+
+    # Separar saldo em caixa (dinheiro) e PIX (categorias com is_pix)
+    balance_pix = _calc_balance_pix(transactions)
+    balance_cash = float(balance) - balance_pix
     
     # Paginação
     page = int(request.GET.get('page', 1))
@@ -972,6 +988,8 @@ def transaction_list_api(request):
             'total_income': float(total_income),
             'total_expense': float(total_expense),
             'balance': float(balance),
+            'balance_cash': float(balance_cash),
+            'balance_pix': float(balance_pix),
         }
     })
 
@@ -1102,6 +1120,10 @@ def transaction_summary_api(request):
     total_income = filtered.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
     total_expense = filtered.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
     balance = float(total_income) - float(total_expense)
+
+    # Separar saldo em caixa (dinheiro) e PIX (categorias com is_pix)
+    balance_pix = _calc_balance_pix(filtered)
+    balance_cash = float(balance) - balance_pix
 
     # Por categoria
     categories_qs = Category.objects.all()
@@ -1239,6 +1261,8 @@ def transaction_summary_api(request):
             'total_income': float(total_income),
             'total_expense': float(total_expense),
             'balance': balance,
+            'balance_cash': float(balance_cash),
+            'balance_pix': float(balance_pix),
         },
         'categories_data': categories_data,
         'churches_data': churches_data,
@@ -2086,6 +2110,10 @@ def transaction_export_pdf(request):
     total_income = transactions.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
     total_expense = transactions.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
     balance = total_income - total_expense
+
+    # Separar saldo em caixa (dinheiro) e PIX (categorias com is_pix)
+    balance_pix = _calc_balance_pix(transactions)
+    balance_cash = float(balance) - balance_pix
     
     # Criar o PDF
     response = HttpResponse(content_type='application/pdf')
@@ -2246,6 +2274,8 @@ def transaction_export_pdf(request):
         f"Total de Entradas: R$ {total_income:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         f"Total de Saídas: R$ {total_expense:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
         f"Saldo: R$ {balance:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+        f"Saldo em Caixa: R$ {balance_cash:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+        f"Saldo em PIX: R$ {balance_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
     ]
     
     for info in report_info:
@@ -3105,6 +3135,14 @@ def pwa_sw(request):
 # Helper genérico para paginação AJAX
 # =============================================================================
 
+def _calc_balance_pix(queryset):
+    """Saldo (entradas - saídas) apenas de transações de categorias PIX."""
+    pix = queryset.filter(category__is_pix=True)
+    income = pix.filter(type='income').aggregate(total=Sum('value'))['total'] or 0
+    expense = pix.filter(type='expense').aggregate(total=Sum('value'))['total'] or 0
+    return float(income) - float(expense)
+
+
 def _paginate_queryset(request, queryset, per_page_default=20):
     """Helper genérico para paginação. Retorna (page_items, pagination_dict)."""
     page = int(request.GET.get('page', 1))
@@ -3147,6 +3185,7 @@ def category_list_api(request):
     items_data = [{
         'id': c.pk,
         'name': c.name,
+        'is_pix': c.is_pix,
         'mandatory_proof': c.mandatory_proof,
         'created_at': c.created_at.strftime('%d/%m/%Y %H:%M'),
         'updated_at': c.updated_at.strftime('%d/%m/%Y %H:%M'),

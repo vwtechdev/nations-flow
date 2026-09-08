@@ -928,12 +928,14 @@ function updateTotals(totals) {
     const totalTransactionsEl = document.querySelector('.card-body .h5.mb-0.font-weight-bold.text-gray-800');
     const totalIncomeEl = document.querySelector('.card-body .h5.mb-0.font-weight-bold[style*="color: #28a745"]');
     const totalExpenseEl = document.querySelector('.card-body .h5.mb-0.font-weight-bold[style*="color: #ff6b6b"]');
-    const balanceEl = document.querySelector('.card-body .h5.mb-0.font-weight-bold[style*="color: #673ab7"]');
-    
+    const balanceCashEl = document.getElementById('balanceCashValue');
+    const balancePixEl = document.getElementById('balancePixValue');
+
     if (totalTransactionsEl) totalTransactionsEl.textContent = totals.total_transactions;
     if (totalIncomeEl) totalIncomeEl.textContent = `R$ ${totals.total_income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (totalExpenseEl) totalExpenseEl.textContent = `R$ ${totals.total_expense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    if (balanceEl) balanceEl.textContent = `R$ ${totals.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (balanceCashEl) balanceCashEl.textContent = `R$ ${totals.balance_cash.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (balancePixEl) balancePixEl.textContent = `R$ ${totals.balance_pix.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // Função para limpar filtros
