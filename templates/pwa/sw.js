@@ -8,7 +8,7 @@
 
    IMPORTANTE: ao alterar estáticos, incremente VERSION para forçar a
    limpeza do cache antigo nos clientes (o activate só apaga chaves != VERSION). */
-const VERSION = 'nationsflow-v9';
+const VERSION = 'nationsflow-v10';
 const OFFLINE_URL = '{% static "offline.html" %}';
 
 const PRECACHE_ASSETS = [

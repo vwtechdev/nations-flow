@@ -713,7 +713,7 @@ function renderTransactions(transactions) {
                         <th>Valor</th>
                         <th>Descrição</th>
                         ${canSeeUser ? '<th>Usuário</th>' : ''}
-                        <th>Conferido</th>
+                        <th>Status</th>
                         <th class="text-nowrap">Ações</th>
                     </tr>
                 </thead>
@@ -855,7 +855,7 @@ function renderTransactions(transactions) {
                         </div>
                     ` : ''}
                     <div class="mobile-card-row">
-                        <span class="mobile-card-label">Conferido:</span>
+                        <span class="mobile-card-label">Status:</span>
                         <span class="mobile-card-value">${transaction.is_checked
                             ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Conferido</span>'
                             : '<span class="badge bg-secondary"><i class="bi bi-circle"></i> Pendente</span>'}</span>
