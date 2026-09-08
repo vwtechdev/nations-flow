@@ -2531,6 +2531,14 @@ kbd {
     }
 }
 
+/* Cards de estatísticas: 5 por linha no desktop (20%) */
+@media (min-width: 1200px) {
+    .col-xl-20 {
+        flex: 0 0 20%;
+        max-width: 20%;
+    }
+}
+
 /* Hide navigation drawer on desktop */
 @media (min-width: 769px) {
     .navigation-drawer {
