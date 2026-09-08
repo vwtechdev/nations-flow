@@ -106,11 +106,16 @@ Remove comprovantes órfãos em `media/proofs/`.
 
 **Uso:**
 ```bash
-python manage.py cleanup_orphan_proofs
+# Prévia (não remove nada)
+python manage.py cleanup_orphan_proofs --dry-run
+
+# Remover de fato (sem --delete nada é apagado)
+python manage.py cleanup_orphan_proofs --delete
 ```
 
 **Funcionalidade:**
 - Varre `media/proofs/` e remove arquivos não referenciados por nenhuma `Transaction`
+- Sem `--delete`, apenas lista o que seria removido (não apaga nada)
 
 ## Comandos Docker
 
