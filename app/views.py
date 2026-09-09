@@ -985,7 +985,7 @@ def transaction_list_api(request):
         })
     
     # Calcular informações de paginação
-    total_pages = (total_transactions + per_page - 1) // per_page
+    total_pages = max(1, (total_transactions + per_page - 1) // per_page)
     
     return JsonResponse({
         'transactions': transactions_data,

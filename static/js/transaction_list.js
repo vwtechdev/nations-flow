@@ -925,17 +925,18 @@ function renderPagination(pagination) {
     const paginationList = document.getElementById('paginationList');
     const paginationHeader = document.getElementById('paginationHeader');
     const pageInfo = document.getElementById('pageInfo');
-    
-    if (!pagination || pagination.total_pages <= 1) {
-        if (paginationList) paginationList.innerHTML = '';
-        if (paginationHeader) paginationHeader.classList.add('d-none');
+
+    if (!pagination) {
         return;
     }
-    
+
+    // Sempre mostrar o header de paginação (conforme as demais listas)
     if (paginationHeader) paginationHeader.classList.remove('d-none');
-    if (pageInfo) pageInfo.textContent = `Página ${pagination.current_page} de ${pagination.total_pages}`;
+
+    const totalPages = Math.max(1, pagination.total_pages || 0);
+    if (pageInfo) pageInfo.textContent = `Página ${pagination.current_page} de ${totalPages}`;
     const pageInfoMobile = document.getElementById('pageInfoMobile');
-    if (pageInfoMobile) pageInfoMobile.textContent = `Página ${pagination.current_page} de ${pagination.total_pages}`;
+    if (pageInfoMobile) pageInfoMobile.textContent = `Página ${pagination.current_page} de ${totalPages}`;
     
     const firstDisabled = !pagination.has_previous;
     const prevDisabled = !pagination.has_previous;
@@ -949,17 +950,17 @@ function renderPagination(pagination) {
             </a>
         </li>
         <li class="page-item ${prevDisabled ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${pagination.previous_page}); return false;" aria-label="Página anterior" ${prevDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+            <a class="page-link" href="#" onclick="goToPage(${pagination.previous_page || 1}); return false;" aria-label="Página anterior" ${prevDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
                 <i class="bi bi-chevron-left"></i>
             </a>
         </li>
         <li class="page-item ${nextDisabled ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${pagination.next_page}); return false;" aria-label="Próxima página" ${nextDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+            <a class="page-link" href="#" onclick="goToPage(${pagination.next_page || pagination.total_pages || 1}); return false;" aria-label="Próxima página" ${nextDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
                 <i class="bi bi-chevron-right"></i>
             </a>
         </li>
         <li class="page-item ${lastDisabled ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${pagination.total_pages}); return false;" aria-label="Última página" ${lastDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+            <a class="page-link" href="#" onclick="goToPage(${pagination.total_pages || 1}); return false;" aria-label="Última página" ${lastDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
                 <i class="bi bi-chevron-double-right"></i>
             </a>
         </li>
