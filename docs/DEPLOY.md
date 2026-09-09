@@ -137,7 +137,9 @@ Salva em `/backups/` (volume montado no container cron).
 
 ### Variáveis de Ambiente no Cron
 
-O cron não herda variáveis de ambiente. O `start-cron.sh` serializa o `.env` em `/etc/cron.env` e o crontab faz `source /etc/cron.env` antes de cada comando.
+O cron não herda variáveis de ambiente. O `start-cron.sh` serializa apenas a lista `ESSENTIAL_VARS` em `/etc/cron.env`, e os wrappers `run-*.sh` fazem `source /etc/cron.env` antes de cada comando.
+
+Atenção: toda variável lida pelo `core.settings` deve estar em `ESSENTIAL_VARS` — sem isso o Django nem sobe no container cron (ex.: `RECAPTCHA_DOMAIN` ausente derruba qualquer `manage.py` com `ImproperlyConfigured`).
 
 ## Backup
 

@@ -2,7 +2,7 @@
 
 Sistema de gestão financeira para igrejas (controle de entradas/saídas, categorização, relatórios PDF/XLSX, notificações recorrentes, controle de acesso hierárquico por campos geográficos). Django 5.2 monolítico (pt-BR, `America/Sao_Paulo`). Python 3.12 web / 3.11 cron.
 
-## 🚀 Deploy
+## Deploy
 
 ### Instalação e Configuração (Docker)
 
@@ -110,12 +110,12 @@ nations-flow/
 
 ### Funcionalidades
 
-- **Dashboard**: Visão geral das finanças (apenas admin)
-- **Transações**: CRUD de entradas/saídas com comprovante (upload ≤1MB), validação por categoria
-- **Categorias**: CRUD com flag `mandatory_proof` (anexo obrigatório)
+- **Dashboard**: Visão geral das finanças (apenas admin), saldos separados em Caixa e PIX
+- **Transações**: CRUD de entradas/saídas com comprovante (upload ≤1MB), validação por categoria, filtro e badge de Status (Conferido/Pendente), conferência em lote (apenas admin)
+- **Categorias**: CRUD com flags `mandatory_proof` (anexo obrigatório) e `is_pix` (compõe o saldo PIX)
 - **Campos**: CRUD de divisão geográfica
-- **Igrejas**: CRUD vinculado a Campo + Pastor
-- **Pastores**: CRUD independente
+- **Igrejas**: CRUD vinculado a Campo + Pastor, com contrato (upload)
+- **Pastores**: CRUD independente, com contrato (upload) e histórico por igreja
 - **Usuários**: CRUD com roles (admin, treasurer, supervisor) + campos (M2M)
 - **Notificações**: Criação com repetição (daily/weekly/monthly/annually), reprocessamento automático
 - **Relatórios**: Exportação PDF (ReportLab) e XLSX (openpyxl)
@@ -148,6 +148,6 @@ Veja `core/settings.py` para a lista completa. Principais:
 
 ---
 
-## 👨‍💻 Desenvolvido por
+## Desenvolvido por
 
 **VWTech Dev | Soluções em Tecnologia**

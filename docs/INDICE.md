@@ -4,7 +4,7 @@
 
 Este diretório contém a documentação completa do sistema Nations Flow. Use este índice para navegar pelos documentos.
 
-## 📚 Documentos Principais
+## Documentos Principais
 
 ### 1. [README.md](README.md)
 **Visão geral do projeto**
@@ -86,7 +86,7 @@ Este diretório contém a documentação completa do sistema Nations Flow. Use e
 - Comandos Docker
 - Exemplos de uso
 
-## 🗺️ Guia de Navegação Rápida
+## Guia de Navegação Rápida
 
 ### Para Desenvolvedores Novos
 1. Comece com [README.md](README.md) para visão geral
@@ -103,7 +103,7 @@ Este diretório contém a documentação completa do sistema Nations Flow. Use e
 2. [API.md](API.md) - Endpoints disponíveis
 3. [FORMS.md](FORMS.md) - Validações e formulários
 
-## 📋 Tópicos por Categoria
+## Tópicos por Categoria
 
 ### Backend
 - [MODELS.md](MODELS.md) - Estrutura de dados
@@ -120,7 +120,7 @@ Este diretório contém a documentação completa do sistema Nations Flow. Use e
 - [DEPLOY.md](DEPLOY.md) - Deploy e configuração
 - [COMANDOS.md](COMANDOS.md) - Comandos de gerenciamento
 
-## 🔍 Busca Rápida
+## Busca Rápida
 
 ### Procurando por...
 - **Como funciona X?** → [ARQUITETURA.md](ARQUITETURA.md) ou [VIEWS.md](VIEWS.md)
@@ -130,14 +130,14 @@ Este diretório contém a documentação completa do sistema Nations Flow. Use e
 - **Como funcionam permissões?** → [PERMISSOES.md](PERMISSOES.md)
 - **Quais comandos usar?** → [COMANDOS.md](COMANDOS.md)
 
-## 📝 Notas
+## Notas
 
 - Todos os documentos estão em português
 - Código de exemplo está incluído quando relevante
 - Links entre documentos facilitam navegação
 - Documentação atualizada conforme o código
 
-## 🔄 Atualizações
+## Atualizações
 
 Esta documentação reflete o estado atual do código. Para atualizações:
 1. Revise os documentos relevantes

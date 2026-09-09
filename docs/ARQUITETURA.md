@@ -160,7 +160,7 @@ Field (Campo)
 1. **select_related**: Para ForeignKey (reduz queries)
 2. **prefetch_related**: Para ManyToMany e relacionamentos reversos
 3. **only()** e **defer()**: Carregamento seletivo de campos
-4. **Paginação**: Limitação de resultados (50 por página)
+4. **Paginação**: 10/20/50 por página (padrão 20), header sempre visível mesmo sem resultados
 
 ### Cache Strategy
 - Redis para sessões
@@ -224,7 +224,7 @@ Field (Campo)
 ## Escalabilidade
 
 ### Horizontal Scaling
-- Múltiplos workers Gunicorn (3 workers)
+- Gunicorn com 2 workers sync (timeout 120)
 - Redis compartilhado para sessões
 - PostgreSQL com connection pooling
 
@@ -243,3 +243,12 @@ Field (Campo)
 - `process_repeat_notifications`: Processa notificações recorrentes
 - `backup_postgres`: Backup do PostgreSQL
 - `cleanup_orphan_files`: Remove arquivos de mídia órfãos (comprovantes e contratos)
+
+### Uploads e Arquivos
+- `Transaction.proof` em `media/proofs/`, `Church`/`Shepherd.contract` em `media/churches/` e `media/shepherds/`
+- Exclusão de transação apaga o comprovante do disco (signal `pre_delete`); troca de arquivo na edição apaga o antigo (signals `pre_save`)
+- Exclusões de igreja/pastor/categoria/campo são inativação (`is_active`), sem apagar arquivos
+
+### Saldo Caixa/PIX e Conferência
+- `Category.is_pix`: transações dessas categorias compõem o saldo PIX; demais, o saldo em caixa (`balance_cash`/`balance_pix` no dashboard, lista, APIs e PDF)
+- `Transaction.is_checked`: conferência de caixa em lote só por admin (`POST /transactions/bulk-check/`), com filtro `?checked=` e badge Conferido/Pendente

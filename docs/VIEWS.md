@@ -57,7 +57,7 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
     - Por campo (entrada/saída)
     - Por igreja individual (entrada/saída)
     - Mensal (linha do tempo)
-  - Totais: transações, entradas, saídas, saldo
+  - Totais: transações, entradas, saídas, saldo em caixa, saldo em PIX (5 cards)
   - Transações recentes (últimas 10)
   - Logs de acesso recentes (últimos 20, apenas admin)
 
@@ -71,9 +71,11 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
 - **Permissão**: Admin, Tesoureiro ou Supervisor
 - **Decorators**: `@password_changed_required`, `@admin_or_treasurer_required`
 - **Funcionalidade**:
-  - Lista transações com paginação AJAX
-  - Filtros: busca, categoria, tipo, data, campo, igreja, pastor, usuário
-  - Totais calculados
+  - Lista transações com paginação AJAX (header de paginação sempre visível, mesmo sem resultados)
+  - Filtros: busca, categoria, tipo, status (Conferido/Pendente via `?checked=`), data, campo, igreja, pastor, usuário
+  - Totais calculados (entradas, saídas, saldo em caixa, saldo em PIX)
+  - Coluna Status com badge Conferido/Pendente
+  - Barra de bulk actions (só admin): excluir selecionadas, marcar/desmarcar conferência
   - Datas padrão: mês atual
 
 #### `transaction_list_api(request)`
@@ -83,8 +85,8 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
 - **Retorno**: JSON
 - **Funcionalidade**:
   - API AJAX para paginação de transações
-  - Retorna dados paginados (10/20/50 por página via `?per_page=`, padrão 20)
-  - Inclui totais e informações de paginação
+  - Retorna dados paginados (10/20/50 por página via `?per_page=`, padrão 20; `total_pages` mínimo 1)
+  - Inclui `is_checked` por transação e totais (`balance_cash`, `balance_pix`)
 
 #### `transaction_summary_api(request)`
 - **Rota**: `/transactions/summary/`
@@ -95,7 +97,7 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
   - API para resumo do dashboard
   - Retorna agregados e séries temporais
   - Aceita filtros via POST (JSON) ou GET
-  - Dados: totais, por categoria, por campo, por igreja, mensal
+  - Dados: totais (incluindo `balance_cash` e `balance_pix`), por categoria, por campo, por igreja, mensal
 
 #### `transaction_create(request)`
 - **Rota**: `/transactions/create/`
@@ -131,8 +133,22 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
 - **Método**: GET, POST
 - **Permissão**: Apenas Admin
 - **Funcionalidade**:
-  - Exclui transação
+  - Exclui transação (remoção física; comprovante apagado do disco via signal `pre_delete`)
   - Confirmação via POST
+
+#### `transaction_bulk_delete(request)`
+- **Rota**: `/transactions/bulk-delete/`
+- **Método**: POST (JSON `{ids: [...]}`)
+- **Permissão**: Apenas Admin
+- **Retorno**: JSON `{'deleted': n}`
+- **Funcionalidade**: Exclusão em lote via AJAX (mesmo signal de remoção de comprovante)
+
+#### `transaction_bulk_check(request)`
+- **Rota**: `/transactions/bulk-check/`
+- **Método**: POST (JSON `{ids: [...], checked: true|false}`)
+- **Permissão**: Apenas Admin
+- **Retorno**: JSON `{'updated': n}`
+- **Funcionalidade**: Marca/desmarca transações como conferidas em lote; registra "Conferiu"/"Desconferiu" no AccessLog por transação
 
 #### `transaction_export_pdf(request)`
 - **Rota**: `/transactions/export-pdf/`
@@ -142,7 +158,7 @@ O arquivo `app/views.py` contém todas as views (controllers) da aplicação, or
 - **Funcionalidade**:
   - Exporta transações filtradas para PDF
   - Usa ReportLab
-  - Inclui logo, filtros aplicados, totais e tabela de transações
+  - Inclui logo, filtros aplicados, totais (entradas, saídas, saldo, saldo em caixa, saldo em PIX) e tabela de transações
   - Formatação profissional
 
 #### `transaction_export_xlsx(request)`
@@ -176,7 +192,7 @@ Todas requerem `@admin_required`.
 
 #### `category_delete(request, pk)`
 - **Rota**: `/categories/<pk>/delete/`
-- **Funcionalidade**: Exclui categoria
+- **Funcionalidade**: Ativa/inativa categoria (toggle `is_active`, não exclui)
 
 ---
 
@@ -198,7 +214,7 @@ Todas requerem `@admin_required`.
 
 #### `church_delete(request, pk)`
 - **Rota**: `/churches/<pk>/delete/`
-- **Funcionalidade**: Exclui igreja
+- **Funcionalidade**: Ativa/inativa igreja (toggle `is_active`, não exclui; contrato preservado)
 
 ---
 
@@ -217,7 +233,7 @@ Todas requerem `@admin_required`.
 - **Rota**: `/users/create/`
 - **Funcionalidade**: 
   - Cria novo usuário
-  - Senha padrão: `nations123456`
+  - Senha padrão: valor de `DEFAULT_USER_PASSWORD` (variável de ambiente)
   - Força troca de senha
 
 #### `user_edit(request, pk)`
@@ -267,7 +283,7 @@ Todas requerem `@admin_required`.
 
 #### `field_delete(request, pk)`
 - **Rota**: `/fields/<pk>/delete/`
-- **Funcionalidade**: Exclui campo
+- **Funcionalidade**: Ativa/inativa campo (toggle `is_active`, não exclui)
 
 ---
 
@@ -293,7 +309,7 @@ Todas requerem `@admin_required`.
 
 #### `shepherd_delete(request, pk)`
 - **Rota**: `/shepherds/<pk>/delete/`
-- **Funcionalidade**: Exclui pastor
+- **Funcionalidade**: Ativa/inativa pastor (toggle `is_active`, não exclui; contrato preservado)
 
 ---
 
@@ -303,10 +319,9 @@ Todas requerem `@admin_required`.
 - **Rota**: `/access-logs/`
 - **Permissão**: Apenas Admin
 - **Funcionalidade**:
-  - Lista logs do mês atual
+  - Lista logs do mês atual por padrão, mas permite qualquer mês via `date_from`/`date_to`
   - Busca por usuário
-  - Filtro por data (limitado ao mês atual)
-  - Exclui logs de `example@example.com`
+  - Exclui logs de `SYSTEM_HIDDEN_EMAIL`
 
 ---
 
@@ -458,7 +473,7 @@ Todas requerem `@admin_required`.
 ### Otimizações Aplicadas
 - `select_related()` para ForeignKeys
 - `prefetch_related()` para ManyToMany
-- Paginação (50 itens por página)
+- Paginação (10/20/50 por página, padrão 20)
 - Cache de queries frequentes
 - Limite de resultados em listagens
 

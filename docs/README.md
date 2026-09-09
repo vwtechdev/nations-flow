@@ -44,21 +44,26 @@ nations-flow/
 │   ├── forms.py           # Formulários
 │   ├── urls.py            # Rotas da aplicação
 │   ├── decorators.py      # Decorators de permissão
-│   ├── middleware.py     # Middlewares customizados
+│   ├── middleware.py      # Middlewares customizados
 │   ├── backends.py        # Backend de autenticação
-│   ├── templates/         # Templates HTML
-│   ├── static/            # Arquivos estáticos (CSS, JS, imagens)
+│   ├── search.py          # Busca case/acento-insensível
+│   ├── templatetags/      # Template tags customizadas
 │   ├── migrations/        # Migrações do banco de dados
 │   └── management/        # Comandos de gerenciamento
 ├── core/                  # Configurações do projeto Django
+│   ├── models.py          # BaseModel abstrato
 │   ├── settings.py        # Configurações principais
 │   ├── urls.py            # URLs raiz
-│   └── wsgi.py            # WSGI application
+│   ├── wsgi.py            # WSGI application
+│   └── asgi.py            # ASGI application
+├── templates/             # Templates HTML (pages/, registration/, includes/, pwa/)
+├── static/                # Arquivos estáticos (css/, js/, img/)
 ├── docs/                  # Documentação do projeto
 ├── nginx/                 # Configuração do Nginx
 ├── cron/                  # Tarefas agendadas
 ├── docker-compose.yml     # Orquestração Docker
 ├── Dockerfile            # Imagem Docker da aplicação
+├── .env.example          # Exemplo de variáveis de ambiente
 └── requirements.txt      # Dependências Python
 ```
 
@@ -69,10 +74,12 @@ nations-flow/
 - Categorização de transações
 - Anexo de comprovantes (PDF, JPG, PNG)
 - Validação de comprovantes obrigatórios por categoria
-- Filtros avançados (data, categoria, tipo, campo, igreja, pastor, usuário)
+- Filtros avançados (data, categoria, tipo, status, campo, igreja, pastor, usuário)
+- Conferência de caixa: marcação em lote como Conferido/Pendente (apenas admin)
 
 ### 2. Dashboard
 - Visão geral das finanças
+- Saldos separados em Caixa e PIX (categorias marcadas como PIX)
 - Gráficos por categoria, campo e igreja
 - Análise mensal de entradas e saídas
 - Transações recentes
@@ -80,9 +87,9 @@ nations-flow/
 
 ### 3. Organização Hierárquica
 - **Campos**: Divisão geográfica/administrativa
-- **Igrejas**: Unidades locais vinculadas a campos
-- **Pastores**: Responsáveis pelas igrejas
-- **Categorias**: Classificação das transações
+- **Igrejas**: Unidades locais vinculadas a campos, com contrato (upload)
+- **Pastores**: Responsáveis pelas igrejas, com contrato (upload) e histórico por igreja
+- **Categorias**: Classificação das transações, com flags de comprovante obrigatório e PIX
 
 ### 4. Sistema de Usuários
 - Três níveis de acesso: Admin, Tesoureiro, Supervisor

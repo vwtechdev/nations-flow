@@ -30,6 +30,7 @@ O arquivo `app/forms.py` contém todos os formulários Django da aplicação. Os
 - `address` (TextInput): Endereço (opcional)
 - `shepherd` (Select): Pastor responsável
 - `field` (Select): Campo ao qual pertence
+- `contract` (FileInput): Contrato da igreja (opcional)
 
 **Widgets:**
 - `name`: `TextInput` com classe `form-control`
@@ -66,7 +67,7 @@ O arquivo `app/forms.py` contém todos os formulários Django da aplicação. Os
 - Adiciona contador se username já existe
 
 #### `save()`
-- Define senha padrão (`nations123456`) para novos usuários
+- Define senha padrão (valor de `DEFAULT_USER_PASSWORD`, variável de ambiente) para novos usuários
 - Define `password_changed=False` para forçar troca de senha
 - Salva campos Many-to-Many após salvar o usuário
 
@@ -90,7 +91,7 @@ O arquivo `app/forms.py` contém todos os formulários Django da aplicação. Os
 Validações de senha forte:
 - Mínimo 8 caracteres
 - Não pode ser senha simples (`123`, `123456`, `password`, `senha`, `admin`, `user`, `teste`, `test`)
-- Não pode ser a senha padrão (`nations123456`)
+- Não pode ser a senha padrão (valor de `DEFAULT_USER_PASSWORD`)
 - Não pode conter apenas números
 - Não pode conter apenas letras
 - Deve conter pelo menos:
@@ -116,10 +117,12 @@ Validações de senha forte:
 
 **Campos:**
 - `name` (TextInput): Nome da categoria
+- `is_pix` (CheckboxInput): Transações desta categoria compõem o saldo PIX
 - `mandatory_proof` (CheckboxInput): Comprovante obrigatório
 
 **Widgets:**
 - `name`: `TextInput` com classe `form-control`
+- `is_pix`: `CheckboxInput` com classe `form-check-input`
 - `mandatory_proof`: `CheckboxInput` com classe `form-check-input`
 
 **Validações:**
@@ -209,6 +212,7 @@ Validações de senha forte:
 **Campos:**
 - `username` (EmailInput): Email (usado como username)
 - `password` (PasswordInput): Senha
+- `captcha` (ReCaptchaField, só em produção com `DEBUG=False`): reCAPTCHA v3 invisível (`ReCaptchaV3(action='login')`)
 
 **Widgets:**
 - `username`: `EmailInput` com placeholder "Digite seu email"
@@ -217,8 +221,7 @@ Validações de senha forte:
 **Validações:**
 
 #### `clean_username()`
-- Verifica se email existe no sistema
-- Retorna erro se email não encontrado
+- Apenas retorna o email (não revela se existe — proteção contra enumeração; erro de login é genérico)
 
 **Comportamento:**
 - Usa email em vez de username para autenticação
@@ -232,6 +235,7 @@ Validações de senha forte:
 
 **Campos:**
 - `name` (TextInput): Nome do pastor
+- `contract` (FileInput): Contrato do pastor (opcional)
 
 **Widgets:**
 - `name`: `TextInput` com classe `form-control`

@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O sistema utiliza 8 modelos principais para gerenciar os dados da aplicação. Todos os modelos herdam de `django.db.models.Model` e incluem campos de auditoria (`created_at`, `updated_at`).
+O sistema utiliza 9 modelos principais para gerenciar os dados da aplicação. Todos herdam do `BaseModel` abstrato (`core/models.py`), exceto `User` (que herda `AbstractUser`). O `BaseModel` fornece `created_at`, `updated_at`, `is_active` (soft delete), `created_by` e `updated_by`.
 
 ## Modelos Principais
 
@@ -12,8 +12,10 @@ Representa uma divisão geográfica ou administrativa.
 
 **Campos:**
 - `name` (CharField, max_length=200): Nome do campo
+- `is_active` (BooleanField, default=True): Registro ativo (soft delete)
 - `created_at` (DateTimeField, auto_now_add): Data de criação
 - `updated_at` (DateTimeField, auto_now): Última atualização
+- `created_by` / `updated_by` (ForeignKey → User, nullable): Auditoria
 
 **Relacionamentos:**
 - One-to-Many com `Church`
@@ -32,8 +34,11 @@ Representa um pastor responsável por igrejas.
 
 **Campos:**
 - `name` (CharField, max_length=200): Nome do pastor
+- `contract` (FileField, nullable): Contrato do pastor (`shepherds/%Y/%m/%d/`)
+- `is_active` (BooleanField, default=True): Registro ativo (soft delete)
 - `created_at` (DateTimeField, auto_now_add): Data de criação
 - `updated_at` (DateTimeField, auto_now): Última atualização
+- `created_by` / `updated_by` (ForeignKey → User, nullable): Auditoria
 
 **Relacionamentos:**
 - One-to-Many com `Church` (via `church_set`)
@@ -54,8 +59,11 @@ Representa uma igreja local vinculada a um campo e pastor.
 - `address` (CharField, max_length=300, nullable): Endereço
 - `shepherd` (ForeignKey → Shepherd): Pastor responsável
 - `field` (ForeignKey → Field): Campo ao qual pertence
+- `contract` (FileField, nullable): Contrato da igreja (`churches/%Y/%m/%d/`)
+- `is_active` (BooleanField, default=True): Registro ativo (soft delete)
 - `created_at` (DateTimeField, auto_now_add): Data de criação
 - `updated_at` (DateTimeField, auto_now): Última atualização
+- `created_by` / `updated_by` (ForeignKey → User, nullable): Auditoria
 
 **Relacionamentos:**
 - Many-to-One com `Field`
@@ -83,6 +91,7 @@ Modelo customizado de usuário que estende `AbstractUser`.
   - `'treasurer'`: Tesoureiro
   - `'supervisor'`: Supervisor
 - `fields` (ManyToManyField → Field): Campos aos quais o usuário tem acesso
+- `is_owner` (BooleanField, default=False): Administrador Principal (definido só por superuser no `/admin/`)
 - `password_changed` (BooleanField, default=False): Indica se a senha foi alterada
 - `is_active` (BooleanField): Indica se o usuário está ativo
 - `date_joined` (DateTimeField): Data de cadastro
@@ -116,8 +125,11 @@ Categoriza as transações financeiras.
 **Campos:**
 - `name` (CharField, max_length=100): Nome da categoria
 - `mandatory_proof` (BooleanField, default=True): Se o comprovante é obrigatório
+- `is_pix` (BooleanField, default=False): Transações desta categoria compõem o saldo PIX (demais compõem o saldo em caixa)
+- `is_active` (BooleanField, default=True): Registro ativo (soft delete)
 - `created_at` (DateTimeField, auto_now_add): Data de criação
 - `updated_at` (DateTimeField, auto_now): Última atualização
+- `created_by` / `updated_by` (ForeignKey → User, nullable): Auditoria
 
 **Relacionamentos:**
 - One-to-Many com `Transaction`
@@ -144,8 +156,11 @@ Registra entradas e saídas financeiras.
 - `user` (ForeignKey → User): Usuário que criou a transação
 - `church` (ForeignKey → Church): Igreja relacionada
 - `proof` (FileField, nullable): Comprovante (PDF, JPG, PNG)
+- `is_checked` (BooleanField, default=False): Conferência de caixa (marcado em lote só por admin)
+- `is_active` (BooleanField, default=True): Registro ativo
 - `created_at` (DateTimeField, auto_now_add): Data de criação
 - `updated_at` (DateTimeField, auto_now): Última atualização
+- `created_by` / `updated_by` (ForeignKey → User, nullable): Auditoria
 
 **Relacionamentos:**
 - Many-to-One com `Category`
@@ -169,26 +184,31 @@ Registra entradas e saídas financeiras.
 
 ---
 
-### 7. AccessLog (Log de Acesso)
+### 7. AccessLog (Log de Auditoria)
 
-Registra logins e logouts dos usuários.
+Registra logins, logouts e ações (criação, edição, exclusão, conferência).
 
 **Campos:**
 - `user` (ForeignKey → User): Usuário
 - `action` (CharField, choices): Ação realizada
   - `'login'`: Login
   - `'logout'`: Logout
-- `timestamp` (DateTimeField, auto_now_add): Data e hora
-- `ip_address` (GenericIPAddressField, nullable): Endereço IP
+  - `'create'`: Criação
+  - `'update'`: Edição (inclui conferência/desconferência)
+  - `'delete'`: Exclusão
+- `description` (TextField): Descrição da ação
+- `content_type` (ForeignKey → ContentType, nullable) + `object_id` (PositiveIntegerField, nullable): Objeto genérico relacionado (GenericForeignKey)
+- `created_at` (DateTimeField, auto_now_add, db_column='timestamp'): Data e hora
+- `updated_at`, `is_active`, `created_by`, `updated_by`: Herdados do `BaseModel`
 
 **Relacionamentos:**
 - Many-to-One com `User`
 
 **Métodos Especiais:**
-- `save()`: Sobrescrito para não salvar logs do superuser
-- `__str__()`: Retorna usuário, ação e timestamp formatado
+- `save()`: Sobrescrito para não salvar logs de superuser nem de `SYSTEM_HIDDEN_EMAIL`
+- `__str__()`: Retorna usuário, ação e data/hora formatada
 
-**Ordenação:** Por timestamp (mais recente primeiro)
+**Ordenação:** Por data de criação (mais recente primeiro)
 
 ---
 
@@ -209,8 +229,10 @@ Sistema de notificações e lembretes.
   - `'monthly'`: Mensalmente
   - `'annually'`: Anualmente
 - `created_by` (ForeignKey → User): Usuário que criou
+- `is_active` (BooleanField, default=True): Registro ativo
 - `created_at` (DateTimeField, auto_now_add): Data de criação
 - `updated_at` (DateTimeField, auto_now): Última atualização
+- `updated_by` (ForeignKey → User, nullable): Auditoria
 
 **Relacionamentos:**
 - Many-to-One com `User` (created_by)
@@ -228,6 +250,28 @@ Sistema de notificações e lembretes.
 
 ---
 
+### 9. ShepherdHistory (Histórico de Pastor)
+
+Registra as trocas de pastor responsável por igreja (criado automaticamente ao cadastrar igreja e ao trocar o pastor na edição).
+
+**Campos:**
+- `church` (ForeignKey → Church): Igreja
+- `shepherd` (ForeignKey → Shepherd): Pastor do período
+- `start_date` (DateField): Início do período
+- `end_date` (DateField, nullable): Fim do período (`null` = pastor atual)
+- `is_active` (BooleanField, default=True): Registro ativo
+- `created_at` (DateTimeField, auto_now_add): Data de criação
+- `updated_at` (DateTimeField, auto_now): Última atualização
+- `created_by` / `updated_by` (ForeignKey → User, nullable): Auditoria
+
+**Relacionamentos:**
+- Many-to-One com `Church`
+- Many-to-One com `Shepherd`
+
+**Ordenação:** Por data de início (mais recente primeiro)
+
+---
+
 ## Relacionamentos Entre Modelos
 
 ```
@@ -236,8 +280,8 @@ Field
   │     ├── Transaction (Many)
   │     │     ├── Category (One)
   │     │     └── User (One)
-  │     └── Shepherd (One)
-  └── User (Many-to-Many)
+  │     ├── Shepherd (One)
+  │     └── ShepherdHistory (Many)
 
 User
   ├── Transaction (Many)
@@ -282,12 +326,14 @@ Shepherd
 1. `0001_initial.py`: Criação inicial de todos os modelos
 2. `0002_notification_repeat_notification_repeat_frequency_and_more.py`: Adição de campos de repetição em Notification
 3. `0003_basemodel.py`: Adição do modelo abstrato `BaseModel` (created_at, updated_at, is_active, created_by, updated_by)
-4. `0004_contract_shepherdhistory.py`: Criação de `ShepherdHistory` e `ChurchContract` (modelos de auditoria)
+4. `0004_contract_shepherdhistory.py`: Campos `contract` (FileField) em `Church` e `Shepherd` + criação de `ShepherdHistory`
 5. `0005_shepherd_history_backfill.py`: Backfill de dados históricos de pastores
 6. `0006_alter_church_contract_alter_shepherd_contract_and_more.py`: Ajustes em contratos e relacionamentos
 7. `0007_alter_accesslog_options_remove_accesslog_ip_address_and_more.py`: Remoção de `ip_address` do AccessLog, ajustes de opções
 8. `0008_user_is_owner.py`: Adição do campo `is_owner` (BooleanField) ao User
 9. `0009_enable_unaccent.py`: Habilita extensão PostgreSQL `unaccent` para busca case/acento-insensível (no-op em SQLite)
+10. `0010_category_is_pix.py`: Adição do campo `is_pix` (BooleanField) à Category
+11. `0011_transaction_is_checked.py`: Adição do campo `is_checked` (BooleanField) à Transaction
 
 ### Comandos de Migração
 ```bash
@@ -305,8 +351,10 @@ Via `.github/workflows/deploy.yml`: `docker compose run --rm web python manage.p
 
 ## Auditoria
 
-Todos os modelos principais incluem:
+Todos os modelos (exceto `User`) herdam do `BaseModel` e incluem:
 - `created_at`: Data de criação (auto_now_add)
 - `updated_at`: Data de última atualização (auto_now)
+- `is_active`: Registro ativo — exclusões na interface são inativação (soft delete), não remoção física (exceção: transações, que são excluídas de verdade com remoção do comprovante via signal `pre_delete`)
+- `created_by` / `updated_by`: Usuário que criou/atualizou (nullable, `SET_NULL`)
 
-Isso permite rastreamento de quando registros foram criados e modificados.
+Troca de arquivo (comprovante/contrato) na edição apaga o arquivo antigo do disco via signals `pre_save` (`_delete_old_file_field`).

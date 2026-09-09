@@ -18,18 +18,19 @@ O Nations Flow implementa um sistema de permissões baseado em **roles (funçõe
 - Pode criar lembretes em transações
 
 **Permissões Específicas:**
-- ✅ Dashboard completo
-- ✅ Todas as transações (criar, editar, excluir, visualizar)
-- ✅ Gerenciar usuários (criar, editar, desativar, reativar, resetar senha)
-- ✅ Gerenciar campos, igrejas, pastores, categorias
-- ✅ Visualizar logs de acesso
-- ✅ Criar notificações
-- ✅ Exportar relatórios (PDF, Excel)
-- ✅ Filtros completos (incluindo filtro por usuário)
+- Sim: Dashboard completo
+- Sim: Todas as transações (criar, editar, excluir, visualizar)
+- Sim: Conferência de caixa (marcar/desmarcar transações como conferidas em lote)
+- Sim: Gerenciar usuários (criar, editar, desativar, reativar, resetar senha)
+- Sim: Gerenciar campos, igrejas, pastores, categorias
+- Sim: Visualizar logs de acesso
+- Sim: Criar notificações
+- Sim: Exportar relatórios (PDF, Excel)
+- Sim: Filtros completos (incluindo filtro por usuário)
 
 **Restrições entre administradores:**
-- ❌ Editar, inativar, ativar ou resetar a senha de **outro admin** (exceto o **Administrador Principal**)
-- ❌ Inativar/ativar a **si mesmo** (pode editar o próprio perfil normalmente)
+- Não: Editar, inativar, ativar ou resetar a senha de **outro admin** (exceto o **Administrador Principal**)
+- Não: Inativar/ativar a **si mesmo** (pode editar o próprio perfil normalmente)
 
 #### Administrador Principal (`is_owner`)
 
@@ -73,16 +74,17 @@ def _can_manage_user(request_user, target, action):
 - Acesso restrito aos campos associados ao usuário
 
 **Permissões Específicas:**
-- ❌ Dashboard (redirecionado para lista de transações)
-- ✅ Criar transações (apenas em seus campos)
-- ✅ Visualizar suas próprias transações
-- ❌ Editar transações
-- ❌ Excluir transações
-- ✅ Exportar relatórios (apenas suas transações)
-- ❌ Gerenciar usuários, campos, igrejas, pastores, categorias
-- ❌ Logs de acesso
-- ❌ Notificações
-- ✅ Filtros limitados (sem filtro por usuário)
+- Não: Dashboard (redirecionado para lista de transações)
+- Sim: Criar transações (apenas em seus campos)
+- Sim: Visualizar suas próprias transações
+- Não: Editar transações
+- Não: Excluir transações
+- Não: Conferência de caixa (badge Conferido/Pendente visível só para leitura)
+- Sim: Exportar relatórios (apenas suas transações)
+- Não: Gerenciar usuários, campos, igrejas, pastores, categorias
+- Não: Logs de acesso
+- Não: Notificações
+- Sim: Filtros limitados (sem filtro por usuário)
 
 **Restrições:**
 - Ve apenas campos associados ao seu perfil
@@ -102,18 +104,19 @@ def _can_manage_user(request_user, target, action):
 - Acesso restrito aos campos associados
 
 **Permissões Específicas:**
-- ❌ Dashboard (redirecionado para lista de transações)
-- ✅ Criar transações (apenas em seus campos)
-- ✅ Visualizar suas próprias transações
-- ✅ Visualizar transações de tesoureiros dos mesmos campos
-- ✅ Visualizar transações de supervisores dos mesmos campos
-- ❌ Editar transações
-- ❌ Excluir transações
-- ✅ Exportar relatórios (suas transações + tesoureiros e supervisores dos mesmos campos)
-- ❌ Gerenciar usuários, campos, igrejas, pastores, categorias
-- ❌ Logs de acesso
-- ❌ Notificações
-- ✅ Filtros limitados (pode filtrar por usuário: ele mesmo, tesoureiros ou supervisores dos mesmos campos)
+- Não: Dashboard (redirecionado para lista de transações)
+- Sim: Criar transações (apenas em seus campos)
+- Sim: Visualizar suas próprias transações
+- Sim: Visualizar transações de tesoureiros dos mesmos campos
+- Sim: Visualizar transações de supervisores dos mesmos campos
+- Não: Editar transações
+- Não: Excluir transações
+- Não: Conferência de caixa (badge Conferido/Pendente visível só para leitura)
+- Sim: Exportar relatórios (suas transações + tesoureiros e supervisores dos mesmos campos)
+- Não: Gerenciar usuários, campos, igrejas, pastores, categorias
+- Não: Logs de acesso
+- Não: Notificações
+- Sim: Filtros limitados (pode filtrar por usuário: ele mesmo, tesoureiros ou supervisores dos mesmos campos)
 
 **Lógica de Acesso:**
 - Supervisor vê transações de tesoureiros e supervisores que:
@@ -332,11 +335,11 @@ if request.path.startswith('/admin/'):
 
 O email definido na variável de ambiente `SYSTEM_HIDDEN_EMAIL` (ex.: `example@example.com`) tem proteções especiais:
 
-- ❌ Não aparece em listagens de usuários
-- ❌ Não pode ser editado
-- ❌ Não pode ser desativado
-- ❌ Não pode ter senha resetada
-- ❌ Logs de acesso não são salvos (método `save()` sobrescrito em `AccessLog`)
+- Não: Não aparece em listagens de usuários
+- Não: Não pode ser editado
+- Não: Não pode ser desativado
+- Não: Não pode ter senha resetada
+- Não: Logs de acesso não são salvos (método `save()` sobrescrito em `AccessLog`)
 
 **Implementação:**
 ```python

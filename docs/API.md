@@ -17,6 +17,7 @@ O Nations Flow expõe várias APIs para comunicação AJAX e integração. As AP
 **Parâmetros de Query:**
 - `category` (int, opcional): ID da categoria
 - `type` (string, opcional): `'income'` ou `'expense'`
+- `checked` (string, opcional): `'checked'` (conferidas) ou `'pending'` (pendentes)
 - `date_from` (string, opcional): Data inicial (YYYY-MM-DD)
 - `date_to` (string, opcional): Data final (YYYY-MM-DD)
 - `field` (int, opcional): ID do campo
@@ -42,6 +43,7 @@ O Nations Flow expõe várias APIs para comunicação AJAX e integração. As AP
       "desc": "Descrição da transação",
       "value": 1000.00,
       "proof": "/media/proofs/2024/01/15/comprovante.pdf",
+      "is_checked": false,
       "user_name": "João Silva",
       "can_edit": true,
       "can_view": true
@@ -61,7 +63,9 @@ O Nations Flow expõe várias APIs para comunicação AJAX e integração. As AP
     "total_transactions": 250,
     "total_income": 50000.00,
     "total_expense": 30000.00,
-    "balance": 20000.00
+    "balance": 20000.00,
+    "balance_cash": 15000.00,
+    "balance_pix": 5000.00
   }
 }
 ```
@@ -107,7 +111,9 @@ fetch('/transactions/api/?page=1&category=1&type=income')
     "total_transactions": 500,
     "total_income": 100000.00,
     "total_expense": 60000.00,
-    "balance": 40000.00
+    "balance": 40000.00,
+    "balance_cash": 30000.00,
+    "balance_pix": 10000.00
   },
   "categories_data": [
     {
@@ -148,13 +154,6 @@ fetch('/transactions/api/?page=1&category=1&type=income')
       "balance": 5000.00
     }
   ],
-  "fields_data": [
-    {
-      "name": "Campo Sul",
-      "income": 30000.00,
-      "expense": 20000.00
-    }
-  ],
   "filters_applied": {
     "date_from": "2024-01-01",
     "date_to": "2024-12-31",
@@ -169,6 +168,61 @@ fetch('/transactions/api/?page=1&category=1&type=income')
 ```
 
 **Observação**: `fields_data` (entradas/saídas por Campo) considera **apenas o período** (`date_from`/`date_to`) e ignora os demais filtros (`category`, `type`, `field`, `church`, `shepherd`, `user`). O escopo de campos respeita o papel do usuário (admin vê todos os campos ativos; tesoureiro/supervisor vê apenas os próprios). Campos sem valores no período são omitidos.
+
+---
+
+#### `POST /transactions/bulk-delete/`
+
+**Descrição**: Exclui múltiplas transações em lote
+
+**Permissão**: Apenas Admin
+
+**Body JSON:**
+```json
+{
+  "ids": [1, 2, 3]
+}
+```
+
+**Resposta JSON:**
+```json
+{
+  "deleted": 3
+}
+```
+
+**Erros:**
+- `400`: JSON ou IDs inválidos
+
+---
+
+#### `POST /transactions/bulk-check/`
+
+**Descrição**: Marca/desmarca múltiplas transações como conferidas (conferência de caixa)
+
+**Permissão**: Apenas Admin
+
+**Body JSON:**
+```json
+{
+  "ids": [1, 2, 3],
+  "checked": true
+}
+```
+
+**Resposta JSON:**
+```json
+{
+  "updated": 3
+}
+```
+
+**Funcionalidade:**
+- Atualiza `is_checked` das transações
+- Registra "Conferiu"/"Desconferiu" no AccessLog por transação
+
+**Erros:**
+- `400`: JSON ou IDs inválidos
 
 ---
 
@@ -490,18 +544,26 @@ fetch('/health/')
 
 ## Padrões de Resposta
 
-### Sucesso
+### Listas AJAX (transações, categorias, etc.)
 ```json
 {
-  "success": true,
-  "data": {...}
+  "transactions": [...],
+  "pagination": {"current_page": 1, "total_pages": 5, "...": "..."},
+  "totals": {"total_transactions": 0, "...": "..."}
 }
 ```
+
+### Ações (bulk, mark-read, reset)
+```json
+{
+  "updated": 3
+}
+```
+ou `{"success": true}` / `{"success": true, "message": "..."}` conforme o endpoint.
 
 ### Erro
 ```json
 {
-  "success": false,
   "error": "Mensagem de erro"
 }
 ```
@@ -520,11 +582,11 @@ fetch('/health/')
 
 ### CSRF Token
 
-Todas as requisições POST requerem token CSRF:
+Todas as requisições POST requerem token CSRF. Como o cookie CSRF é HttpOnly (JS não consegue ler), use a meta tag presente em todas as páginas:
 
 ```javascript
 function getCsrfToken() {
-  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+  return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 }
 
 fetch('/api/endpoint/', {
