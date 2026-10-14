@@ -59,14 +59,11 @@ crontab $CRON_FILE
 echo "✅ Crontab configurado:"
 crontab -l
 
-# Testar comandos manualmente para debug
-echo ""
-echo "🧪 Testando comandos..."
-echo "Testando notificações..."
-/usr/local/bin/run-notifications.sh >> /var/log/cron.log 2>&1 || echo "⚠️ Erro ao testar notificações (verifique logs)"
-
-echo "Testando backup..."
-/usr/local/bin/run-backup.sh >> /var/log/backup.log 2>&1 || echo "⚠️ Erro ao testar backup (verifique logs)"
+# NOTA: sem teste de comandos no boot. As versões anteriores rodavam notificação +
+# backup na subida para debug (2 boots de Django seguidos), o que estourava a RAM
+# do host apertado e gerava "Killed" nos logs. Validar com rodada manual:
+#   docker compose exec cron /usr/local/bin/run-notifications.sh
+#   docker compose exec cron /usr/local/bin/run-backup.sh
 
 echo ""
 echo "📋 Logs disponíveis em:"
