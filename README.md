@@ -31,7 +31,7 @@ Veja `.env.example` para a lista completa de variáveis obrigatórias e opcionai
 docker-compose up -d
 ```
 
-> **Nota**: O banco de dados é inicializado automaticamente pelo container `web` (aplica migrações via `wait-for-database.sh` + `gunicorn`). O comando `backup_postgres` roda diariamente às 02:00 no container `cron`.
+> **Nota**: O banco de dados é inicializado automaticamente pelo container `web` (aplica migrações via `wait-for-database.sh` + `gunicorn`). O backup (`cron/run-backup.sh`, `pg_dump` direto) roda diariamente às 02:00 no container `cron`.
 
 ### Execuções Subsequentes
 

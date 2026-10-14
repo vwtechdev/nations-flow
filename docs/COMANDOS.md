@@ -72,19 +72,15 @@ python manage.py process_repeat_notifications
 - Reagenda baseado em `repeat_frequency`
 - Reseta `is_read=False`
 
-### backup_postgres
+### Backup do banco (shell, sem Django)
 
-Realiza backup do PostgreSQL via pg_dump.
-
-**Uso:**
-```bash
-python manage.py backup_postgres
-```
+O backup diário roda via `cron/run-backup.sh` (`pg_dump` + `gzip` direto, sem boot do Django para economizar RAM no container cron).
 
 **Funcionalidade:**
 - Executa pg_dump via rede Docker
 - Salva em `/backups/` com timestamp
-- Usa variáveis de ambiente do container
+- Remove backups com mais de `BACKUP_RETENTION_DAYS` (padrão 10)
+- Usa variáveis de ambiente do container (`POSTGRES_*`, `BACKUP_RETENTION_DAYS`)
 
 ### cleanup_orphan_files
 

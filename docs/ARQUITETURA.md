@@ -241,8 +241,9 @@ Field (Campo)
 
 ### Comandos de Gerenciamento
 - `process_repeat_notifications`: Processa notificações recorrentes
-- `backup_postgres`: Backup do PostgreSQL
 - `cleanup_orphan_files`: Remove arquivos de mídia órfãos (comprovantes e contratos)
+
+(O backup diário roda via `cron/run-backup.sh` com `pg_dump` direto, sem comando Django.)
 
 ### Uploads e Arquivos
 - `Transaction.proof` em `media/proofs/`, `Church`/`Shepherd.contract` em `media/churches/` e `media/shepherds/`

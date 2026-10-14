@@ -31,7 +31,7 @@ Veja `.env.example` para a lista completa de variáveis obrigatórias e opcionai
 docker-compose up -d
 ```
 
-> **Nota**: O banco de dados é inicializado automaticamente (o container `web` roda `wait-for-database.sh` e aplica migrações via `gunicorn` startup). O container `cron` executa `backup_postgres` diariamente às 02:00 e `process_repeat_notifications` a cada hora.
+> **Nota**: O banco de dados é inicializado automaticamente (o container `web` roda `wait-for-database.sh` e aplica migrações via `gunicorn` startup). O container `cron` executa o backup (`cron/run-backup.sh`, `pg_dump` direto sem Django) diariamente às 02:00 e `process_repeat_notifications` a cada hora.
 
 ### Serviços Docker
 
@@ -129,10 +129,8 @@ python manage.py process_repeat_notifications [--dry-run]
 
 ### Backup de Banco de Dados
 
-Executado diariamente às 02:00 (TZ America/Sao_Paulo):
-```bash
-python manage.py backup_postgres
-```
+Executado diariamente às 02:00 (TZ America/Sao_Paulo) via `cron/run-backup.sh`
+(`pg_dump` + `gzip` direto, sem boot do Django).
 Salva em `/backups/` (volume montado no container cron).
 
 ### Variáveis de Ambiente no Cron
