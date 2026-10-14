@@ -879,6 +879,9 @@ def transaction_list_api(request):
     selected_churches = request.GET.getlist('church')
     selected_shepherds = request.GET.getlist('shepherd')
     selected_users = request.GET.getlist('user')
+    sort = request.GET.get('sort', 'newest')
+    if sort not in ('newest', 'oldest'):
+        sort = 'newest'
     
     # Debug para filtros
     print(f"DEBUG API - search: {search}")
@@ -961,7 +964,8 @@ def transaction_list_api(request):
     end = start + per_page
     
     # Obter transações da página atual (evitar N+1)
-    page_transactions = transactions.select_related('category', 'church', 'church__field', 'church__shepherd', 'user').order_by('-date')[start:end]
+    ordering = 'date' if sort == 'oldest' else '-date'
+    page_transactions = transactions.select_related('category', 'church', 'church__field', 'church__shepherd', 'user').order_by(ordering)[start:end]
     
     # Preparar dados das transações
     transactions_data = []
@@ -998,6 +1002,7 @@ def transaction_list_api(request):
             'has_next': page < total_pages,
             'previous_page': page - 1 if page > 1 else None,
             'next_page': page + 1 if page < total_pages else None,
+            'sort': sort,
         },
         'totals': {
             'total_transactions': total_transactions,

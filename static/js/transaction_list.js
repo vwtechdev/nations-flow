@@ -2,13 +2,15 @@
 let currentPage = 1;
 let currentPerPage = 20;
 const PER_PAGE_STORAGE_KEY = 'per_page_transaction_list';
+let currentSort = 'newest';
+const SORT_STORAGE_KEY = 'sort_transaction_list';
 let currentFilters = {};
 const FILTER_STORAGE_KEY = 'filters_transaction_list';
 let datesExplicit = new URLSearchParams(window.location.search).has('date_from') || new URLSearchParams(window.location.search).has('date_to');
 
 function saveFiltersToStorage() {
     const hasFilters = Object.entries(currentFilters).some(([k, v]) => {
-        if (k === 'page') return false;
+        if (k === 'page' || k === 'sort') return false;
         if (!datesExplicit && (k === 'date_from' || k === 'date_to')) return false;
         if (Array.isArray(v)) return v.length > 0;
         return v && v !== '';
@@ -147,6 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const statusFilter = document.getElementById('statusFilter') || document.getElementById('statusFilter_mobile');
             if (statusFilter) statusFilter.value = urlParams.get('checked');
         }
+        if (urlParams.get('sort') && ['newest', 'oldest'].includes(urlParams.get('sort'))) {
+            const sortSelect = document.getElementById('sortSelect');
+            if (sortSelect) sortSelect.value = urlParams.get('sort');
+        }
         if (urlParams.get('date_from')) {
             const dateFrom = document.getElementById('date_from') || document.getElementById('date_from_mobile');
             if (dateFrom) dateFrom.value = urlParams.get('date_from');
@@ -178,6 +184,37 @@ document.addEventListener('DOMContentLoaded', function() {
         if (select) select.value = String(value);
     }
     initPerPage();
+
+    // Inicializar ordenação (URL > localStorage > newest)
+    function initSort() {
+        const select = document.getElementById('sortSelect');
+        let value = 'newest';
+        const urlValue = new URLSearchParams(window.location.search).get('sort');
+        if (urlValue && ['newest', 'oldest'].includes(urlValue)) {
+            value = urlValue;
+        } else {
+            const saved = localStorage.getItem(SORT_STORAGE_KEY);
+            if (saved && ['newest', 'oldest'].includes(saved)) {
+                value = saved;
+            }
+        }
+        currentSort = value;
+        if (select) select.value = value;
+    }
+    initSort();
+
+    // Handler para mudança de ordenação
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            currentSort = ['newest', 'oldest'].includes(this.value) ? this.value : 'newest';
+            try {
+                localStorage.setItem(SORT_STORAGE_KEY, currentSort);
+            } catch (e) {}
+            currentPage = 1;
+            loadTransactions();
+        });
+    }
 
     // Handler para mudança de itens por página
     const perPageSelect = document.getElementById('perPageSelect');
@@ -439,6 +476,7 @@ window.loadTransactions = function() {
         church: getHiddenArray('church'),
         shepherd: getHiddenArray('shepherd'),
         user: getHiddenArray('user'),
+        sort: currentSort,
         page: currentPage,
         per_page: currentPerPage
     };
@@ -604,9 +642,10 @@ function updateExportButton() {
     const exportXlsxButtonMobile = document.getElementById('exportXlsxButton_mobile');
     
     // Construir query string - arrays vazios não são incluídos
+    // (sort fica fora: exports mantêm a ordem padrão)
     const queryParams = [];
     for (const [key, value] of Object.entries(currentFilters)) {
-        if (key === 'page') continue;
+        if (key === 'page' || key === 'sort') continue;
         if (Array.isArray(value)) {
             // Para arrays, adicionar múltiplos parâmetros
             if (value.length > 0) {
@@ -1026,6 +1065,12 @@ function clearFilters() {
     }
     
     // Limpar filtros específicos
+    currentSort = 'newest';
+    const sortSelectEl = document.getElementById('sortSelect');
+    if (sortSelectEl) sortSelectEl.value = 'newest';
+    try {
+        localStorage.removeItem(SORT_STORAGE_KEY);
+    } catch (e) {}
     currentFilters = {
         search: '',
         category: [],
@@ -1036,6 +1081,7 @@ function clearFilters() {
         church: [],
         shepherd: [],
         user: [],
+        sort: '',
         page: 1
     };
     localStorage.removeItem(FILTER_STORAGE_KEY);
@@ -1044,8 +1090,8 @@ function clearFilters() {
 function updateUrl(currentFilters) {
     try {
         var params = new URLSearchParams();
-        // Ordem padrão: page, per_page, date_from, date_to, depois os demais filtros
-        var order = ['page', 'per_page', 'date_from', 'date_to', 'search', 'category', 'type', 'checked', 'field', 'church', 'shepherd', 'user'];
+        // Ordem padrão: page, per_page, sort, date_from, date_to, depois os demais filtros
+        var order = ['page', 'per_page', 'sort', 'date_from', 'date_to', 'search', 'category', 'type', 'checked', 'field', 'church', 'shepherd', 'user'];
         for (var i = 0; i < order.length; i++) {
             var k = order[i];
             if (!datesExplicit && (k === 'date_from' || k === 'date_to')) continue;

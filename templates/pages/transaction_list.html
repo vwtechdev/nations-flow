@@ -475,6 +475,13 @@
                 <h6 class="m-0 font-weight-bold text-primary order-1 order-md-1">{{ title }}</h6>
                 <span id="pageInfoMobile" class="small text-muted d-md-none ms-auto order-2">Página 1 de 1</span>
                 <div id="paginationHeader" class="d-flex flex-wrap align-items-center gap-2 justify-content-end order-3 order-md-2 d-none">
+                    <div class="input-group input-group-sm order-0 order-md-0" style="width: auto;">
+                        <span class="input-group-text"><i class="bi bi-arrow-down-up"></i></span>
+                        <select id="sortSelect" class="form-select" aria-label="Ordenar por data">
+                            <option value="newest" selected>Mais recentes</option>
+                            <option value="oldest">Mais antigas</option>
+                        </select>
+                    </div>
                     <div class="input-group input-group-sm order-1 order-md-1" style="width: auto;">
                         <span class="input-group-text"><i class="bi bi-list-ul"></i></span>
                         <select id="perPageSelect" class="form-select" aria-label="Itens por página">
